@@ -1,0 +1,6 @@
+node_modules
+out/*
+!out/.gitkeep
+*.png
+*.err
+*.jsonl
