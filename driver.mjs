@@ -119,7 +119,7 @@ async function main() {
         obs.epoch = r.ok ? r.result.epoch : obs.epoch;
       }
       const bkey = obs.run.round + ':' + (obs.run.blind?.name || '');
-      if (bank.key !== bkey) bank = { key: bkey, pred: 0 };
+      if (bank.key !== bkey) bank = { key: bkey, pred: 0, byFam: {}, target: obs.run.blind?.target ?? 0 };
       const before = obs.run.current_score ?? 0;
       jw({ e: 'turn', hand: (obs.hand || []).map(c => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuff ? 'D' : '']), epoch: obs.epoch });
       const t = await playTurn(obs);
@@ -127,11 +127,10 @@ async function main() {
       if (t.r && t.r.ok) {
         if (t.action === 'play') {
           const d = (t.r.result.run?.current_score ?? 0) - before;
-          if (d > 0) {
-            const b = famBase(obs.hands, t.fam);
-            calibrate(t.fam, t.scoring, b.chips, b.mult, d);
-            bank.pred += d;
-          } else bank.pred += t.pred; // this build never exposes current_score; credit prediction estimate
+          const credit = d > 0 ? d : t.pred; // this build never exposes current_score; fall back to prediction estimate
+          if (d > 0) { const b = famBase(obs.hands, t.fam); calibrate(t.fam, t.scoring, b.chips, b.mult, d); }
+          bank.pred += credit;
+          bank.byFam[t.fam] = (bank.byFam[t.fam] || 0) + credit;
         }
         turnPlay = t;
       } else if (t.r) {
@@ -145,6 +144,11 @@ async function main() {
     if (ph === 'overlay') { // unlock/gameover banners: dismiss via any continue-ish control
       const cu = (obs.controls || []).find(c => c.enabled && /continue|done|dismiss/i.test(c.kind + ' ' + (c.label || '')));
       if (cu) { const r = await act({ epoch: obs.epoch, action: 'activate', target: cu.id }); if (!r.ok) await sleep(1200); continue; }
+      const settingsUI = (obs.controls || []).some(c => ['change_tab', 'option_cycle', 'toggle_button'].includes(c.kind)); // stranded in settings/pause menu: back out
+      if (settingsUI) {
+        const bk = (obs.controls || []).find(c => c.enabled && /close|exit|back|resume/i.test(c.kind + ' ' + (c.label || '')));
+        if (bk) { const r = await act({ epoch: obs.epoch, action: 'activate', target: bk.id }); if (!r.ok) await sleep(1200); continue; }
+      }
     }
     if (['menu', 'blind_select', 'options', 'overlay'].includes(ph) && policy().speedSet !== true) {
       if (await setGameSpeed(obs)) continue;
@@ -156,6 +160,14 @@ async function main() {
       if (sel) { const r = await act({ epoch: obs.epoch, action: 'activate', target: sel.id }); if (!r.ok) say('select fail', r.error?.code); continue; }
     }
     if (ph === 'round_won' || (obs.controls || []).some(c => c.enabled && c.kind === 'cash_out')) {
+      // blind cleared => real score >= target; scale jokerFactors up (damped lower bound) so pacing stops thinking we're helpless
+      const tot = Object.values(bank.byFam || {}).reduce((s, v) => s + v, 0);
+      const tgt = bank.target || 0;
+      if (tot > 0 && tgt > tot) {
+        const ratio = Math.min(600 / Math.max(1, Object.values(bank.byFam).length), (tgt / tot) * 0.75);
+        for (const f of Object.keys(bank.byFam)) jokerFactor[f] = Math.max(jokerFactor[f] ?? 1, (jokerFactor[f] ?? 1) * ratio);
+        jw({ e: 'learn', tgt, tot, ratio: +ratio.toFixed(2), fams: bank.byFam });
+      }
       const c = (obs.controls || []).find(c => c.enabled && c.kind === 'cash_out');
       if (c) { const r = await act({ epoch: obs.epoch, action: 'activate', target: c.id }); if (!r.ok) say('cashout fail', r.error?.code); continue; }
     }
