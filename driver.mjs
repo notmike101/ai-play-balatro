@@ -76,13 +76,17 @@ async function handleNewRun(obs) {
   let o = obs;
   for (let round = 0; round < 40; round++) {
     const cycles = (o.controls || []).filter(c => c.enabled && c.kind === 'option_cycle' && Array.isArray(c.options));
+    // NOTE: option_cycle `index` is 1-based (index 1 == options[0]); auto-detect base from a control whose index is valid 0-based.
+    const base0 = cycles.some(c => c.index >= c.options.length);
+    const at = (c, i) => c.options[i - (base0 ? 0 : 1)];
     const deckC = cycles.find(c => c.options.some(s => /Deck/i.test(s)));
     const stakeC = cycles.find(c => c !== deckC && c.options.some(s => /Stake/i.test(s)));
     let c = null, ti = -1;
-    if (deckC && deckC.options[deckC.index] !== wantDeck) { c = deckC; ti = deckC.options.indexOf(wantDeck); }
-    else if (stakeC && stakeC.options[stakeC.index] !== unwon) { c = stakeC; ti = stakeC.options.indexOf(unwon); }
+    if (deckC && at(deckC, deckC.index) !== wantDeck) { c = deckC; ti = deckC.options.indexOf(wantDeck); }
+    else if (stakeC && at(stakeC, stakeC.index) !== unwon) { c = stakeC; ti = stakeC.options.indexOf(unwon); }
     if (!c || ti < 0) break;
-    const n = c.options.length, delta = (ti - c.index + n) % n;
+    const n = c.options.length, cur = ((c.index + (base0 ? 0 : n - 1)) % n);
+    const delta = (ti - cur + n) % n;
     const useCtl = cyclePartner(o.controls, c, delta <= n / 2 ? 'r' : 'l');
     if (!useCtl) break;
     const r = await act({ epoch: o.epoch, action: 'activate', target: useCtl.id });
@@ -90,7 +94,8 @@ async function handleNewRun(obs) {
     o = r.result;
   }
   const stakeCyc = (o.controls || []).find(c => c.kind === 'option_cycle' && Array.isArray(c.options) && c.options.some(s => /Stake/i.test(s)));
-  const stakeLbl = stakeCyc ? stakeCyc.options[stakeCyc.index] : null;
+  const sBase0 = stakeCyc && stakeCyc.index >= stakeCyc.options.length;
+  const stakeLbl = stakeCyc ? stakeCyc.options[stakeCyc.index - (sBase0 ? 0 : 1)] : null;
   const start = (o.controls || []).find(c => c.enabled && /start_setup_run/.test(c.kind));
   if (!start) { jw({ e: 'overlaystuck', controls: (o.controls || []).map(c => c.kind + ':' + c.label) }); return false; }
   const r = await act({ epoch: o.epoch, action: 'activate', target: start.id });
