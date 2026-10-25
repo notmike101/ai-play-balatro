@@ -1,0 +1,36 @@
+{
+  "name": "poker-agent",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint . --max-warnings 0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@notmike101/eslint-config-js": "file:vendor/eslint-configs/notmike101-eslint-config-js-4.1.0.tgz",
+    "@notmike101/eslint-config-jsdoc": "file:vendor/eslint-configs/notmike101-eslint-config-jsdoc-1.0.1.tgz",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "eslint": "^10.13.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsdoc": "^65.4.2",
+    "eslint-plugin-sort-class-members": "^1.22.1",
+    "eslint-plugin-unicorn": "^64.0.0",
+    "globals": "^17.13.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.15.0",
+      "onFail": "download"
+    }
+  },
+  "packageManager": "pnpm@12.15.0",
+  "type": "module",
+  "dependencies": {
+    "ws": "^8.22.0"
+  }
+}
