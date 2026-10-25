@@ -209,7 +209,7 @@ async function main() {
     }
     if (ph === 'menu') {
       const p = (obs.controls || []).find(c => c.enabled && /start_run|setup_run/.test(c.kind));
-      if (p) { await act({ epoch: obs.epoch, action: 'activate', target: p.id }); await sleep(1500); continue; }
+      if (p) { const r = await act({ epoch: obs.epoch, action: 'activate', target: p.id }); if (!r.ok) { say('menu click fail', r.error?.code, 'ctl', p.kind); await sleep(2500); } else await sleep(1500); continue; }
     }
     if (ph === 'game_won' || ph === 'game_over') {
       const nr = (obs.controls || []).find(c => c.enabled); if (nr) { await act({ epoch: obs.epoch, action: 'activate', target: nr.id }); continue; }
