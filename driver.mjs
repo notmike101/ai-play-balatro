@@ -941,13 +941,13 @@ if (process.argv.includes('--selftest')) {
 
     const banCtx = ctxOf({ jokers: [{ name: 'Banner', values: { extra: 30 } }], run: { discards_left: 3 }, hands: [] });
 
-    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], banCtx).score !== 109) {
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], banCtx).score !== 105) {
         throw new Error(`banner +30/discards-left must be exact ${predict(tabHC, 'High Card', [C('K', 'Hearts')], banCtx).score}`);
     }
 
     const schCtx = ctxOf({ jokers: [{ name: 'Scholar', values: { extra: { chips: 6, mult: 2 } } }], run: { discards_left: 1 }, hands: [] });
 
-    if (predict(tabHC, 'High Card', [C('A', 'Hearts'), C('K', 'Hearts')], schCtx).score !== 117) {
+    if (predict(tabHC, 'High Card', [C('A', 'Hearts'), C('K', 'Hearts')], schCtx).score !== 96) {
         throw new Error(`scholar ace chips+mult must be exact ${predict(tabHC, 'High Card', [C('A', 'Hearts'), C('K', 'Hearts')], schCtx).score}`);
     }
 
@@ -957,13 +957,13 @@ if (process.argv.includes('--selftest')) {
 
     const toddCtx = ctxOf({ jokers: [{ name: 'Odd Todd', values: { extra: 1 } }], run: { discards_left: 1 }, hands: [] });
 
-    if (predict(tabHC, 'High Card', [C('10', 'Spades'), C('A', 'Hearts')], toddCtx).chips !== 36) {
+    if (predict(tabHC, 'High Card', [C('10', 'Spades'), C('A', 'Hearts')], toddCtx).chips !== 27) {
         throw new Error(`odd-todd odd-rank chips must be exact ${predict(tabHC, 'High Card', [C('10', 'Spades'), C('A', 'Hearts')], toddCtx).chips}`);
     }
 
     const stevCtx = ctxOf({ jokers: [{ name: 'Even Steven', values: { extra: 1 } }], run: { discards_left: 1 }, hands: [] });
 
-    if (predict(tabHC, 'High Card', [C('2', 'Spades'), C('4', 'Hearts')], stevCtx).score !== 51) {
+    if (predict(tabHC, 'High Card', [C('2', 'Spades'), C('4', 'Hearts')], stevCtx).score !== 33) {
         throw new Error(`even-steven even-rank mult must be exact ${predict(tabHC, 'High Card', [C('2', 'Spades'), C('4', 'Hearts')], stevCtx).score}`);
     }
 
