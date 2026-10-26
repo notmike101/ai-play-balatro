@@ -50,13 +50,6 @@ function fmtRow(r) {
 }
 
 /**
- * Split accuracy rows into over/under prediction extremes, worst first.
- *
- * @param {object[]} rows - joinPlays rows
- * @param {number} [top=8] - cap per side
- * @returns {{over: object[], under: object[]}} q>2 and q<0.5 rows sorted by extremity
- */
-/**
  * Prediction-over-actual quotient for an accuracy row.
  *
  * @param {object} r - joinPlays row
@@ -80,9 +73,6 @@ function extremesOf(rows, top = 8) {
     };
 }
 
-/**
- * Run the synthetic unit check that pins the join semantics.
- */
 /**
  * Decide whether one rid's events form a REAL completed run: both its runstart and runend
  * must be in-window. Reconnect artifacts log sessionstart->runend with no runstart for that rid.
