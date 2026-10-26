@@ -20,6 +20,11 @@ let lastStratFam = null;
 const suitTally = {};
 // restart-unique: seeded from clock, +1 per run
 let runSeq = Math.floor(Date.now() / 1_000);
+
+/* true only when THIS session observed the runstart of the current run: a mid-run
+   restart anchors the in-progress game run without runstart, making its digest
+   partial (lvlAct/plays undercount) — flag it so watchers reject the fragment */
+let sawRunStart = false;
 // learned joker residual belongs to the lineup that produced it; lineup change invalidates all
 let jokSig = null;
 
@@ -409,6 +414,7 @@ async function handleNewRun(obs) {
     runSeq += 1;
     setRunId(runSeq);
     jw({ e: 'runstart', stake: stakeLbl || unwon });
+    sawRunStart = true;
     strat = null;
     bias = {};
     lastStratFam = null;
@@ -748,11 +754,13 @@ async function main() {
                 celestial: A.some((a) => a.startsWith('pack:') && /celestial/i.test(a)),
                 jokers: runStats.jmax,
                 alert: !won && focalLvl !== null && focalLvl <= 2 ? 'LOW_FOCAL_LEVEL' : (!won && (obs.run?.ante ?? 0) >= 5 ? 'CHIP_GAP' : null), /* eslint-disable-line no-nested-ternary */
+                complete: sawRunStart,
             };
 
             jw(dig);
             fs.appendFileSync(path.join(OUT, 'digests.jsonl'), `${JSON.stringify({ t: Date.now(), rid: runSeq, ...dig })}\n`);
             say('DIGEST', `focal=${dig.focal ?? '-'}L${dig.focalLvl ?? '?'} map=[${dig.lvlMap}] rerolls=${dig.rerolls} celestial=${dig.celestial ? 'y' : 'n'} jokers=${dig.jokers} alert=${dig.alert ?? '-'}`);
+            sawRunStart = false;
 
             for (const k of Object.keys(runStats.fams)) {
                 delete runStats.fams[k];
@@ -1471,16 +1479,30 @@ if (process.argv.includes('--selftest')) {
         throw new Error('Neptune/SF with no play evidence must sit below the take bar (d2 case)');
     }
 
-    if (scorePackOffer({ kind: 'planet', name: 'Pluto' }, { fam: 'Straight', needFam: 'Straight', levels: { 'Straight Flush': 1 }, played: { 'Straight Flush': 0, 'Two Pair': 3, 'Full House': 3, Straight: 2 } }) !== 3) {
+    if (scorePackOffer({ kind: 'planet', name: 'Neptune' }, { fam: 'Straight', needFam: 'Straight', levels: { 'Straight Flush': 1 }, played: { 'Straight Flush': 0, 'Two Pair': 3, 'Full House': 3, Straight: 2 } }) !== 3) {
         throw new Error('SF planet with zero plays must not beat TP/3ok evidence (run 1793018705 Neptune pick)');
     }
 
-    if (scorePackOffer({ kind: 'planet', name: 'Venus' }, { fam: 'Flush', needFam: 'Flush', levels: { 'Three of a Kind': 1 }, played: { 'Three of a Kind': 2 } }) !== 4) {
-        throw new Error('2-play grindable evidence must clear the skip bar');
+    if (scorePackOffer({ kind: 'planet', name: 'Neptune' }, { fam: 'Flush', needFam: 'Flush', levels: { 'Straight Flush': 1 }, played: { 'Straight Flush': 4 } }) !== 3) {
+        throw new Error('ungrindable SF never taken off-target even with 4 plays');
     }
 
-    if (scorePackOffer({ kind: 'planet', name: 'Pluto' }, { fam: 'Flush', needFam: 'Flush', levels: { 'Straight Flush': 1 }, played: { 'Straight Flush': 4 } }) !== 3) {
-        throw new Error('ungrindable SF never taken off-target even with 4 plays');
+    /* Baron: X2.5 per held-not-played King (extra:1.5 live); needs pre-play hand */
+    const baronJ = [{ name: 'Baron', values: { x_mult: 1, extra: 1.5 } }];
+    const baronHand = [C('K', 'Hearts'), C('K', 'Spades'), C('Q', 'Diamonds'), C('4', 'Clubs')];
+    const baronPlay = ctxOf({ jokers: baronJ, run: { discards_left: 1 }, hands: [], hand: baronHand });
+    const baronNoHand = ctxOf({ jokers: baronJ, run: { discards_left: 1 }, hands: [], hand: [] });
+
+    if (predict(tabHC, 'High Card', [C('Q', 'Spades')], baronPlay).score !== 94) {
+        throw new Error(`baron two held Kings X2.5^2 must apply, got ${predict(tabHC, 'High Card', [C('Q', 'Spades')], baronPlay).score}`);
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], baronPlay).score !== 38) {
+        throw new Error(`played King must not count for baron (1 held remains, X2.5), got ${predict(tabHC, 'High Card', [C('K', 'Hearts')], baronPlay).score}`);
+    }
+
+    if (predict(tabHC, 'High Card', [C('Q', 'Spades')], baronNoHand).unc !== true) {
+        throw new Error('baron without hand snapshot must mark uncertain, never train a phantom boost');
     }
 
     /* Loyalty Card: X4 exactly on the hand observed with loyalty_remaining=0.
