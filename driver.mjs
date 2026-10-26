@@ -712,6 +712,36 @@ if (process.argv.includes('--selftest')) {
         throw new Error(`cal ${jokerFactor.Pair}`);
     }
 
+    const tHand = [
+        { id: 1, rank: 'K', suit: 'Hearts', actions: ['select'] },
+        { id: 2, rank: 'Q', suit: 'Spades', actions: ['select'] },
+        { id: 3, rank: '2', suit: 'Clubs', actions: ['select'] },
+    ];
+    const tCons = (name) => [{ id: 't1', kind: 'tarot', name, actions: ['use'] }];
+    const tp1 = planTargeted({ hand: tHand, consumables: tCons('The Magician') });
+
+    if (tp1.length !== 1 || tp1[0].cards.length !== 2 || tp1[0].cards[0].id !== 1) {
+        throw new Error(`magician plan ${JSON.stringify(tp1)}`);
+    }
+
+    const tp2 = planTargeted({ hand: tHand, consumables: tCons('Death') });
+
+    if (tp2.length !== 1 || tp2[0].cards.length !== 2 || tp2[0].cards[0].id !== 2 || tp2[0].cards[1].id !== 1) {
+        throw new Error(`death order [sacrifice,best] expected, got ${JSON.stringify(tp2)}`);
+    }
+
+    const tp3 = planTargeted({ hand: tHand, consumables: tCons('The Hierophant') });
+
+    if (tp3.length !== 1 || tp3[0].cards.length !== 2) {
+        throw new Error('hierophant should take 2 cards ungated');
+    }
+
+    const tp4 = planTargeted({ hand: tHand, consumables: tCons('The Tower') });
+
+    if (tp4.length !== 1 || tp4[0].cards.length !== 1 || tp4[0].cards[0].id !== 3) {
+        throw new Error('tower should hit lowest card');
+    }
+
     console.log('SELFTEST OK');
     process.exit(0);
 }
