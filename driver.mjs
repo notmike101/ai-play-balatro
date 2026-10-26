@@ -771,7 +771,7 @@ async function main() {
                 rerolls: A.filter((a) => a === 'reroll').length,
                 celestial: A.some((a) => a.startsWith('pack:') && /celestial/i.test(a)),
                 jokers: runStats.jmax,
-                alert: !won && focalLvl !== null && focalLvl <= 2 ? 'LOW_FOCAL_LEVEL' : (!won && (obs.run?.ante ?? 0) >= 5 ? 'CHIP_GAP' : null), /* eslint-disable-line no-nested-ternary */
+                alert: !won && focalLvl !== null && focalLvl <= 2 && focalPlaysN >= 8 ? 'LOW_FOCAL_LEVEL' : (!won && (obs.run?.ante ?? 0) >= 5 ? 'CHIP_GAP' : null), /* eslint-disable-line no-nested-ternary */
                 complete: sawRunStart,
             };
 
