@@ -845,6 +845,26 @@ if (process.argv.includes('--selftest')) {
         throw new Error('gate rich/poor/hand broken');
     }
 
+    const stHands = ['High Card', 'Pair', 'Flush'].map((name) => ({ name, level: 1, played: 0 }));
+    const stTie = chooseStrategy({ hands: stHands, jokers: [], consumables: [] });
+
+    if (stTie.fam !== null) {
+        throw new Error(`tie must yield null family, got ${stTie.fam}`);
+    }
+
+    const stBias = famBiasMap(stTie, { hands: stHands });
+
+    if (Object.values(stBias).some((v) => v !== 1)) {
+        throw new Error(`no-signal bias must be all 1, got ${JSON.stringify(stBias)}`);
+    }
+
+    stHands[1].played = 1;
+    const stSig = chooseStrategy({ hands: stHands, jokers: [], consumables: [] });
+
+    if (stSig.fam !== 'Pair' || famBiasMap(stSig, { hands: stHands }).Pair !== 1.25) {
+        throw new Error(`played=1 signal must pick Pair with bias 1.25, got ${JSON.stringify(stSig)}`);
+    }
+
     console.log('SELFTEST OK');
     process.exit(0);
 }
