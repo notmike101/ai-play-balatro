@@ -716,6 +716,7 @@ if (process.argv.includes('--selftest')) {
         { id: 1, rank: 'K', suit: 'Hearts', actions: ['select'] },
         { id: 2, rank: 'Q', suit: 'Spades', actions: ['select'] },
         { id: 3, rank: '2', suit: 'Clubs', actions: ['select'] },
+        { id: 4, rank: '7', suit: 'Diamonds', actions: ['select'] },
     ];
     /**
      * One tarot consumable fixture for the plan selftest.
@@ -724,35 +725,41 @@ if (process.argv.includes('--selftest')) {
      * @returns {object[]} consumable list
      */
     const tCons = (name) => [{ id: 't1', kind: 'tarot', name, actions: ['use'] }];
-    const tp1 = planTargeted({ hand: tHand, consumables: tCons('The Magician') });
+    const tpCases = [
+        ['The Magician', tHand, [1, 2]],
+        ['The Empress', tHand, [1, 2]],
+        ['The Hierophant', tHand, [1, 2]],
+        ['The Tower', tHand, [3]],
+        ['The Devil', tHand, [3]],
+        ['Chariot', tHand, [1]],
+        ['Justice', tHand, [1]],
+        ['The Lovers', tHand, [1]],
+        ['Strength', tHand, [1]],
+        ['Fortune', tHand, [1]],
+        ['The Hanged Man', tHand, [3, 4]],
+        ['The Star', tHand, [3, 2, 1]],
+        ['The Moon', tHand, [4, 2, 1]],
+        ['The Sun', tHand, [3, 4, 2]],
+        ['The World', tHand, [3, 4, 1]],
+    ];
 
-    if (tp1.length !== 1 || tp1[0].cards.length !== 2 || tp1[0].cards[0].id !== 1) {
-        throw new Error(`magician plan ${JSON.stringify(tp1)}`);
+    for (const [nm, hand, want] of tpCases) {
+        const p = planTargeted({ hand, consumables: tCons(nm) });
+
+        if (p.length !== 1 || p[0].cards.map((x) => x.id).join() !== want.join()) {
+            throw new Error(`tarot ${nm}: want ${want} got ${JSON.stringify(p[0] && p[0].cards.map((x) => x.id))}`);
+        }
     }
 
-    const tp2 = planTargeted({ hand: tHand, consumables: tCons('Death') });
-
-    if (tp2.length !== 0) {
-        throw new Error(`death must skip when best card is leftmost: ${JSON.stringify(tp2)}`);
+    if (planTargeted({ hand: tHand, consumables: tCons('Death') }).length !== 0) {
+        throw new Error('death must skip when best card is leftmost');
     }
 
-    const tHand2 = [tHand[1], tHand[0], tHand[2]];
-    const tp2b = planTargeted({ hand: tHand2, consumables: tCons('Death') });
+    const tHand2 = [tHand[1], tHand[0], tHand[2], tHand[3]];
+    const pd = planTargeted({ hand: tHand2, consumables: tCons('Death') });
 
-    if (tp2b.length !== 1 || tp2b[0].cards[0].id !== 2 || tp2b[0].cards[1].id !== 1) {
-        throw new Error(`death needs [leftSacrifice,best], got ${JSON.stringify(tp2b)}`);
-    }
-
-    const tp3 = planTargeted({ hand: tHand, consumables: tCons('The Hierophant') });
-
-    if (tp3.length !== 1 || tp3[0].cards.length !== 2) {
-        throw new Error('hierophant should take 2 cards ungated');
-    }
-
-    const tp4 = planTargeted({ hand: tHand, consumables: tCons('The Tower') });
-
-    if (tp4.length !== 1 || tp4[0].cards.length !== 1 || tp4[0].cards[0].id !== 3) {
-        throw new Error('tower should hit lowest card');
+    if (pd.length !== 1 || pd[0].cards[0].id !== 2 || pd[0].cards[1].id !== 1) {
+        throw new Error(`death needs [leftSacrifice,best], got ${JSON.stringify(pd[0] && pd[0].cards.map((x) => x.id))}`);
     }
 
     console.log('SELFTEST OK');
