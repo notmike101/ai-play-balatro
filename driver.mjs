@@ -360,7 +360,8 @@ async function main() {
                 const phantom = d === 0 && t.nullCards > 0;
                 const credit = d !== null ? d : t.pred;
 
-                if (d !== null && d > 0 && t.scoring && t.scoring.length) {
+                // face-down (Fish/Mark) hands score under guessed fams — never fold their deltas into jokerFactor
+                if (d !== null && d > 0 && t.scoring && t.scoring.length && t.nullCards === 0) {
                     const b = famBase(obs.hands, t.fam);
 
                     calibrate(t.fam, t.scoring, b.chips, b.mult, d);
