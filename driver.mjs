@@ -1483,6 +1483,32 @@ if (process.argv.includes('--selftest')) {
         throw new Error('ungrindable SF never taken off-target even with 4 plays');
     }
 
+    /* Loyalty Card: X4 exactly on the hand observed with loyalty_remaining=0.
+       Run 1793000317 boundary: remaining=1 play gained PLAIN (180 vs pred 195),
+       remaining=0 (held across a discard) gained X4 (8064 = 2016x4); after firing
+       the counter resets to `every`. The old "never fires" lesson was WRONG. */
+    const loyFire = ctxOf({ jokers: [{ name: 'Loyalty Card', values: { extra: { Xmult: 4, every: 5 }, loyalty_remaining: 0 } }], run: { discards_left: 1 }, hands: [] });
+    const loyOne = ctxOf({ jokers: [{ name: 'Loyalty Card', values: { extra: { Xmult: 4, every: 5 }, loyalty_remaining: 1 } }], run: { discards_left: 1 }, hands: [] });
+    const loyCycle = ctxOf({ jokers: [{ name: 'Loyalty Card', values: { extra: { Xmult: 4, every: 5 }, loyalty_remaining: 3 } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], loyFire).score !== 60) {
+        throw new Error(`loyalty X4 must fire on remaining=0, got ${predict(tabHC, 'High Card', [C('K', 'Hearts')], loyFire).score}`);
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], loyOne).score !== 15) {
+        throw new Error('remaining=1 play must score PLAIN (measured 180, boost was one hand later)');
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], loyCycle).score !== 15) {
+        throw new Error('loyalty must stay off mid-cycle');
+    }
+
+    const loyBlind = ctxOf({ jokers: [{ name: 'Loyalty Card', values: { extra: { Xmult: 4, every: 5 } } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], loyBlind).unc !== true) {
+        throw new Error('loyalty with no countdown field must mark the row uncertain, not guess');
+    }
+
     console.log('SELFTEST OK');
     process.exit(0);
 }
