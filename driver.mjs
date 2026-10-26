@@ -189,6 +189,20 @@ async function playTurn(obs) {
         }
     }
 
+    /* The Mouth locks the WHOLE blind to the first play's family, and every later
+       off-family hand is rejected for 0: prefer a REPEATABLE family (pairs-based
+       hands recur from the same ranks) within 75% of the best pred. Run 1793026549
+       locked Straight at 2930, could not repeat it, had three hands rejected and
+       died 582 short with Two Pair candidates (2728) sitting in hand */
+    if (mouthOnly && !bank.lockFam && ev.length) {
+        const maxP = Math.max(...ev.map((o) => o.pred));
+        const rep = ev.find((o) => ['Pair', 'Two Pair', 'Three of a Kind', 'Full House', 'Four of a Kind'].includes(o.fam) && o.pred >= maxP * 0.75);
+
+        if (rep && rep !== ev[0]) {
+            ev = [rep, ...ev.filter((o) => o !== rep)];
+        }
+    }
+
     const handsLeft = run.hands_left ?? 1;
     const discLeft = run.discards_left ?? 0;
 
