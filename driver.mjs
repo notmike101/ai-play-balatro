@@ -336,7 +336,7 @@ async function main() {
             }
 
             // targeted tarot on hand cards: select then use (Magician/Empress/Tower/Death/Hierophant)
-            for (const tp of planTargeted(obs, strat)) {
+            for (const tp of planTargeted(obs)) {
                 const rs = await act({ epoch: obs.epoch, action: 'select', cards: tp.cards.map((c) => c.id) });
 
                 if (rs.ok) {
@@ -349,7 +349,7 @@ async function main() {
 
             const before = obs.run.chips ?? null;
 
-            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '']), chips: obs.run.chips, epoch: obs.epoch });
+            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '', (c.enhancements || []).join('|')]), chips: obs.run.chips, epoch: obs.epoch });
             const t = await playTurn(obs);
 
             t.nullCards = (obs.hand || []).filter((c) => !c.rank).length;
