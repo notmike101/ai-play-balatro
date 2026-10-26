@@ -7,7 +7,7 @@ import { OUT, jw, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAK
 import { observe, act } from './lib/link.mjs';
 import { allSubsetEvals, chooseDiscard, calibrate, famBase } from './lib/play.mjs';
 import { handleShop, handlePackOpen, planetFam } from './lib/shop.mjs';
-import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables } from './lib/strategy.mjs';
+import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables, planTargeted } from './lib/strategy.mjs';
 import { setGameSpeed } from './lib/settings.mjs';
 
 // ---------- play-phase decision ----------
@@ -332,6 +332,18 @@ async function main() {
                 if (r.ok) {
                     obs = r.result;
                     jw({ e: 'planet', fam: pf });
+                }
+            }
+
+            // targeted tarot on hand cards: select then use (Magician/Empress/Tower/Death/Hierophant)
+            for (const tp of planTargeted(obs, strat)) {
+                const rs = await act({ epoch: obs.epoch, action: 'select', cards: tp.cards.map((c) => c.id) });
+
+                if (rs.ok) {
+                    const ru = await act({ epoch: rs.result.epoch, action: 'use', target: tp.target });
+
+                    jw({ e: 'tarottarget', why: tp.why, cards: tp.cards.map((c) => `${c.rank}-${String(c.suit || '?')[0]}`), ok: ru.ok, code: ru.error?.code });
+                    obs = ru.ok ? ru.result : rs.result;
                 }
             }
 
