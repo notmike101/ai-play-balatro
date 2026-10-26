@@ -814,8 +814,8 @@ if (process.argv.includes('--selftest')) {
     const ancCtx = ctxOf({ jokers: [{ name: 'Ancient Joker' }], run: { discards_left: 1 }, hands: [] });
     const ancX = knownLayer('Flush', [C('2', 'Hearts'), C('5', 'Hearts'), C('7', 'Hearts'), C('9', 'Hearts'), C('J', 'Hearts')], ancCtx).xm;
 
-    if (Math.abs(ancX - 1.5 ** 5) > 1e-9) {
-        throw new Error(`ancient flush must be deterministic ${ancX}`);
+    if (Math.abs(ancX - (3 + 1.5 ** 5) / 4) > 1e-9) {
+        throw new Error(`ancient flush EV must stay a lottery ${ancX}`);
     }
 
     const ancMix = predict(tabHC, 'Flush', [C('2', 'Hearts'), C('5', 'Hearts'), C('7', 'Spades'), C('9', 'Diamonds'), C('J', 'Clubs')], ancCtx);
@@ -824,8 +824,8 @@ if (process.argv.includes('--selftest')) {
         throw new Error(`ancient mixed EV/unc ${ancMix.xm}/${ancMix.unc}`);
     }
 
-    if (predict(tabHC, 'Flush', [C('2', 'Hearts'), C('5', 'Hearts'), C('7', 'Hearts'), C('9', 'Hearts'), C('J', 'Hearts')], ancCtx).unc !== false) {
-        throw new Error('resolved flush lottery must still update residual');
+    if (predict(tabHC, 'Flush', [C('2', 'Hearts'), C('5', 'Hearts'), C('7', 'Hearts'), C('9', 'Hearts'), C('J', 'Hearts')], ancCtx).unc !== true) {
+        throw new Error('single-suit Ancient play must be marked uncertain (suit match is 1-in-4)');
     }
 
     const fibC = [C('A', 'Hearts'), C('K', 'Hearts')];
