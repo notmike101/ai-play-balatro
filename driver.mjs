@@ -1535,6 +1535,17 @@ if (process.argv.includes('--selftest')) {
         throw new Error('ungrindable SF never taken off-target even with 4 plays');
     }
 
+    /* play-weighted off-target tiers (0565+2315): filler levels must land on the
+       high-volume family, not on a 1-2 play neighbor that got there first */
+    const tierCtx = { fam: 'Pair', needFam: 'Pair', levels: {}, played: { 'Two Pair': 8, Straight: 4, 'Three of a Kind': 0, 'High Card': 1 } };
+
+    if (!(scorePackOffer({ kind: 'planet', name: 'Uranus' }, tierCtx) === 4.6
+        && scorePackOffer({ kind: 'planet', name: 'Saturn' }, tierCtx) === 4.1
+        && scorePackOffer({ kind: 'planet', name: 'Pluto' }, tierCtx) === 4
+        && scorePackOffer({ kind: 'planet', name: 'Venus' }, tierCtx) === 3)) {
+        throw new Error('off-target planet tiers must escalate with plays (TP8:4.6 Str4:4.1 HC1:4 Trips0:3)');
+    }
+
     /* Baron: X(extra)=X1.5 per held-not-played King (312/208=1.50 measured); needs hand */
     const baronJ = [{ name: 'Baron', values: { x_mult: 1, extra: 1.5 } }];
     const baronHand = [C('K', 'Hearts'), C('K', 'Spades'), C('Q', 'Diamonds'), C('4', 'Clubs')];
