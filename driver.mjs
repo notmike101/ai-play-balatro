@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, jokerFactor } from './lib/knowledge.mjs';
 import { observe, act } from './lib/link.mjs';
-import { allSubsetEvals, chooseDiscard, calibrate, famBase } from './lib/play.mjs';
+import { allSubsetEvals, chooseDiscard, calibrate, famBase, ctxOf } from './lib/play.mjs';
 import { handleShop, handlePackOpen, planetFam } from './lib/shop.mjs';
 import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables, planTargeted, gateAllows } from './lib/strategy.mjs';
 import { setGameSpeed } from './lib/settings.mjs';
@@ -20,6 +20,26 @@ let lastStratFam = null;
 const suitTally = {};
 // restart-unique: seeded from clock, +1 per run
 let runSeq = Math.floor(Date.now() / 1_000);
+// learned joker residual belongs to the lineup that produced it; lineup change invalidates all
+let jokSig = null;
+
+/**
+ * Clear joker residuals whenever the joker multiset changes (shop buy/sell, theft, new lineup).
+ * A factor learned under lineup A overpredicts under lineup B - the lethal miss class.
+ *
+ * @param {object} obs - current observation
+ */
+function syncJokerSig(obs) {
+    const sig = (obs.jokers || []).map((j) => j.name).sort().join('+');
+
+    if (sig !== jokSig) {
+        jokSig = sig;
+
+        for (const k of Object.keys(jokerFactor)) {
+            delete jokerFactor[k];
+        }
+    }
+}
 
 /**
  * Highlight cards, activate the matching control.
@@ -93,6 +113,9 @@ async function useTargeted(obs, tp) {
 async function playTurn(obs) {
     const run = obs.run;
     const hand = obs.hand || [];
+
+    syncJokerSig(obs);
+
     /* current_score never updates on this build; estimate banked via our own predictions
        run.chips is this blind's real accumulated score (verified 0->40->54->98 growth, resets per blind); bank pred only as fallback */
     const truthC = run.chips ?? null;
@@ -104,7 +127,7 @@ async function playTurn(obs) {
     const mouthOnly = bname === 'The Mouth';
     const eyeNoRep = bname === 'The Eye';
 
-    let ev = allSubsetEvals(hand, obs.hands, bias);
+    let ev = allSubsetEvals(hand, obs.hands, bias, ctxOf(obs));
 
     if (forced5) {
         ev = ev.filter((o) => o.cards.length === 5);
@@ -200,7 +223,9 @@ async function playTurn(obs) {
  * @returns {(string | null)} family name or null
  */
 function peekPlayFam(obs) {
-    let ev = allSubsetEvals(obs.hand || [], obs.hands, bias);
+    syncJokerSig(obs);
+
+    let ev = allSubsetEvals(obs.hand || [], obs.hands, bias, ctxOf(obs));
 
     if (/Psychic/.test(obs.run?.blind?.name || '')) {
         ev = ev.filter((o) => o.cards.length === 5);
@@ -407,7 +432,7 @@ async function main() {
 
             const before = obs.run.chips ?? null;
 
-            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '', (c.enhancements || []).concat(c.key && c.key !== 'c_base' ? [c.key] : [], c.values && c.values.type ? [`t:${c.values.type}`] : []).join('|')]), chips: obs.run.chips, epoch: obs.epoch, dl: obs.run.discards_left ?? null, hl: obs.run.hands_left ?? null, jk: (obs.jokers || []).map((j) => [j.name, j.value ?? null, j.extra ?? null]), rerolls: obs.run.rerolls_left ?? obs.run.rerolls ?? null });
+            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '', (c.enhancements || []).concat(c.key && c.key !== 'c_base' ? [c.key] : [], c.values && c.values.type ? [`t:${c.values.type}`] : []).join('|')]), chips: obs.run.chips, epoch: obs.epoch, dl: obs.run.discards_left ?? null, hl: obs.run.hands_left ?? null, jk: (obs.jokers || []).map((j) => [j.name, j.value ?? null, j.extra ?? null, j.values ?? null]), rerolls: obs.run.rerolls_left ?? obs.run.rerolls ?? null });
             const t = await playTurn(obs);
 
             t.nullCards = (obs.hand || []).filter((c) => !c.rank).length;
@@ -434,7 +459,7 @@ async function main() {
                 if (d !== null && d > 0 && t.scoring && t.scoring.length && t.nullCards === 0) {
                     const b = famBase(obs.hands, t.fam);
 
-                    calibrate(t.fam, t.scoring, b.chips, b.mult, d);
+                    calibrate(t.fam, t.scoring, b.chips, b.mult, d, ctxOf(obs));
                 }
 
                 if (!phantom) {
@@ -540,19 +565,12 @@ async function main() {
         }
 
         if (ph === 'round_won' || (obs.controls || []).some((c) => c.enabled && c.kind === 'cash_out')) {
-            // blind cleared => real score >= target; scale jokerFactors up (damped lower bound) so pacing stops thinking we're helpless
+            // telemetry only: tot mixes predicted transition credit; jokerFactor learns ONLY from exact same-blind deltas
             const tot = Object.values(bank.byFam || {}).reduce((s, v) => s + v, 0);
             const tgt = bank.target || 0;
 
             if (tot > 0 && tgt > tot) {
-                // ponytail: crude multiplicative bound; ratio cap + factor cap stop runaway compounding (resync absorbs overshoot meanwhile)
-                const ratio = Math.min(2.5, (tgt / tot) * 0.75);
-
-                for (const f of Object.keys(bank.byFam)) {
-                    jokerFactor[f] = Math.min(8, (jokerFactor[f] ?? 1) * ratio);
-                }
-
-                jw({ e: 'learn', tgt, tot, ratio: +ratio.toFixed(2), fams: bank.byFam });
+                jw({ e: 'learn', tgt, tot, ratio: +(tgt / tot).toFixed(2), fams: bank.byFam });
             }
 
             const c = (obs.controls || []).find((c) => c.enabled && c.kind === 'cash_out');
@@ -710,7 +728,7 @@ async function main() {
 // pure-function check (no host child needed until these modules load)
 if (process.argv.includes('--selftest')) {
     const { evalHand } = await import('./lib/eval.mjs');
-    const { predict, calibrate } = await import('./lib/play.mjs');
+    const { predict, calibrate, knownLayer, ctxOf } = await import('./lib/play.mjs');
     /**
      * Build a minimal selectable card for the evaluator selftest.
      *
@@ -774,6 +792,47 @@ if (process.argv.includes('--selftest')) {
 
     if (Math.abs(jokerFactor.Pair - 10) > 1e-9) {
         throw new Error(`cal ${jokerFactor.Pair}`);
+    }
+
+    const tabHC = [{ name: 'High Card', chips: 5, mult: 1, level: 1 }];
+    const kSc = [C('K', 'Hearts')];
+    const obsM0 = ctxOf({ jokers: [{ name: 'Mystic Summit' }, { name: 'Mystic Summit' }], run: { discards_left: 0 }, hands: [] });
+    const obsM3 = ctxOf({ jokers: [{ name: 'Mystic Summit' }, { name: 'Mystic Summit' }], run: { discards_left: 3 }, hands: [] });
+    const mysticOn = predict(tabHC, 'High Card', kSc, obsM0).score;
+    const mysticOff = predict(tabHC, 'High Card', kSc, obsM3).score;
+
+    if (mysticOff !== predict(tabHC, 'High Card', kSc).score || mysticOn !== mysticOff * 31) {
+        throw new Error(`mystic gate/stack ${mysticOn}/${mysticOff}`);
+    }
+
+    const photo = predict(tabHC, 'High Card', kSc, ctxOf({ jokers: [{ name: 'Photograph' }, { name: 'Photograph' }], run: { discards_left: 1 }, hands: [] })).score;
+
+    if (photo !== mysticOff * 4) {
+        throw new Error(`photograph stacking ${photo}`);
+    }
+
+    const ancX = knownLayer('Flush', [C('2', 'Hearts'), C('5', 'Hearts'), C('7', 'Hearts'), C('9', 'Hearts'), C('J', 'Hearts')], ctxOf({ jokers: [{ name: 'Ancient Joker' }], run: { discards_left: 1 }, hands: [] })).xm;
+
+    if (Math.abs(ancX - (3 + 1.5 ** 5) / 4) > 1e-9) {
+        throw new Error(`ancient suit expectation ${ancX}`);
+    }
+
+    const fibC = [C('A', 'Hearts'), C('K', 'Hearts')];
+    const fibP = predict(tabHC, 'High Card', fibC, ctxOf({ jokers: [{ name: 'Fibonacci' }, { name: 'Fibonacci' }], run: { discards_left: 1 }, hands: [] })).score;
+    const fibNone = predict(tabHC, 'High Card', fibC).score;
+
+    if (fibP !== fibNone * 17) {
+        throw new Error(`fibonacci mult stack ${fibP}/${fibNone}`);
+    }
+
+    if (predict(tabHC, 'High Card', kSc, ctxOf({ jokers: [{ name: 'Fibonacci' }], run: { discards_left: 1 }, hands: [] })).score !== mysticOff) {
+        throw new Error('fibonacci fired on non-fib rank');
+    }
+
+    const snova = predict(tabHC, 'High Card', kSc, ctxOf({ jokers: [{ name: 'Supernova' }], run: { discards_left: 1 }, hands: [{ name: 'High Card', played: 4 }] })).score;
+
+    if (snova !== mysticOff * 6) {
+        throw new Error(`supernova current-play off-by-one ${snova}`);
     }
 
     const tHand = [
