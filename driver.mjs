@@ -849,6 +849,10 @@ if (process.argv.includes('--selftest')) {
     process.exit(0);
 }
 
+// anchor pre-run events (resumed run!) to a unique session rid; runstart supersedes it
+setRunId(runSeq);
+jw({ e: 'sessionstart', pid: process.pid });
+
 main().catch((e) => {
     say('FATAL', e.message);
     process.exit(1);
