@@ -3,4 +3,4 @@ out/*
 !out/.gitkeep
 *.png
 *.err
-*.jsonl
+*.jsonlout/
