@@ -869,6 +869,36 @@ if (process.argv.includes('--selftest')) {
         throw new Error(`mixed known/unknown copies ${ancHalfX.xm}/${ancHalfX.unc}`);
     }
 
+    const scaryCtx = ctxOf({ jokers: [{ name: 'Scary Face', values: { extra: 30 } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('J', 'Hearts')], scaryCtx).chips !== 45) {
+        throw new Error(`Scary Face must count Jack as face chip source, got ${predict(tabHC, 'High Card', [C('J', 'Hearts')], scaryCtx).chips}`);
+    }
+
+    if (predict(tabHC, 'High Card', [C('9', 'Hearts')], scaryCtx).chips !== 14) {
+        throw new Error(`Scary Face fired on non-face card`);
+    }
+
+    if (predict(tabHC, 'High Card', [{ rank: 'K', suit: 'Hearts', actions: ['select'], debuffed: true }], scaryCtx).chips !== 5) {
+        throw new Error('Scary Face fired on debuffed face card');
+    }
+
+    const abCtx = ctxOf({
+        jokers: [
+            { name: 'Abstract Joker', values: { extra: 3 } },
+            { name: 'Green Joker', values: { mult: 2, extra: { discard_sub: 1, hand_add: 1 } } },
+            { name: 'Joker' },
+            { name: 'Joker' },
+            { name: 'Joker' },
+        ],
+        run: { discards_left: 1 },
+        hands: [],
+    });
+
+    if (predict(tabHC, 'High Card', kSc, abCtx).score !== mysticOff * 19) {
+        throw new Error(`Abstract 3x5 jokers + Green mult2+hand_add1 must give x19, got ${predict(tabHC, 'High Card', kSc, abCtx).score}`);
+    }
+
     const fibC = [C('A', 'Hearts'), C('K', 'Hearts')];
     const fibP = predict(tabHC, 'High Card', fibC, ctxOf({ jokers: [{ name: 'Fibonacci' }, { name: 'Fibonacci' }], run: { discards_left: 1 }, hands: [] })).score;
     const fibNone = predict(tabHC, 'High Card', fibC).score;
