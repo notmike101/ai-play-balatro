@@ -844,6 +844,31 @@ if (process.argv.includes('--selftest')) {
         throw new Error('single-suit Ancient play must be marked uncertain (suit match is 1-in-4)');
     }
 
+    const hFlush = [C('2', 'Hearts'), C('5', 'Hearts'), C('7', 'Hearts'), C('9', 'Hearts'), C('J', 'Hearts')];
+    const anc2X = knownLayer('Flush', hFlush, ctxOf({ jokers: [{ name: 'Ancient Joker' }, { name: 'Ancient Joker' }], run: { discards_left: 1 }, hands: [] })).xm;
+
+    if (Math.abs(anc2X - ((3 + 1.5 ** 5) / 4) ** 2) > 1e-9) {
+        throw new Error(`two Ancient copies pick suits independently, got ${anc2X}`);
+    }
+
+    const ancKnownX = knownLayer('Flush', hFlush, ctxOf({ jokers: [{ name: 'Ancient Joker', values: { extra: { suit: 'Hearts' } } }], run: { discards_left: 1 }, hands: [] }));
+
+    if (Math.abs(ancKnownX.xm - 1.5 ** 5) > 1e-9 || ancKnownX.unc !== false) {
+        throw new Error(`observed suit must be exact and calibratable ${ancKnownX.xm}/${ancKnownX.unc}`);
+    }
+
+    const ancMissX = knownLayer('Flush', hFlush, ctxOf({ jokers: [{ name: 'Ancient Joker', values: { extra: { suit: 'Spades' } } }], run: { discards_left: 1 }, hands: [] }));
+
+    if (ancMissX.xm !== 1 || ancMissX.unc !== false) {
+        throw new Error(`observed wrong suit must be exact x1 ${ancMissX.xm}`);
+    }
+
+    const ancHalfX = knownLayer('Flush', hFlush, ctxOf({ jokers: [{ name: 'Ancient Joker', values: { extra: { suit: 'Hearts' } } }, { name: 'Ancient Joker' }], run: { discards_left: 1 }, hands: [] }));
+
+    if (Math.abs(ancHalfX.xm - 1.5 ** 5 * (3 + 1.5 ** 5) / 4) > 1e-9 || ancHalfX.unc !== true) {
+        throw new Error(`mixed known/unknown copies ${ancHalfX.xm}/${ancHalfX.unc}`);
+    }
+
     const fibC = [C('A', 'Hearts'), C('K', 'Hearts')];
     const fibP = predict(tabHC, 'High Card', fibC, ctxOf({ jokers: [{ name: 'Fibonacci' }, { name: 'Fibonacci' }], run: { discards_left: 1 }, hands: [] })).score;
     const fibNone = predict(tabHC, 'High Card', fibC).score;
