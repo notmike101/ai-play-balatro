@@ -18,8 +18,6 @@ let strat = null;
 let bias = {};
 let lastStratFam = null;
 const suitTally = {};
-let eyeFams = {};
-let eyeKey = '';
 
 /**
  * Highlight cards, activate the matching control.
@@ -103,12 +101,6 @@ async function playTurn(obs) {
     // Mouth: only ONE hand type all blind (lock it). Eye: NO REPEATING a type (ban played ones)
     const mouthOnly = bname === 'The Mouth';
     const eyeNoRep = bname === 'The Eye';
-    const bkey = `${run.ante}|${bname}`;
-
-    if (eyeKey !== bkey) {
-        eyeKey = bkey;
-        eyeFams = {};
-    }
 
     let ev = allSubsetEvals(hand, obs.hands, bias);
 
@@ -117,7 +109,7 @@ async function playTurn(obs) {
     }
 
     if (eyeNoRep) {
-        const f = ev.filter((o) => !eyeFams[o.fam]);
+        const f = ev.filter((o) => !(bank.eyeFams || {})[o.fam]);
 
         if (f.length) {
             ev = f;
@@ -193,7 +185,7 @@ async function playTurn(obs) {
     }
 
     if (eyeNoRep && r.ok) {
-        eyeFams[best.fam] = 1;
+        (bank.eyeFams = bank.eyeFams || {})[best.fam] = 1;
     }
 
     return { action: 'play', r, fam: best.fam, scoring: best.scoring, pred: best.pred, rem };
@@ -221,7 +213,7 @@ function peekPlayFam(obs) {
     }
 
     if (obs.run?.blind?.name === 'The Eye') {
-        const f = ev.filter((o) => !eyeFams[o.fam]);
+        const f = ev.filter((o) => !(bank.eyeFams || {})[o.fam]);
 
         if (f.length) {
             ev = f;
@@ -346,9 +338,6 @@ async function handleNewRun(obs) {
         delete suitTally[k];
     }
 
-    eyeFams = {};
-    eyeKey = '';
-
     await sleep(800);
 
     return true;
@@ -382,7 +371,7 @@ async function main() {
             const bkey = `${obs.run.round}:${obs.run.blind?.name || ''}`;
 
             if (bank.key !== bkey) {
-                bank = { key: bkey, pred: 0, byFam: {}, target: obs.run.blind?.target ?? 0 };
+                bank = { key: bkey, pred: 0, byFam: {}, eyeFams: {}, target: obs.run.blind?.target ?? 0 };
             }
 
             /* Blind still alive with bank >= target => banked predictions overshot reality (no current_score in this build);
@@ -642,9 +631,6 @@ async function main() {
             for (const k of Object.keys(suitTally)) {
                 delete suitTally[k];
             }
-
-            eyeFams = {};
-            eyeKey = '';
 
             for (const k of Object.keys(jokerFactor)) {
                 delete jokerFactor[k];
