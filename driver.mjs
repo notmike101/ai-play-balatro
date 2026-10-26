@@ -437,6 +437,7 @@ async function main() {
 
             t.nullCards = (obs.hand || []).filter((c) => !c.rank).length;
             jw({ e: 'decide', a: t.action, fam: t.fam, pred: t.pred, rem: t.rem, n: t.n, ante: obs.run?.ante, b: obs.run?.blind?.name, tgt: obs.run?.blind?.target ?? null, rchips: t.r && t.r.ok ? (t.r.result.run?.chips || before) : null, err: t.r && !t.r.ok ? t.r.error?.code : null, ef: Object.keys(bank.eyeFams || {}).join('/'), lk: bank.lockFam || '' });
+
             if (t.r && !t.r.ok) {
                 say('turn err', t.r.error?.code);
                 await sleep(1_500);
@@ -810,10 +811,21 @@ if (process.argv.includes('--selftest')) {
         throw new Error(`photograph stacking ${photo}`);
     }
 
-    const ancX = knownLayer('Flush', [C('2', 'Hearts'), C('5', 'Hearts'), C('7', 'Hearts'), C('9', 'Hearts'), C('J', 'Hearts')], ctxOf({ jokers: [{ name: 'Ancient Joker' }], run: { discards_left: 1 }, hands: [] })).xm;
+    const ancCtx = ctxOf({ jokers: [{ name: 'Ancient Joker' }], run: { discards_left: 1 }, hands: [] });
+    const ancX = knownLayer('Flush', [C('2', 'Hearts'), C('5', 'Hearts'), C('7', 'Hearts'), C('9', 'Hearts'), C('J', 'Hearts')], ancCtx).xm;
 
-    if (Math.abs(ancX - (3 + 1.5 ** 5) / 4) > 1e-9) {
-        throw new Error(`ancient suit expectation ${ancX}`);
+    if (Math.abs(ancX - 1.5 ** 5) > 1e-9) {
+        throw new Error(`ancient flush must be deterministic ${ancX}`);
+    }
+
+    const ancMix = predict(tabHC, 'Flush', [C('2', 'Hearts'), C('5', 'Hearts'), C('7', 'Spades'), C('9', 'Diamonds'), C('J', 'Clubs')], ancCtx);
+
+    if (Math.abs(ancMix.xm - (1.5 ** 2 + 3 * 1.5) / 4) > 1e-9 || ancMix.unc !== true) {
+        throw new Error(`ancient mixed EV/unc ${ancMix.xm}/${ancMix.unc}`);
+    }
+
+    if (predict(tabHC, 'Flush', [C('2', 'Hearts'), C('5', 'Hearts'), C('7', 'Hearts'), C('9', 'Hearts'), C('J', 'Hearts')], ancCtx).unc !== false) {
+        throw new Error('resolved flush lottery must still update residual');
     }
 
     const fibC = [C('A', 'Hearts'), C('K', 'Hearts')];
