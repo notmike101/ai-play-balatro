@@ -998,14 +998,14 @@ if (process.argv.includes('--selftest')) {
         throw new Error(`walkie talkie 10/4 store must be exact ${predict(tabHC, 'High Card', [C('10', 'Hearts'), C('4', 'Spades')], wtCtx).score}`);
     }
 
-    const matCtx = ctxOf({ jokers: [{ name: 'Matador', values: { extra: 8 } }], run: { discards_left: 1 }, hands: [] });
+    const smyCtx = ctxOf({ jokers: [{ name: 'Smiley Face', values: { extra: 5 } }], run: { discards_left: 1 }, hands: [] });
 
-    if (predict(tabHC, 'High Card', [C('J', 'Hearts'), C('9', 'Spades')], matCtx).score !== 216) {
-        throw new Error(`matador face-trigger mult must apply ${predict(tabHC, 'High Card', [C('J', 'Hearts'), C('9', 'Spades')], matCtx).score}`);
+    if (predict(tabHC, 'High Card', [C('J', 'Hearts'), C('9', 'Spades')], smyCtx).score !== 144) {
+        throw new Error(`smiley face per-face mult must apply ${predict(tabHC, 'High Card', [C('J', 'Hearts'), C('9', 'Spades')], smyCtx).score}`);
     }
 
-    if (predict(tabHC, 'High Card', [C('9', 'Hearts'), C('7', 'Spades')], matCtx).score !== 21) {
-        throw new Error(`matador must not fire without face ${predict(tabHC, 'High Card', [C('9', 'Hearts'), C('7', 'Spades')], matCtx).score}`);
+    if (predict(tabHC, 'High Card', [C('9', 'Hearts'), C('7', 'Spades')], smyCtx).score !== 21) {
+        throw new Error(`smiley face must not fire without face ${predict(tabHC, 'High Card', [C('9', 'Hearts'), C('7', 'Spades')], smyCtx).score}`);
     }
 
     const stenCtx = ctxOf({ jokers: [{ name: 'Joker Stencil', values: { x_mult: 4 } }], run: { discards_left: 1 }, hands: [] });
@@ -1192,6 +1192,14 @@ if (process.argv.includes('--selftest')) {
 
     if (stSig.fam !== 'Pair' || famBiasMap(stSig, { hands: stHands }).Pair !== 1.25) {
         throw new Error(`played=1 signal must pick Pair with bias 1.25, got ${JSON.stringify(stSig)}`);
+    }
+
+    const CANON = { Pluto: 'High Card', Mercury: 'Pair', Uranus: 'Two Pair', Venus: 'Three of a Kind', Saturn: 'Straight', Jupiter: 'Flush', Earth: 'Full House', Mars: 'Four of a Kind', Neptune: 'Straight Flush' };
+
+    for (const [p, f] of Object.entries(CANON)) {
+        if (planetFam({ name: p, effect: [] }) !== f) {
+            throw new Error(`planet table rotated: ${p} must level ${f}, got ${planetFam({ name: p, effect: [] })}`);
+        }
     }
 
     console.log('SELFTEST OK');
