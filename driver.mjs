@@ -736,7 +736,7 @@ if (process.argv.includes('--selftest')) {
         ['The Lovers', tHand, [1]],
         ['Strength', tHand, [1]],
         ['Fortune', tHand, [1]],
-        ['The Hanged Man', tHand, [3, 4]],
+        ['The Hanged Man', tHand, [4, 3]],
         ['The Star', tHand, [3, 2, 1]],
         ['The Moon', tHand, [4, 2, 1]],
         ['The Sun', tHand, [3, 4, 2]],
