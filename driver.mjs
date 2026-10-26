@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, jokerFactor } from './lib/knowledge.mjs';
 import { observe, act } from './lib/link.mjs';
-import { allSubsetEvals, chooseDiscard, calibrate, famBase, ctxOf } from './lib/play.mjs';
+import { allSubsetEvals, chooseDiscard, calibrate, famBase, ctxOf, resetRoundReps, recordPlayed, getRoundReps } from './lib/play.mjs';
 import { handleShop, handlePackOpen, planetFam } from './lib/shop.mjs';
 import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables, planTargeted, gateAllows } from './lib/strategy.mjs';
 import { setGameSpeed } from './lib/settings.mjs';
@@ -30,7 +30,7 @@ let jokSig = null;
  * @param {object} obs - current observation
  */
 function syncJokerSig(obs) {
-    const sig = (obs.jokers || []).map((j) => j.name).sort().join('+');
+    const sig = (obs.jokers || []).map((j) => `${j.name}:${JSON.stringify(j.values ?? null)}`).sort().join('+');
 
     if (sig !== jokSig) {
         jokSig = sig;
@@ -158,7 +158,8 @@ async function playTurn(obs) {
     const mouthOnly = bname === 'The Mouth';
     const eyeNoRep = bname === 'The Eye';
 
-    let ev = allSubsetEvals(hand, obs.hands, bias, ctxOf(obs));
+    const preCtx = ctxOf(obs);
+    let ev = allSubsetEvals(hand, obs.hands, bias, preCtx);
 
     if (forced5) {
         ev = ev.filter((o) => o.cards.length === 5);
@@ -213,7 +214,7 @@ async function playTurn(obs) {
 
         const r = await execHighlight(obs, five, 'play_cards_from_highlighted');
 
-        return { action: 'play', r, fam: '?', scoring: [], pred: 0, rem };
+        return { action: 'play', r, fam: '?', scoring: [], pred: 0, rem, preCtx };
     }
 
     const best = ev[0];
@@ -252,6 +253,18 @@ async function playTurn(obs) {
 
     const r = await execHighlight(obs, best.cards, 'play_cards_from_highlighted');
 
+    if (r.ok) {
+        let handsAfter = r.result?.hands;
+
+        if (!Array.isArray(handsAfter) || !handsAfter.length) {
+            const settled = await observe();
+
+            handsAfter = settled.hands;
+        }
+
+        recordPlayed(obs.hands, handsAfter);
+    }
+
     if (mouthOnly && r.ok && !bank.lockFam) {
         bank.lockFam = best.fam;
     }
@@ -260,7 +273,7 @@ async function playTurn(obs) {
         (bank.eyeFams = bank.eyeFams || {})[best.fam] = 1;
     }
 
-    return { action: 'play', r, fam: best.fam, scoring: best.scoring, pred: best.pred, rem };
+    return { action: 'play', r, fam: best.fam, scoring: best.scoring, pred: best.pred, rem, preCtx };
 }
 
 /**
@@ -464,6 +477,7 @@ async function main() {
 
             if (bank.key !== bkey) {
                 bank = { key: bkey, pred: 0, byFam: {}, eyeFams: {}, target: obs.run.blind?.target ?? 0 };
+                resetRoundReps();
             }
 
             /* Blind still alive with bank >= target => banked predictions overshot reality (no current_score in this build);
@@ -532,7 +546,7 @@ async function main() {
                 if (d !== null && d > 0 && t.scoring && t.scoring.length && t.nullCards === 0) {
                     const b = famBase(obs.hands, t.fam);
 
-                    calibrate(t.fam, t.scoring, b.chips, b.mult, d, ctxOf(obs));
+                    calibrate(t.fam, t.scoring, b.chips, b.mult, d, t.preCtx ?? ctxOf(obs));
                 }
 
                 if (!phantom) {
@@ -1141,6 +1155,98 @@ if (process.argv.includes('--selftest')) {
 
     if (predict(tabHC, 'High Card', [C('K', 'Hearts')], ctxOf({ jokers: [{ name: 'Oops! All 6s', values: { x_mult: 1 } }], run: { discards_left: 1 }, hands: [] })).unc !== false) {
         throw new Error('oops all 6s must not mark scores uncertain');
+    }
+
+    /* Card Sharp: X3 only when the GAME counter says the fam was already played this
+       blind; counter-diff (not predicted fam) is the trigger; reset = new blind */
+    resetRoundReps();
+
+    const csJokers = [{ name: 'Card Sharp', values: { x_mult: 1, extra: { Xmult: 3 } } }];
+
+    /**
+     * Fresh Card Sharp prediction context (pl snapshot taken at call time).
+     *
+     * @returns {object} ctx for predict/calibrate
+     */
+    const freshCs = () => ctxOf({ jokers: csJokers, run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], freshCs()).score !== 15) {
+        throw new Error('card sharp must not fire before repeat');
+    }
+
+    recordPlayed([{ name: 'High Card', played: 2 }], [{ name: 'High Card', played: 3 }]);
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], freshCs()).score !== 45) {
+        throw new Error(`card sharp X3 must fire on game-counter repeat ${predict(tabHC, 'High Card', [C('K', 'Hearts')], freshCs()).score}`);
+    }
+
+    if (predict(tabHC, 'Pair', [C('K', 'Hearts'), C('K', 'Spades')], freshCs()).score !== 600) {
+        throw new Error(`card sharp must stay off for non-repeated families ${predict(tabHC, 'Pair', [C('K', 'Hearts'), C('K', 'Spades')], freshCs()).score}`);
+    }
+
+    recordPlayed([], []);
+    recordPlayed([{ name: 'High Card', played: 3 }], [{ name: 'High Card', played: 3 }]);
+    recordPlayed([{ name: 'Pair', played: 1 }], [{ name: 'High Card', played: 3 }]);
+    recordPlayed(undefined, [{ name: 'High Card', played: 9 }]);
+    recordPlayed([{ name: 'High Card', played: 3 }], undefined);
+
+    if (Object.keys(getRoundReps()).join(',') !== 'High Card') {
+        throw new Error(`only strict both-sided deltas may mark repeats: ${JSON.stringify(getRoundReps())}`);
+    }
+
+    resetRoundReps();
+    recordPlayed([{ name: 'High Card', played: 1 }], [{ name: 'High Card', played: 2 }]);
+
+    if (getRoundReps()['High Card'] !== 1) {
+        throw new Error('strict delta must mark exactly the moved family');
+    }
+
+    recordPlayed([{ name: 'High Card', played: 2 }], [{ name: 'High Card', played: 4 }]);
+
+    if (getRoundReps()['High Card'] !== 3) {
+        throw new Error('repeat count accumulates the game counter delta');
+    }
+
+    resetRoundReps();
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], freshCs()).score !== 15) {
+        throw new Error('resetRoundReps must clear the X3 trigger');
+    }
+
+    /* calibration must divide by the PRE-play model: a first occurrence scored 15 with
+       a pre-play ctx trains factor=1, not the 1/3 a post-play ctx gives */
+    const savedHF = jokerFactor['High Card'];
+
+    delete jokerFactor['High Card'];
+
+    resetRoundReps();
+    calibrate('High Card', [C('K', 'Hearts')], 5, 1, 15, freshCs());
+
+    if (Math.abs((jokerFactor['High Card'] ?? 1) - 1) > 1e-9) {
+        throw new Error(`first occurrence must calibrate clean with pre-play ctx, got ${jokerFactor['High Card']}`);
+    }
+
+    resetRoundReps();
+    delete jokerFactor['High Card'];
+    recordPlayed([{ name: 'High Card', played: 0 }], [{ name: 'High Card', played: 1 }]);
+    calibrate('High Card', [C('K', 'Hearts')], 5, 1, 15, freshCs());
+
+    if (Math.abs((jokerFactor['High Card'] ?? 1) - 0.333_333_333_333_333_3) > 1e-9) {
+        throw new Error(`post-play repeat must train 15/45=1/3, got ${jokerFactor['High Card']}`);
+    }
+
+    delete jokerFactor['High Card'];
+    recordPlayed([{ name: 'High Card', played: 0 }], [{ name: 'High Card', played: 1 }]);
+    calibrate('High Card', [C('K', 'Hearts')], 5, 1, 45, freshCs());
+
+    if (Math.abs((jokerFactor['High Card'] ?? 1) - 1) > 1e-9) {
+        throw new Error(`repeat with X3 in pre-ctx must calibrate clean at 45, got ${jokerFactor['High Card']}`);
+    }
+
+    if (savedHF === undefined) {
+        delete jokerFactor['High Card'];
+    } else {
+        jokerFactor['High Card'] = savedHF;
     }
 
     const stenCtx = ctxOf({ jokers: [{ name: 'Joker Stencil', values: { x_mult: 4 } }], run: { discards_left: 1 }, hands: [] });
