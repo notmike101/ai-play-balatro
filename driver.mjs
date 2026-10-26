@@ -1008,6 +1008,43 @@ if (process.argv.includes('--selftest')) {
         throw new Error('misprint expected-value mult must apply');
     }
 
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], ctxOf({ jokers: [{ name: 'Misprint', values: { extra: { max: 23, min: 0 } } }], run: { discards_left: 1 }, hands: [] })).unc !== true) {
+        throw new Error('misprint row must be marked uncertain');
+    }
+
+    jokerFactor.TwoPair = 100;
+    calibrate('Two Pair', [C('K', 'Hearts'), C('K', 'Spades'), C('9', 'Hearts'), C('9', 'Spades')], 24, 2, 9_999, ctxOf({ jokers: [{ name: 'Misprint', values: { extra: { max: 23, min: 0 } } }], run: { discards_left: 3 }, hands: [] }));
+
+    if (jokerFactor.TwoPair !== 100) {
+        throw new Error('misprint rows must not train jokerFactor');
+    }
+
+    delete jokerFactor.TwoPair;
+
+    const trouCtx = ctxOf({ jokers: [{ name: 'Spare Trousers', values: { mult: 2, extra: 2 } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], trouCtx).mult !== 3) {
+        throw new Error(`spare trousers store mult must apply, got ${predict(tabHC, 'High Card', [C('K', 'Hearts')], trouCtx).mult}`);
+    }
+
+    for (const k of Object.keys(jokerFactor)) {
+        delete jokerFactor[k];
+    }
+
+    const tpC = [C('K', 'Hearts'), C('K', 'Spades'), C('9', 'Hearts'), C('9', 'Spades')];
+    const tpT = predict(tabHC, 'Two Pair', tpC, trouCtx);
+
+    if (tpT.mult !== 6 || tpT.chips !== 58) {
+        throw new Error(`spare trousers pending increment must apply to two pair, got ${tpT.mult}/${tpT.chips}`);
+    }
+
+    const prC = [C('K', 'Hearts'), C('K', 'Spades')];
+    const prT = predict(tabHC, 'Pair', prC, trouCtx);
+
+    if (prT.mult !== 4 || prT.chips !== 30) {
+        throw new Error(`spare trousers must not increment on pair, got ${prT.mult}/${prT.chips}`);
+    }
+
     if (predict(tabHC, 'High Card', [C('K', 'Hearts')], ctxOf({ jokers: [{ name: 'Chaos the Clown', values: { extra: 1 } }], run: { discards_left: 1 }, hands: [] })).mult !== 1) {
         throw new Error('random-event joker must stay unmodeled');
     }
