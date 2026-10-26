@@ -411,6 +411,10 @@ async function handleNewRun(obs) {
 
 // ---------- main loop ----------
 let curStake = null;
+
+/* per-run accumulator: digested at game end into out/digests.jsonl (report-only;
+   policy stays untouched — repeated-window signals get a manual one-lever change) */
+const runStats = { lvl: 0, acts: [], jmax: 0 };
 let curDeckKey = null;
 
 /**
@@ -458,6 +462,7 @@ async function main() {
                 if (r.ok) {
                     obs = r.result;
                     jw({ e: 'planet', fam: pf });
+                    runStats.lvl++;
                 }
             }
 
@@ -593,6 +598,7 @@ async function main() {
             const boss = (obs.run?.blinds || []).find((b) => b.slot === 'Boss' && b.state === 'Select');
 
             jw({ e: 'blind', ante: obs.run?.ante, name: obs.run?.blind?.name || (obs.run?.blinds || []).map((b) => `${b.name}:${b.state}`).join(','), target: obs.run?.blind?.target, effect: obs.run?.blind?.effect, jokers: ((obs.jokers || []).map((j) => j.name || j.key)), cons: ((obs.consumables || []).map((c) => `${c.name}[${(c.actions || []).join('/')}]`)), boss: boss && { name: boss.name, effect: boss.effect, target: boss.target } });
+            runStats.jmax = Math.max(runStats.jmax, (obs.jokers || []).length);
 
             if (sel) {
                 const r = await act({ epoch: obs.epoch, action: 'activate', target: sel.id });
@@ -628,7 +634,10 @@ async function main() {
         }
 
         if (ph === 'shop') {
-            let { obs: after } = await handleShop(obs);
+            const shop = await handleShop(obs);
+
+            runStats.acts.push(...(shop.actions || []));
+            let after = shop.obs;
 
             for (let t = 0; t < 8 && ['shop', 'pack'].includes(after.phase || ''); t++) {
                 if ((after.phase || '') === 'pack') {
@@ -675,6 +684,28 @@ async function main() {
             resF.write(`${JSON.stringify({ t: Date.now(), rid: runSeq, won, ante: obs.run?.ante, round: obs.run?.round, stake: stakeNum, stakeLabel: lbl, deck: obs.run?.deck?.key ?? curDeckKey })}\n`);
             jw({ e: 'runend', won, ante: obs.run?.ante, round: obs.run?.round });
             say('RUN END', won ? 'WON' : 'lost', 'ante', obs.run?.ante, 'stake', lbl ?? stakeNum);
+
+            const A = runStats.acts;
+            const PNAME = /^(mercury|venus|earth|mars|jupiter|saturn|uranus|neptune|pluto)/i;
+            const lvl = runStats.lvl + A.filter((a) => /^planet:/.test(a)).length + A.filter((a) => /^take:/.test(a) && PNAME.test(a.slice(5))).length;
+            const dig = {
+                e: 'rundigest',
+                won,
+                ante: obs.run?.ante,
+                lvl,
+                uses: runStats.lvl,
+                rerolls: A.filter((a) => a === 'reroll').length,
+                celestial: A.some((a) => a.startsWith('pack:') && /celestial/i.test(a)),
+                jokers: runStats.jmax,
+                alert: !won && lvl < 3 ? 'LOW_LEVELS' : (!won && (obs.run?.ante ?? 0) >= 5 ? 'CHIP_GAP' : null), /* eslint-disable-line no-nested-ternary */
+            };
+
+            jw(dig);
+            fs.appendFileSync(path.join(OUT, 'digests.jsonl'), `${JSON.stringify({ t: Date.now(), rid: runSeq, ...dig })}\n`);
+            say('DIGEST', `lvl=${lvl} rerolls=${dig.rerolls} celestial=${dig.celestial ? 'y' : 'n'} jokers=${dig.jokers} alert=${dig.alert ?? '-'}`);
+            runStats.lvl = 0;
+            runStats.acts.length = 0;
+            runStats.jmax = 0;
 
             if (won && lbl) {
                 wins.add(lbl);
