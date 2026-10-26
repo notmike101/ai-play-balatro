@@ -494,6 +494,7 @@ async function main() {
             if (strat.fam !== lastStratFam) {
                 lastStratFam = strat.fam;
                 say('strategy:', strat.fam, strat.why);
+                jw({ e: 'strategy', fam: strat.fam, why: strat.why });
             }
 
             const ja = (obs.areas || []).find((a) => a.kind === 'jokers');
