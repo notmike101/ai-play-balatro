@@ -1,4 +1,0 @@
-{"v":1,"event":"listening","url":"ws://127.0.0.1:4180/","origins":["https://poker.gl.ax"]}
-{"v":1,"event":"connected","protocol":"web-balatro-eval","capabilities":["observe","act","describe"],"visibility":"player","session":"8f4320c8-4ef8-4fe5-a566-fad39840116e"}
-{"v":1,"id":"obs-2","ok":true,"result":{"areas":[],"consumables":[],"controls":[{"enabled":true,"id":1,"kind":"start_run","label":"PLAY"},{"enabled":true,"id":2,"kind":"options","label":"OPTIONS"},{"enabled":true,"id":3,"kind":"your_collection","label":"COLLECTION"},{"enabled":true,"id":4,"kind":"language_selection","label":"English"}],"epoch":143,"hand":[],"hands":[],"jokers":[],"pack":[],"phase":"menu","ready":true,"shop":[]}}
-{"v":1,"event":"disconnected","session":"8f4320c8-4ef8-4fe5-a566-fad39840116e","pending":0}
