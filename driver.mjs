@@ -324,7 +324,7 @@ async function main() {
 
             // strategic planet: level the family THIS hand will play; other planets bank for later
             const pf = peekPlayFam(obs);
-            const pc = pf && (obs.consumables || []).find((c) => c.kind === 'planet' && (c.actions || []).includes('use') && planetFam(c) === pf);
+            const pc = pf && (obs.consumables || []).find((c) => String(c.kind || '').toLowerCase() === 'planet' && (c.actions || []).includes('use') && planetFam(c) === pf);
 
             if (pc) {
                 const r = await act({ epoch: obs.epoch, action: 'use', target: pc.id });
@@ -340,10 +340,17 @@ async function main() {
                 const rs = await act({ epoch: obs.epoch, action: 'select', cards: tp.cards.map((c) => c.id) });
 
                 if (rs.ok) {
-                    const ru = await act({ epoch: rs.result.epoch, action: 'use', target: tp.target });
+                    const ci = (rs.result.consumables || []).find((x) => x.id === tp.target);
 
-                    jw({ e: 'tarottarget', why: tp.why, cards: tp.cards.map((c) => `${c.rank}-${String(c.suit || '?')[0]}`), ok: ru.ok, code: ru.error?.code });
-                    obs = ru.ok ? ru.result : rs.result;
+                    if (ci && (ci.actions || []).includes('use')) {
+                        const ru = await act({ epoch: rs.result.epoch, action: 'use', target: tp.target });
+
+                        jw({ e: 'tarottarget', why: tp.why, cards: tp.cards.map((c) => `${c.rank}-${String(c.suit || '?')[0]}`), ok: ru.ok, code: ru.error?.code });
+                        obs = ru.ok ? ru.result : rs.result;
+                    } else {
+                        jw({ e: 'tarottarget', why: tp.why, ok: false, code: 'use-not-enabled', acts: (ci && ci.actions) || [] });
+                        obs = rs.result;
+                    }
                 }
             }
 
@@ -748,6 +755,12 @@ if (process.argv.includes('--selftest')) {
         if (p.length !== 1 || p[0].cards.map((x) => x.id).join() !== want.join()) {
             throw new Error(`tarot ${nm}: want ${want} got ${JSON.stringify(p[0] && p[0].cards.map((x) => x.id))}`);
         }
+    }
+
+    const tpNoUse = planTargeted({ hand: tHand, consumables: [{ id: 't2', kind: 'Tarot', name: 'The Empress', actions: ['sell', 'inspect'], face_down: false }] });
+
+    if (tpNoUse.length !== 1) {
+        throw new Error('held targeted tarot without use action must still plan (select enables it)');
     }
 
     if (planTargeted({ hand: tHand, consumables: tCons('Death') }).length !== 0) {
