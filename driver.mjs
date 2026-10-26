@@ -57,8 +57,10 @@ async function execHighlight(obs, cards, kind) {
 async function playTurn(obs) {
     const run = obs.run;
     const hand = obs.hand || [];
-    // current_score never updates on this build; estimate banked via our own predictions
-    const rem = Math.max(0, (run.blind?.target ?? 0) - bank.pred);
+    /* current_score never updates on this build; estimate banked via our own predictions
+       run.chips is this blind's real accumulated score (verified 0->40->54->98 growth, resets per blind); bank pred only as fallback */
+    const truthC = run.chips ?? null;
+    const rem = truthC !== null ? Math.max(0, (run.blind?.target ?? 0) - truthC) : Math.max(0, (run.blind?.target ?? 0) - bank.pred);
     const bname = run.blind?.name || '';
     // must play exactly 5 cards
     const forced5 = /Psychic/.test(bname);
@@ -96,7 +98,12 @@ async function playTurn(obs) {
             }
         }
 
-        const playable = hand.filter((c) => !c.debuffed && (c.actions || []).includes('select'));
+        /* all cards can be debuffed (bosses) yet stay legally playable for zero — never stall on filtering */
+        let playable = hand.filter((c) => !c.debuffed && (c.actions || []).includes('select'));
+
+        if (!playable.length) {
+            playable = hand.filter((c) => (c.actions || []).includes('select'));
+        }
         const five = playable.slice(0, 5);
 
         if (!five.length) {
@@ -317,12 +324,12 @@ async function main() {
                 const r = await act({ epoch: obs.epoch, action: 'use', target: pc.id });
 
                 if (r.ok) {
-                    obs.epoch = r.result.epoch;
+                    obs = r.result;
                     jw({ e: 'planet', fam: pf });
                 }
             }
 
-            const before = obs.run.current_score ?? 0;
+            const before = obs.run.chips ?? null;
 
             jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '']), chips: obs.run.chips, epoch: obs.epoch });
             const t = await playTurn(obs);
@@ -339,20 +346,22 @@ async function main() {
                     continue;
                 }
             } else if (t.r && t.action === 'play') {
-                const d = (t.r.result.run?.current_score ?? 0) - before;
-                /* this build never exposes current_score; fall back to prediction estimate. Exception: Cerulean-Bell
-                   all-face-down hands score nothing and the observed null-rank hand proves the play never scored — don't bank phantoms. */
+                const afterC = t.r.result.run?.chips ?? null;
+                // real per-hand delta only when both ends observed the same live blind (after < before => blind transitioned)
+                const d = before !== null && afterC !== null && afterC >= before ? afterC - before : null;
+                /* no chips field: fall back to prediction estimate. Exception: Cerulean-Bell all-face-down hands score
+                   nothing and the observed null-rank hand proves the play never scored — don't bank phantoms. */
                 const phantom = d === 0 && t.nullCards > 0;
-                const credit = d > 0 ? d : t.pred;
+                const credit = d !== null ? d : t.pred;
 
-                if (d > 0) {
+                if (d !== null && d > 0) {
                     const b = famBase(obs.hands, t.fam);
 
                     calibrate(t.fam, t.scoring, b.chips, b.mult, d);
                 }
 
                 if (!phantom) {
-                    bank.pred += credit;
+                    bank.pred = afterC !== null ? afterC : bank.pred + credit;
                     bank.byFam[t.fam] = (bank.byFam[t.fam] || 0) + credit;
                 }
 
@@ -423,7 +432,7 @@ async function main() {
             const cLimit = (obs.areas || []).find((a) => a.kind === 'consumeables')?.limit ?? 2;
 
             for (const plan of planConsumables(obs, strat, {
-                phase: ph, money: obs.run?.money, slotFree: (obs.consumables || []).length < cLimit,
+                phase: ph, money: obs.run?.money, slotFreeNumber: cLimit,
             })) {
                 const o2 = await observe();
                 const item = (o2.consumables || []).find((c) => c.id === plan.target);
@@ -662,6 +671,15 @@ if (process.argv.includes('--selftest')) {
     // null-rank cards must not beat the real Kings
     if (fd[0].fam !== 'Pair' || fd[0].pred !== 60) {
         throw new Error(`facedown eval: ${fd[0].fam}/${fd[0].pred}`);
+    }
+
+    const uTab = [{ name: 'Pair', chips: 10, mult: 2, level: 1 }];
+    const uCards = [{ id: 1, rank: 'K', suit: 'Hearts', actions: ['select'] }, { id: 2, rank: 'K', suit: 'Spades', actions: ['select'] }];
+    const uRaw = predict(uTab, 'Pair', uCards).score;
+    const u = allSubsetEvals(uCards, uTab, { Pair: 2 });
+
+    if (u[0].fam !== 'Pair' || u[0].pred !== uRaw || u[0].util !== uRaw * 2) {
+        throw new Error(`util/pred split: pred=${u[0].pred} util=${u[0].util} raw=${uRaw}`);
     }
 
     calibrate('Pair', [C('K', 'H'), C('K', 'S')], 10, 2, 600);
