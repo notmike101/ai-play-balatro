@@ -3,7 +3,7 @@
    Monitor: out/state.json (current summary), out/log.jsonl (per-decision), out/results.jsonl (run outcomes). */
 import fs from 'node:fs';
 import path from 'node:path';
-import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, jokerFactor } from './lib/knowledge.mjs';
+import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, jokerFactor, JUNK_JOKER } from './lib/knowledge.mjs';
 import { observe, act } from './lib/link.mjs';
 import { allSubsetEvals, chooseDiscard, calibrate, famBase, ctxOf, resetRoundReps, syncReps, getRoundReps } from './lib/play.mjs';
 import { handleShop, handlePackOpen, planetFam, nextPlanetNeed } from './lib/shop.mjs';
@@ -1494,6 +1494,10 @@ if (process.argv.includes('--selftest')) {
 
     if (nextPlanetNeed([{ name: 'Flush', level: 9, played: 9 }, { name: 'Straight Flush', level: 3, played: 0 }, { name: 'Pair', level: 1, played: 3 }]) !== null) {
         throw new Error('maxed most-played fam must yield null (level 9 buys nothing), not SF filler');
+    }
+
+    if (!JUNK_JOKER.test('Madness') || JUNK_JOKER.test('Madder Hall')) {
+        throw new Error('Madness must be junk (ate Walkie Talkie + Blue Joker inside two blinds, run 1793029490 died 544 short of small) and its anchored-mad fix must not sweep Madder Hall');
     }
 
     if (scorePackOffer({ kind: 'planet', name: 'Neptune' }, { fam: null, needFam: null, levels: { 'Straight Flush': 1 }, played: { 'Straight Flush': 0 } }) !== 3) {
