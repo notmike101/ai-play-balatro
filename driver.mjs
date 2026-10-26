@@ -494,7 +494,7 @@ async function main() {
             if (strat.fam !== lastStratFam) {
                 lastStratFam = strat.fam;
                 say('strategy:', strat.fam, strat.why);
-                jw({ e: 'strategy', fam: strat.fam, why: strat.why });
+                jw({ e: 'strategy', fam: strat.fam, why: strat.why, in: (obs.hands || []).map((h) => [h.name, h.level ?? 1, h.played ?? 0]), jk: (obs.jokers || []).map((j) => j.name), pl: (obs.consumables || []).filter((c) => String(c.kind).toLowerCase() === 'planet').map((c) => c.name) });
             }
 
             const ja = (obs.areas || []).find((a) => a.kind === 'jokers');
