@@ -998,6 +998,16 @@ if (process.argv.includes('--selftest')) {
         throw new Error(`walkie talkie 10/4 store must be exact ${predict(tabHC, 'High Card', [C('10', 'Hearts'), C('4', 'Spades')], wtCtx).score}`);
     }
 
+    const matCtx = ctxOf({ jokers: [{ name: 'Matador', values: { extra: 8 } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('J', 'Hearts'), C('9', 'Spades')], matCtx).score !== 216) {
+        throw new Error(`matador face-trigger mult must apply ${predict(tabHC, 'High Card', [C('J', 'Hearts'), C('9', 'Spades')], matCtx).score}`);
+    }
+
+    if (predict(tabHC, 'High Card', [C('9', 'Hearts'), C('7', 'Spades')], matCtx).score !== 21) {
+        throw new Error(`matador must not fire without face ${predict(tabHC, 'High Card', [C('9', 'Hearts'), C('7', 'Spades')], matCtx).score}`);
+    }
+
     const stenCtx = ctxOf({ jokers: [{ name: 'Joker Stencil', values: { x_mult: 4 } }], run: { discards_left: 1 }, hands: [] });
 
     if (predict(tabHC, 'High Card', [C('K', 'Hearts')], stenCtx).mult !== 4) {
