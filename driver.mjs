@@ -498,7 +498,7 @@ async function main() {
             t.nullCards = (obs.hand || []).filter((c) => !c.rank).length;
             jw({ e: 'decide', a: t.action, fam: t.fam, pred: t.pred, rem: t.rem, n: t.n, ante: obs.run?.ante, b: obs.run?.blind?.name, tgt: obs.run?.blind?.target ?? null, rchips: t.r && t.r.ok ? (t.r.result.run?.chips || before) : null, err: t.r && !t.r.ok ? t.r.error?.code : null, ef: Object.keys(bank.eyeFams || {}).join('/'), lk: bank.lockFam || '' });
 
-            if (t.action === 'play' && t.fam) {
+            if (t.r?.ok && t.action === 'play' && t.fam) {
                 runStats.fams[t.fam] = (runStats.fams[t.fam] || 0) + 1;
             }
 
@@ -717,7 +717,7 @@ async function main() {
                hands the game scored differently (rid ...180: bot logged TP x4, game rows
                showed Full House played=5, and the Earth take was in fact correct).
                runStats.fams only as fallback when the table lacks counters */
-            const rowsP = (obs.hands || []).map((h) => ({ f: h.name, p: Number(h.played ?? h.times_played) || 0, lvl: Number(h.level) || 1 })).filter((r) => r.f);
+            const rowsP = (obs.hands || []).map((h) => ({ f: h.name, p: Number(h.played ?? h.times_played) || 0, lvl: Number(h.level) || 1 })).filter((r) => r.f && r.p > 0);
             const focal = rowsP.slice().sort((a, b) => b.p - a.p || b.lvl - a.lvl)[0] || null;
             const focalName = focal ? focal.f : (Object.entries(runStats.fams).sort((a, b) => b[1] - a[1])[0] || [null])[0];
             const focalPlaysN = focal ? focal.p : (focalName ? runStats.fams[focalName] : 0); /* eslint-disable-line no-nested-ternary */
