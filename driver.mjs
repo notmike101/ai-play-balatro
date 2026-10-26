@@ -182,7 +182,7 @@ async function playTurn(obs) {
 
     const r = await execHighlight(obs, best.cards, 'play_cards_from_highlighted');
 
-    if (mouthOnly && r.ok) {
+    if (mouthOnly && r.ok && !bank.lockFam) {
         bank.lockFam = best.fam;
     }
 
