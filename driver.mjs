@@ -7,7 +7,7 @@ import { OUT, jw, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAK
 import { observe, act } from './lib/link.mjs';
 import { allSubsetEvals, chooseDiscard, calibrate, famBase } from './lib/play.mjs';
 import { handleShop, handlePackOpen, planetFam } from './lib/shop.mjs';
-import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables, planTargeted } from './lib/strategy.mjs';
+import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables, planTargeted, gateAllows } from './lib/strategy.mjs';
 import { setGameSpeed } from './lib/settings.mjs';
 
 // ---------- play-phase decision ----------
@@ -760,6 +760,14 @@ if (process.argv.includes('--selftest')) {
 
     if (pd.length !== 1 || pd[0].cards[0].id !== 2 || pd[0].cards[1].id !== 1) {
         throw new Error(`death needs [leftSacrifice,best], got ${JSON.stringify(pd[0] && pd[0].cards.map((x) => x.id))}`);
+    }
+
+    if (!gateAllows('always', {}, 0, 1, false, false) || !gateAllows('slot', {}, 0, 1, false, true) || gateAllows('slot', {}, 0, 1, false, false)) {
+        throw new Error('gate always/slot broken');
+    }
+
+    if (gateAllows('rich', {}, 0, 1, false, true) || !gateAllows('rich', {}, 5, 1, false, true) || !gateAllows('poor', {}, 10, 1, false, true) || gateAllows('hand', {}, 5, 1, false, true)) {
+        throw new Error('gate rich/poor/hand broken');
     }
 
     console.log('SELFTEST OK');
