@@ -1471,12 +1471,16 @@ if (process.argv.includes('--selftest')) {
         throw new Error('Neptune/SF with no play evidence must sit below the take bar (d2 case)');
     }
 
-    if (scorePackOffer({ kind: 'planet', name: 'Uranus' }, { fam: null, needFam: null, levels: { 'Two Pair': 1 }, played: { 'Two Pair': 4 } }) !== 8) {
-        throw new Error('planet on 4-play grindable fam still beats skipping the pick');
+    if (scorePackOffer({ kind: 'planet', name: 'Pluto' }, { fam: 'Straight', needFam: 'Straight', levels: { 'Straight Flush': 1 }, played: { 'Straight Flush': 0, 'Two Pair': 3, 'Full House': 3, Straight: 2 } }) !== 3) {
+        throw new Error('SF planet with zero plays must not beat TP/3ok evidence (run 1793018705 Neptune pick)');
     }
 
-    if (scorePackOffer({ kind: 'planet', name: 'Neptune' }, { fam: 'Straight Flush', needFam: 'Straight Flush', levels: {}, played: { 'Straight Flush': 6 } }) !== 30) {
-        throw new Error('needFam planet keeps top score');
+    if (scorePackOffer({ kind: 'planet', name: 'Venus' }, { fam: 'Flush', needFam: 'Flush', levels: { 'Three of a Kind': 1 }, played: { 'Three of a Kind': 2 } }) !== 4) {
+        throw new Error('2-play grindable evidence must clear the skip bar');
+    }
+
+    if (scorePackOffer({ kind: 'planet', name: 'Pluto' }, { fam: 'Flush', needFam: 'Flush', levels: { 'Straight Flush': 1 }, played: { 'Straight Flush': 4 } }) !== 3) {
+        throw new Error('ungrindable SF never taken off-target even with 4 plays');
     }
 
     console.log('SELFTEST OK');
