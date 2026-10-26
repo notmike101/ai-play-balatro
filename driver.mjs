@@ -717,6 +717,12 @@ if (process.argv.includes('--selftest')) {
         { id: 2, rank: 'Q', suit: 'Spades', actions: ['select'] },
         { id: 3, rank: '2', suit: 'Clubs', actions: ['select'] },
     ];
+    /**
+     * One tarot consumable fixture for the plan selftest.
+     *
+     * @param {string} name - tarot display name
+     * @returns {object[]} consumable list
+     */
     const tCons = (name) => [{ id: 't1', kind: 'tarot', name, actions: ['use'] }];
     const tp1 = planTargeted({ hand: tHand, consumables: tCons('The Magician') });
 
@@ -726,8 +732,15 @@ if (process.argv.includes('--selftest')) {
 
     const tp2 = planTargeted({ hand: tHand, consumables: tCons('Death') });
 
-    if (tp2.length !== 1 || tp2[0].cards.length !== 2 || tp2[0].cards[0].id !== 2 || tp2[0].cards[1].id !== 1) {
-        throw new Error(`death order [sacrifice,best] expected, got ${JSON.stringify(tp2)}`);
+    if (tp2.length !== 0) {
+        throw new Error(`death must skip when best card is leftmost: ${JSON.stringify(tp2)}`);
+    }
+
+    const tHand2 = [tHand[1], tHand[0], tHand[2]];
+    const tp2b = planTargeted({ hand: tHand2, consumables: tCons('Death') });
+
+    if (tp2b.length !== 1 || tp2b[0].cards[0].id !== 2 || tp2b[0].cards[1].id !== 1) {
+        throw new Error(`death needs [leftSacrifice,best], got ${JSON.stringify(tp2b)}`);
     }
 
     const tp3 = planTargeted({ hand: tHand, consumables: tCons('The Hierophant') });
