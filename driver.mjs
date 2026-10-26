@@ -1579,6 +1579,17 @@ if (process.argv.includes('--selftest')) {
         throw new Error('off-target planet tiers must escalate with plays (TP8:4.6 Str4:4.1 HC1:4 Trips0:3)');
     }
 
+    /* standard-pack bare enhancers (name-only, no rank): taken 0/9 before the
+       case existed; stone unselectable stays skipped */
+    if (!(scorePackOffer({ kind: 'Enhanced', name: 'Glass Card' }, {}) === 4.3
+        && scorePackOffer({ kind: 'Enhanced', name: 'Mult' }, {}) === 4.2
+        && scorePackOffer({ kind: 'Enhanced', name: 'Steel Card' }, {}) === 5
+        && scorePackOffer({ kind: 'Enhanced', name: 'Lucky Card' }, {}) === 4
+        && scorePackOffer({ kind: 'Enhanced', name: 'Stone Card' }, {}) === 1
+        && scorePackOffer({ kind: 'Default', name: 'Default Base' }, {}) === 1)) {
+        throw new Error('enhanced card offers must score Steel5>Glass4.3>Mult4.2>Lucky4>Stone1');
+    }
+
     /* Baron: X(extra)=X1.5 per held-not-played King (312/208=1.50 measured); needs hand */
     const baronJ = [{ name: 'Baron', values: { x_mult: 1, extra: 1.5 } }];
     const baronHand = [C('K', 'Hearts'), C('K', 'Spades'), C('Q', 'Diamonds'), C('4', 'Clubs')];
