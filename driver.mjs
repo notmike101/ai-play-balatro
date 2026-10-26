@@ -235,16 +235,25 @@ async function playTurn(obs) {
 
         const r = await execHighlight(obs, five, 'play_cards_from_highlighted');
 
+        if (r.ok) {
+            for (const c of five) {
+                antePlayed.add(c.id);
+            }
+        }
+
         return { action: 'play', r, fam: '?', scoring: [], pred: 0, rem, preCtx, boss: bname };
     }
 
     const best = ev[0];
 
-    /* The Pillar debuffs only cards already played this ante; fresh draws stay clean: dump ALL
-       dead cards not needed by best play in ONE action - one-per-discard burned the budget (died a1) */
+    /* The Pillar ("Cards played previously this Ante are debuffed" — ef text) debuffs
+       only cards already played this ante; fresh draws stay clean. The game never sets
+       the debuffed FLAG in obs (verified 40+ runs), so dead cards are tracked locally
+       by card id; dump ALL dead cards not needed by best play in ONE action —
+       one-per-discard burned the budget (died a1) */
     if (bname === 'The Pillar' && discLeft > 0 && best.pred < rem) {
         const inBest = new Set(best.cards.map((c) => c.id));
-        const dead = hand.filter((c) => c.debuffed && (c.actions || []).includes('select') && !inBest.has(c.id));
+        const dead = hand.filter((c) => (antePlayed.has(c.id) || c.debuffed) && (c.actions || []).includes('select') && !inBest.has(c.id));
 
         if (dead.length) {
             const r0 = await execHighlight(obs, dead.slice(0, 5), 'discard_cards_from_highlighted');
@@ -276,6 +285,12 @@ async function playTurn(obs) {
 
     if (r.ok && Array.isArray(r.result?.hands)) {
         syncReps(r.result.hands);
+    }
+
+    if (r.ok) {
+        for (const c of best.cards) {
+            antePlayed.add(c.id);
+        }
     }
 
     if (mouthOnly && r.ok && !bank.lockFam) {
@@ -474,6 +489,9 @@ const runStats = { lvl: 0, acts: [], jmax: 0, fams: {} };
    lvlMap '' though the Saturn take had applied); snapshot backfills it */
 let handsSnap = [];
 let curDeckKey = null;
+/* card ids played earlier THIS ANTE (cleared at every shop, which falls right after
+   each boss = clean ante boundary); The Pillar debuffs exactly these during its blind */
+const antePlayed = new Set();
 
 /**
  * Main observe-and-act loop covering every game phase until the process exits.
@@ -706,6 +724,7 @@ async function main() {
         }
 
         if (ph === 'shop') {
+            antePlayed.clear();
             const shop = await handleShop(obs);
 
             runStats.acts.push(...(shop.actions || []));
