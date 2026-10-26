@@ -264,6 +264,7 @@ async function handleNewRun(obs) {
     strat = null;
     bias = {};
     lastStratFam = null;
+    bank = { key: '', pred: 0 };
     await sleep(800);
 
     return true;
@@ -304,8 +305,8 @@ async function main() {
                true score is < target, so re-anchor to zero instead of believing the phantom "already won". */
             if (bank.target > 0 && bank.pred >= bank.target) {
                 jw({ e: 'resync', bank: Math.round(bank.pred), target: bank.target });
-                // blind alive => real score < target but usually close (we just played toward it); re-anchor at 80%, not zero
-                bank.pred = bank.target * 0.8;
+                // only bound while blind alive: real score < target; keep zero (no real score field in this build)
+                bank.pred = 0;
             }
 
             // strategic planet: level the family THIS hand will play; other planets bank for later
@@ -323,11 +324,11 @@ async function main() {
 
             const before = obs.run.current_score ?? 0;
 
-            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '']), epoch: obs.epoch });
+            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '']), chips: obs.run.chips, epoch: obs.epoch });
             const t = await playTurn(obs);
 
             t.nullCards = (obs.hand || []).filter((c) => !c.rank).length;
-            jw({ e: 'decide', a: t.action, fam: t.fam, pred: t.pred, rem: t.rem, n: t.n, err: t.r && !t.r.ok ? t.r.error?.code : null });
+            jw({ e: 'decide', a: t.action, fam: t.fam, pred: t.pred, rem: t.rem, n: t.n, rchips: t.r && t.r.ok ? t.r.result.run?.chips : null, err: t.r && !t.r.ok ? t.r.error?.code : null });
 
             if (t.r && !t.r.ok) {
                 say('turn err', t.r.error?.code);
@@ -544,6 +545,7 @@ async function main() {
             strat = null;
             bias = {};
             lastStratFam = null;
+            bank = { key: '', pred: 0 };
             const nr = (obs.controls || []).find((c) => c.enabled && /setup_run|new_run/i.test(c.kind));
 
             if (nr) {
