@@ -1561,6 +1561,28 @@ if (process.argv.includes('--selftest')) {
         throw new Error(`candidate path must inherit flint halving, got ${flintRow?.pred} top=${flintEv.slice(0, 4).map((x) => `${x.fam}@${x.cards.length}:${x.pred}`).join(',')}`);
     }
 
+    /* Joker Stencil: Xmult per empty slot, build publishes current X in x_mult
+       (measured: lineup 1/5=>5, 3/3=>3, 5/5=>1) */
+    const sten3 = ctxOf({ jokers: [{ name: 'Joker Stencil', values: { x_mult: 3 } }], run: { discards_left: 1 }, hands: [] });
+    const sten1 = ctxOf({ jokers: [{ name: 'Joker Stencil', values: { x_mult: 1 } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], sten3).score !== 45) {
+        throw new Error(`stencil X3 from values must apply, got ${predict(tabHC, 'High Card', [C('K', 'Hearts')], sten3).score}`);
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], sten1).score !== 15) {
+        throw new Error('stencil X1 must be a no-op');
+    }
+
+    /* Flint rounding PIN (floor): odd base 5/1 -> floor 2/0. Official build floors;
+       THIS build's text says only "halved" — live Flint run must confirm before the
+       calibrate skip is lifted (skip currently protects both directions) */
+    const flintOddTab = [{ name: 'High Card', chips: 5, mult: 1, level: 1 }];
+
+    if (predict(flintOddTab, 'High Card', [C('K', 'Hearts')], flintCtx).score !== 0) {
+        throw new Error(`flint floor pin: (2+11)*0=0, got ${predict(flintOddTab, 'High Card', [C('K', 'Hearts')], flintCtx).score}`);
+    }
+
     /* Loyalty Card: X4 exactly on the hand observed with loyalty_remaining=0.
        Run 1793000317 boundary: remaining=1 play gained PLAIN (180 vs pred 195),
        remaining=0 (held across a discard) gained X4 (8064 = 2016x4); after firing
