@@ -69,7 +69,7 @@ function deckProbe(obs) {
 
     deckProbed = true;
 
-    return `areas=[${areas}] obs_keys=[${keys}] run_keys=[${Object.keys(obs.run || {}).join(',')}]`;
+    return `areas=[${areas}] obs_keys=[${keys}] run_keys=[${Object.keys(obs.run || {}).join(',')}] deck=${JSON.stringify(obs.deck ?? null).slice(0, 420)} run_deck=${JSON.stringify(obs.run?.deck ?? null).slice(0, 160)}`;
 }
 
 /**
