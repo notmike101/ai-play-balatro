@@ -380,7 +380,7 @@ async function main() {
 
             const before = obs.run.chips ?? null;
 
-            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '', (c.enhancements || []).join('|')]), chips: obs.run.chips, epoch: obs.epoch });
+            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '', (c.enhancements || []).concat(c.key && c.key !== 'c_base' ? [c.key] : [], c.values && c.values.type ? ['t:' + c.values.type] : []).join('|')]), chips: obs.run.chips, epoch: obs.epoch });
             const t = await playTurn(obs);
 
             t.nullCards = (obs.hand || []).filter((c) => !c.rank).length;
