@@ -974,6 +974,20 @@ if (process.argv.includes('--selftest')) {
         throw new Error(`vampire store+pending enhanced must give x1.6, got ${predict(tabHC, 'High Card', enhK, vampCtx).mult}`);
     }
 
+    const popv = { bonus: 0, d_size: 0, extra: 4, h_size: 0, mult: 20, perma_bonus: 0, t_chips: 0, t_mult: 0, type: '', x_mult: 1 };
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], ctxOf({ jokers: [{ name: 'Popcorn', values: popv }], run: { discards_left: 1 }, hands: [] })).score !== 315) {
+        throw new Error('popcorn mult store must be exact');
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], ctxOf({ jokers: [{ name: 'Ice Cream', values: { extra: { chip_mod: 5, chips: 100 } } }], run: { discards_left: 1 }, hands: [] })).score !== 115) {
+        throw new Error('ice cream chips store must be exact');
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], ctxOf({ jokers: [{ name: 'Gros Michel', values: { extra: { mult: 15, mult_mod: 1 } } }], run: { discards_left: 1 }, hands: [] })).score !== 240) {
+        throw new Error('gros michel mult store must be exact');
+    }
+
     const fdHand = [
         { id: 71, rank: null, suit: null, actions: ['select'] },
         { id: 72, rank: null, suit: null, actions: ['select'] },
