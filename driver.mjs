@@ -451,6 +451,7 @@ async function handleNewRun(obs) {
     runStats.lvl = 0;
     runStats.acts.length = 0;
     runStats.jmax = 0;
+    handsSnap = [];
     deckProbed = false; /* one probe per RUN: the first Blue snapshot only showed key
                            shapes (deck(6) object at top level, no deck AREA) — reopen
                            the question each run until a probe settles Blue's modelability */
@@ -466,6 +467,11 @@ let curStake = null;
 /* per-run accumulator: digested at game end into out/digests.jsonl (report-only;
    policy stays untouched — repeated-window signals get a manual one-lever change) */
 const runStats = { lvl: 0, acts: [], jmax: 0, fams: {} };
+
+/* last non-empty hands table seen this run: game_over obs sometimes arrives with
+   hands:[] and the digest then lies about levels (run 1793034476: lvlAct 1 with
+   lvlMap '' though the Saturn take had applied); snapshot backfills it */
+let handsSnap = [];
 let curDeckKey = null;
 
 /**
@@ -524,6 +530,10 @@ async function main() {
             }
 
             const before = obs.run.chips ?? null;
+
+            if ((obs.hands || []).length) {
+                handsSnap = obs.hands;
+            }
 
             jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '', (c.enhancements || []).concat(c.key && c.key !== 'c_base' ? [c.key] : [], c.values && c.values.type ? [`t:${c.values.type}`] : []).join('|')]), chips: obs.run.chips, epoch: obs.epoch, dl: obs.run.discards_left ?? null, hl: obs.run.hands_left ?? null, jk: (obs.jokers || []).map((j) => [j.name, j.value ?? null, j.extra ?? null, j.values ?? null]), rerolls: obs.run.rerolls_left ?? obs.run.rerolls ?? null });
             const t = await playTurn(obs);
@@ -754,12 +764,13 @@ async function main() {
                hands the game scored differently (rid ...180: bot logged TP x4, game rows
                showed Full House played=5, and the Earth take was in fact correct).
                runStats.fams only as fallback when the table lacks counters */
-            const rowsP = (obs.hands || []).map((h) => ({ f: h.name, p: Number(h.played ?? h.times_played) || 0, lvl: Number(h.level) || 1 })).filter((r) => r.f && r.p > 0);
+            const H = (obs.hands && obs.hands.length) ? obs.hands : handsSnap;
+            const rowsP = (H || []).map((h) => ({ f: h.name, p: Number(h.played ?? h.times_played) || 0, lvl: Number(h.level) || 1 })).filter((r) => r.f && r.p > 0);
             const focal = rowsP.slice().sort((a, b) => b.p - a.p || b.lvl - a.lvl)[0] || null;
             const focalName = focal ? focal.f : (Object.entries(runStats.fams).sort((a, b) => b[1] - a[1])[0] || [null])[0];
             const focalPlaysN = focal ? focal.p : (focalName ? runStats.fams[focalName] : 0); /* eslint-disable-line no-nested-ternary */
             const focalLvl = focal ? focal.lvl : null;
-            const lvlMap = (obs.hands || []).filter((h) => (Number(h.level) || 1) > 1).map((h) => `${h.name}:${h.level}`).join(',');
+            const lvlMap = (H || []).filter((h) => (Number(h.level) || 1) > 1).map((h) => `${h.name}:${h.level}`).join(',');
             const dig = {
                 e: 'rundigest',
                 won,
@@ -789,6 +800,7 @@ async function main() {
             runStats.lvl = 0;
             runStats.acts.length = 0;
             runStats.jmax = 0;
+            handsSnap = [];
 
             if (won && lbl) {
                 wins.add(lbl);
