@@ -988,6 +988,30 @@ if (process.argv.includes('--selftest')) {
         throw new Error('gros michel mult store must be exact');
     }
 
+    const wtCtx = ctxOf({ jokers: [{ name: 'Walkie Talkie', values: { extra: { chips: 10, mult: 4 } } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts'), C('Q', 'Spades')], wtCtx).score !== 25) {
+        throw new Error(`walkie talkie must not fire on K/Q ${predict(tabHC, 'High Card', [C('K', 'Hearts'), C('Q', 'Spades')], wtCtx).score}`);
+    }
+
+    if (predict(tabHC, 'High Card', [C('10', 'Hearts'), C('4', 'Spades')], wtCtx).score !== 351) {
+        throw new Error(`walkie talkie 10/4 store must be exact ${predict(tabHC, 'High Card', [C('10', 'Hearts'), C('4', 'Spades')], wtCtx).score}`);
+    }
+
+    const stenCtx = ctxOf({ jokers: [{ name: 'Joker Stencil', values: { x_mult: 4 } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], stenCtx).mult !== 4) {
+        throw new Error(`stencil observed x_mult is already live, got ${predict(tabHC, 'High Card', [C('K', 'Hearts')], stenCtx).mult}`);
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], ctxOf({ jokers: [{ name: 'Misprint', values: { extra: { max: 23, min: 0 } } }], run: { discards_left: 1 }, hands: [] })).mult !== 12.5) {
+        throw new Error('misprint expected-value mult must apply');
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], ctxOf({ jokers: [{ name: 'Chaos the Clown', values: { extra: 1 } }], run: { discards_left: 1 }, hands: [] })).mult !== 1) {
+        throw new Error('random-event joker must stay unmodeled');
+    }
+
     const fdHand = [
         { id: 71, rank: null, suit: null, actions: ['select'] },
         { id: 72, rank: null, suit: null, actions: ['select'] },
