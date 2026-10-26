@@ -104,6 +104,7 @@ async function playTurn(obs) {
         if (!playable.length) {
             playable = hand.filter((c) => (c.actions || []).includes('select'));
         }
+
         const five = playable.slice(0, 5);
 
         if (!five.length) {
@@ -112,7 +113,7 @@ async function playTurn(obs) {
 
         const r = await execHighlight(obs, five, 'play_cards_from_highlighted');
 
-        return { action: 'play', r, fam: '?', scoring: 0, pred: 0, rem };
+        return { action: 'play', r, fam: '?', scoring: [], pred: 0, rem };
     }
 
     const best = ev[0];
@@ -272,6 +273,11 @@ async function handleNewRun(obs) {
     bias = {};
     lastStratFam = null;
     bank = { key: '', pred: 0 };
+
+    for (const k of Object.keys(jokerFactor)) {
+        delete jokerFactor[k];
+    }
+
     await sleep(800);
 
     return true;
@@ -354,7 +360,7 @@ async function main() {
                 const phantom = d === 0 && t.nullCards > 0;
                 const credit = d !== null ? d : t.pred;
 
-                if (d !== null && d > 0) {
+                if (d !== null && d > 0 && t.scoring && t.scoring.length) {
                     const b = famBase(obs.hands, t.fam);
 
                     calibrate(t.fam, t.scoring, b.chips, b.mult, d);
@@ -555,6 +561,11 @@ async function main() {
             bias = {};
             lastStratFam = null;
             bank = { key: '', pred: 0 };
+
+            for (const k of Object.keys(jokerFactor)) {
+                delete jokerFactor[k];
+            }
+
             const nr = (obs.controls || []).find((c) => c.enabled && /setup_run|new_run/i.test(c.kind));
 
             if (nr) {
