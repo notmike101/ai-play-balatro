@@ -271,7 +271,7 @@ async function playTurn(obs) {
         (bank.eyeFams = bank.eyeFams || {})[best.fam] = 1;
     }
 
-    return { action: 'play', r, fam: best.fam, scoring: best.scoring, pred: best.pred, rem, preCtx };
+    return { action: 'play', r, fam: best.fam, scoring: best.scoring, cards: best.cards, pred: best.pred, rem, preCtx };
 }
 
 /**
@@ -546,7 +546,7 @@ async function main() {
                 if (d !== null && d > 0 && t.scoring && t.scoring.length && t.nullCards === 0) {
                     const b = famBase(obs.hands, t.fam);
 
-                    calibrate(t.fam, t.scoring, b.chips, b.mult, d, t.preCtx ?? ctxOf(obs));
+                    calibrate(t.fam, t.scoring, b.chips, b.mult, d, { ...(t.preCtx ?? ctxOf(obs)), played: t.cards });
                 }
 
                 if (!phantom) {
@@ -1503,6 +1503,30 @@ if (process.argv.includes('--selftest')) {
 
     if (predict(tabHC, 'High Card', [C('Q', 'Spades')], baronNoHand).unc !== true) {
         throw new Error('baron without hand snapshot must mark uncertain, never train a phantom boost');
+    }
+
+    /* Played NON-SCORING King kicker still leaves the hand: Pair of 8s played with a K
+       kicker must count 1 held King (hand has 2), not 2 — candidate path through
+       allSubsetEvals must disagree between the 2-card and 3-card plays */
+    const baronTab = [{ name: 'Pair', chips: 10, mult: 2, level: 1 }];
+    const baronCards = [
+        { ...C('K', 'Hearts'), id: 0, actions: ['select'] },
+        { ...C('K', 'Spades'), id: 1, actions: ['select'] },
+        { ...C('8', 'Hearts'), id: 2, actions: ['select'] },
+        { ...C('8', 'Spades'), id: 3, actions: ['select'] },
+        { ...C('5', 'Clubs'), id: 4, actions: ['select'] },
+    ];
+    const baronCtx = ctxOf({ jokers: baronJ, run: { discards_left: 1 }, hands: [], hand: baronCards });
+    const baronEv = allSubsetEvals(baronCards, baronTab, null, baronCtx);
+    const pairNoK = baronEv.find((x) => x.fam === 'Pair' && x.cards.length === 2);
+    const pairKick = baronEv.find((x) => x.fam === 'Pair' && x.cards.length === 3 && x.cards.some((c) => c.rank === 'K'));
+
+    if (!pairNoK || pairNoK.pred !== 117) {
+        throw new Error(`baron pair without played K must score 26*2*2.25=117, got ${pairNoK?.pred}`);
+    }
+
+    if (!pairKick || pairKick.pred !== 78) {
+        throw new Error(`baron pair with played K kicker must score 26*2*1.5=78, got ${pairKick?.pred}`);
     }
 
     /* Loyalty Card: X4 exactly on the hand observed with loyalty_remaining=0.
