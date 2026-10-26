@@ -489,7 +489,7 @@ async function main() {
             const sel = (obs.controls || []).find((c) => c.enabled && c.kind === 'select_blind');
             const boss = (obs.run?.blinds || []).find((b) => b.slot === 'Boss' && b.state === 'Select');
 
-            jw({ e: 'blind', ante: obs.run?.ante, name: obs.run?.blind?.name || (obs.run?.blinds || []).map((b) => `${b.name}:${b.state}`).join(','), target: obs.run?.blind?.target, effect: obs.run?.blind?.effect, jokers: ((obs.jokers || []).map((j) => j.name || j.key)), boss: boss && { name: boss.name, effect: boss.effect, target: boss.target } });
+            jw({ e: 'blind', ante: obs.run?.ante, name: obs.run?.blind?.name || (obs.run?.blinds || []).map((b) => `${b.name}:${b.state}`).join(','), target: obs.run?.blind?.target, effect: obs.run?.blind?.effect, jokers: ((obs.jokers || []).map((j) => j.name || j.key)), cons: ((obs.consumables || []).map((c) => `${c.name}[${(c.actions || []).join('/')}]`)), boss: boss && { name: boss.name, effect: boss.effect, target: boss.target } });
 
             if (sel) {
                 const r = await act({ epoch: obs.epoch, action: 'activate', target: sel.id });
