@@ -543,10 +543,11 @@ async function main() {
                 const credit = d !== null ? d : t.pred;
 
                 // face-down (Fish/Mark) hands score under guessed fams — never fold their deltas into jokerFactor
-                /* The Flint's halving is unmodeled and unattributable (measured run 4202:
-                   Straight pred 1009 scored 516, HC pred 180 scored 500) — folding those
-                   deltas would teach jokerFactor the BOSS, not the lineup; skip the blind */
-                if (d !== null && d > 0 && t.scoring && t.scoring.length && t.nullCards === 0 && !/flint/i.test(t.boss || '')) {
+                /* The Flint now halved in predict, but rounding of the halved base is
+                   still guessed — keep skipping its calibration until a live Flint run
+                   matches; The Arm debuffs played-hand LEVELS mid-blind (build text),
+                   whose table reflection is unverified: fold neither into jokerFactor */
+                if (d !== null && d > 0 && t.scoring && t.scoring.length && t.nullCards === 0 && !/flint|the arm/i.test(t.boss || '')) {
                     const b = famBase(obs.hands, t.fam);
 
                     calibrate(t.fam, t.scoring, b.chips, b.mult, d, { ...(t.preCtx ?? ctxOf(obs)), played: t.cards });
@@ -1530,6 +1531,34 @@ if (process.argv.includes('--selftest')) {
 
     if (!pairKick || pairKick.pred !== 78) {
         throw new Error(`baron pair with played K kicker must score 26*2*1.5=78, got ${pairKick?.pred}`);
+    }
+
+    for (const k of Object.keys(jokerFactor)) {
+        delete jokerFactor[k];
+    }
+
+    /* The Flint (build text "Base Chips and Mult are halved"): table base halves,
+       card chips and joker layers join after — run 4202 Straight measured 516 vs the
+       un-halved pred 1009 */
+    const flintTab = [{ name: 'Straight', chips: 30, mult: 4, level: 1 }];
+    const flintCtx = ctxOf({ jokers: [], run: { discards_left: 1, blind: { name: 'The Flint' } }, hands: [] });
+    const flintPlain = ctxOf({ jokers: [], run: { discards_left: 1 }, hands: [] });
+    const flintCards = [C('2', 'Spades'), C('3', 'Hearts'), C('4', 'Spades'), C('5', 'Hearts'), C('6', 'Spades')];
+
+    if (predict(flintTab, 'Straight', flintCards, flintCtx).score !== 70) {
+        throw new Error(`flint must halve base to (15+20)*2=70, got ${predict(flintTab, 'Straight', flintCards, flintCtx).score}`);
+    }
+
+    if (predict(flintTab, 'Straight', flintCards, flintPlain).score !== 200) {
+        throw new Error('non-flint straight must stay (30+20)*4=200');
+    }
+
+    const flintEv = allSubsetEvals(flintCards.map((c, id) => ({ ...c, id, actions: ['select'] })), flintTab, null, flintCtx);
+
+    const flintRow = flintEv.find((x) => x.fam === 'Straight' && x.cards.length === 5);
+
+    if (!flintRow || flintRow.pred !== 70) {
+        throw new Error(`candidate path must inherit flint halving, got ${flintRow?.pred} top=${flintEv.slice(0, 4).map((x) => `${x.fam}@${x.cards.length}:${x.pred}`).join(',')}`);
     }
 
     /* Loyalty Card: X4 exactly on the hand observed with loyalty_remaining=0.
