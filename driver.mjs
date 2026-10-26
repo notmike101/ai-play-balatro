@@ -1487,18 +1487,18 @@ if (process.argv.includes('--selftest')) {
         throw new Error('ungrindable SF never taken off-target even with 4 plays');
     }
 
-    /* Baron: X2.5 per held-not-played King (extra:1.5 live); needs pre-play hand */
+    /* Baron: X(extra)=X1.5 per held-not-played King (312/208=1.50 measured); needs hand */
     const baronJ = [{ name: 'Baron', values: { x_mult: 1, extra: 1.5 } }];
     const baronHand = [C('K', 'Hearts'), C('K', 'Spades'), C('Q', 'Diamonds'), C('4', 'Clubs')];
     const baronPlay = ctxOf({ jokers: baronJ, run: { discards_left: 1 }, hands: [], hand: baronHand });
     const baronNoHand = ctxOf({ jokers: baronJ, run: { discards_left: 1 }, hands: [], hand: [] });
 
-    if (predict(tabHC, 'High Card', [C('Q', 'Spades')], baronPlay).score !== 94) {
-        throw new Error(`baron two held Kings X2.5^2 must apply, got ${predict(tabHC, 'High Card', [C('Q', 'Spades')], baronPlay).score}`);
+    if (predict(tabHC, 'High Card', [C('Q', 'Spades')], baronPlay).score !== 34) {
+        throw new Error(`baron two held Kings X1.5^2 must apply (15*2.25=33.75->34), got ${predict(tabHC, 'High Card', [C('Q', 'Spades')], baronPlay).score}`);
     }
 
-    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], baronPlay).score !== 38) {
-        throw new Error(`played King must not count for baron (1 held remains, X2.5), got ${predict(tabHC, 'High Card', [C('K', 'Hearts')], baronPlay).score}`);
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], baronPlay).score !== 23) {
+        throw new Error(`played King must not count for baron (1 held, 15*1.5=22.5->23), got ${predict(tabHC, 'High Card', [C('K', 'Hearts')], baronPlay).score}`);
     }
 
     if (predict(tabHC, 'High Card', [C('Q', 'Spades')], baronNoHand).unc !== true) {
