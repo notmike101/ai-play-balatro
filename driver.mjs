@@ -18,6 +18,8 @@ let strat = null;
 let bias = {};
 let lastStratFam = null;
 const suitTally = {};
+let eyeFams = {};
+let eyeKey = '';
 
 /**
  * Highlight cards, activate the matching control.
@@ -98,15 +100,31 @@ async function playTurn(obs) {
     const bname = run.blind?.name || '';
     // must play exactly 5 cards
     const forced5 = /Psychic/.test(bname);
-    // only one hand type this blind
-    const oneFam = /^(The Eye|The Mouth)$/.test(bname);
+    // Mouth: only ONE hand type all blind (lock it). Eye: NO REPEATING a type (ban played ones)
+    const mouthOnly = bname === 'The Mouth';
+    const eyeNoRep = bname === 'The Eye';
+    const bkey = `${run.ante}|${bname}`;
+
+    if (eyeKey !== bkey) {
+        eyeKey = bkey;
+        eyeFams = {};
+    }
+
     let ev = allSubsetEvals(hand, obs.hands, bias);
 
     if (forced5) {
         ev = ev.filter((o) => o.cards.length === 5);
     }
 
-    if (oneFam && bank.lockFam) {
+    if (eyeNoRep) {
+        const f = ev.filter((o) => !eyeFams[o.fam]);
+
+        if (f.length) {
+            ev = f;
+        }
+    }
+
+    if (mouthOnly && bank.lockFam) {
         const f = ev.filter((o) => o.fam === bank.lockFam);
 
         if (f.length) {
@@ -170,8 +188,12 @@ async function playTurn(obs) {
 
     const r = await execHighlight(obs, best.cards, 'play_cards_from_highlighted');
 
-    if (oneFam && r.ok) {
+    if (mouthOnly && r.ok) {
         bank.lockFam = best.fam;
+    }
+
+    if (eyeNoRep && r.ok) {
+        eyeFams[best.fam] = 1;
     }
 
     return { action: 'play', r, fam: best.fam, scoring: best.scoring, pred: best.pred, rem };
@@ -190,8 +212,16 @@ function peekPlayFam(obs) {
         ev = ev.filter((o) => o.cards.length === 5);
     }
 
-    if (bank.lockFam) {
+    if (bank.lockFam && obs.run?.blind?.name === 'The Mouth') {
         const f = ev.filter((o) => o.fam === bank.lockFam);
+
+        if (f.length) {
+            ev = f;
+        }
+    }
+
+    if (obs.run?.blind?.name === 'The Eye') {
+        const f = ev.filter((o) => !eyeFams[o.fam]);
 
         if (f.length) {
             ev = f;
@@ -315,6 +345,9 @@ async function handleNewRun(obs) {
     for (const k of Object.keys(suitTally)) {
         delete suitTally[k];
     }
+
+    eyeFams = {};
+    eyeKey = '';
 
     await sleep(800);
 
@@ -609,6 +642,9 @@ async function main() {
             for (const k of Object.keys(suitTally)) {
                 delete suitTally[k];
             }
+
+            eyeFams = {};
+            eyeKey = '';
 
             for (const k of Object.keys(jokerFactor)) {
                 delete jokerFactor[k];
