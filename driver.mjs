@@ -846,6 +846,28 @@ if (process.argv.includes('--selftest')) {
         throw new Error(`supernova current-play off-by-one ${snova}`);
     }
 
+    const madCtx = ctxOf({ jokers: [{ name: 'Mad Joker', values: { type: 'High Card', t_mult: 10 } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', kSc, madCtx).score !== mysticOff * 11) {
+        throw new Error(`mad joker t_mult must be exact ${predict(tabHC, 'High Card', kSc, madCtx).score}`);
+    }
+
+    const kPair = [C('K', 'Hearts'), C('K', 'Spades')];
+
+    if (predict(tabHC, 'Pair', kPair, madCtx).score !== predict(tabHC, 'Pair', kPair).score) {
+        throw new Error('mad joker fired on wrong family');
+    }
+
+    const wrathCtx = ctxOf({ jokers: [{ name: 'Wrathful Joker', values: { extra: { s_mult: 6, suit: 'Hearts' } } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', kSc, wrathCtx).score !== mysticOff * 7) {
+        throw new Error(`wrathful suit mult must be exact ${predict(tabHC, 'High Card', kSc, wrathCtx).score}`);
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Spades')], wrathCtx).score !== mysticOff) {
+        throw new Error('wrathful fired on wrong suit');
+    }
+
     const tHand = [
         { id: 1, rank: 'K', suit: 'Hearts', actions: ['select'] },
         { id: 2, rank: 'Q', suit: 'Spades', actions: ['select'] },
