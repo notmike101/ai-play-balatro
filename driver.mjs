@@ -1008,6 +1008,20 @@ if (process.argv.includes('--selftest')) {
         throw new Error(`smiley face must not fire without face ${predict(tabHC, 'High Card', [C('9', 'Hearts'), C('7', 'Spades')], smyCtx).score}`);
     }
 
+    const obeCtx = ctxOf({ jokers: [{ name: 'Obelisk', values: { x_mult: 3 } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], obeCtx).score !== 45) {
+        throw new Error(`obelisk live x_mult must apply ${predict(tabHC, 'High Card', [C('K', 'Hearts')], obeCtx).score}`);
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], ctxOf({ jokers: [{ name: 'Joker', values: { mult: 4 } }], run: { discards_left: 1 }, hands: [] })).score !== 75) {
+        throw new Error('plain joker static mult must apply');
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], ctxOf({ jokers: [{ name: 'Blue Joker', values: { extra: 2 } }], run: { discards_left: 1 }, hands: [] })).score !== 15) {
+        throw new Error('blue joker must stay unmodeled without deck state');
+    }
+
     const stenCtx = ctxOf({ jokers: [{ name: 'Joker Stencil', values: { x_mult: 4 } }], run: { discards_left: 1 }, hands: [] });
 
     if (predict(tabHC, 'High Card', [C('K', 'Hearts')], stenCtx).mult !== 4) {
