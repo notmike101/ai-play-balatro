@@ -1047,6 +1047,24 @@ if (process.argv.includes('--selftest')) {
         throw new Error('blue joker must stay unmodeled without deck state');
     }
 
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], ctxOf({ jokers: [{ name: 'Constellation', values: { x_mult: 3 } }], run: { discards_left: 1 }, hands: [] })).score !== 45) {
+        throw new Error('constellation live x_mult must apply');
+    }
+
+    const gCtx = ctxOf({ jokers: [{ name: 'Greedy Joker', values: { extra: { s_mult: 3, suit: 'Diamonds' } } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('5', 'Diamonds'), C('9', 'Spades')], gCtx).score !== 76) {
+        throw new Error(`greedy suit mult must apply ${predict(tabHC, 'High Card', [C('5', 'Diamonds'), C('9', 'Spades')], gCtx).score}`);
+    }
+
+    if (predict(tabHC, 'High Card', [C('5', 'Hearts'), C('9', 'Spades')], gCtx).score !== 19) {
+        throw new Error('greedy must ignore non-diamond cards');
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], ctxOf({ jokers: [{ name: 'Oops! All 6s', values: { x_mult: 1 } }], run: { discards_left: 1 }, hands: [] })).unc !== false) {
+        throw new Error('oops all 6s must not mark scores uncertain');
+    }
+
     const stenCtx = ctxOf({ jokers: [{ name: 'Joker Stencil', values: { x_mult: 4 } }], run: { discards_left: 1 }, hands: [] });
 
     if (predict(tabHC, 'High Card', [C('K', 'Hearts')], stenCtx).mult !== 4) {
