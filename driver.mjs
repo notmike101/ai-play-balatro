@@ -6,8 +6,8 @@ import path from 'node:path';
 import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, jokerFactor } from './lib/knowledge.mjs';
 import { observe, act } from './lib/link.mjs';
 import { allSubsetEvals, chooseDiscard, calibrate, famBase, ctxOf, resetRoundReps, syncReps, getRoundReps } from './lib/play.mjs';
-import { handleShop, handlePackOpen, planetFam } from './lib/shop.mjs';
-import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables, planTargeted, gateAllows } from './lib/strategy.mjs';
+import { handleShop, handlePackOpen, planetFam, nextPlanetNeed } from './lib/shop.mjs';
+import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables, planTargeted, gateAllows, scorePackOffer } from './lib/strategy.mjs';
 import { setGameSpeed } from './lib/settings.mjs';
 
 // ---------- play-phase decision ----------
@@ -1445,6 +1445,38 @@ if (process.argv.includes('--selftest')) {
         if (planetFam({ name: p, effect: [] }) !== f) {
             throw new Error(`planet table rotated: ${p} must level ${f}, got ${planetFam({ name: p, effect: [] })}`);
         }
+    }
+
+    /* planet targeting (window forensics d1/d2): levels follow GRINDABLE play,
+       never unplayable fams, no pre-evidence junk, no target = null = no purchase */
+    const hp = [{ name: 'Two Pair', level: 1, played: 2 }, { name: 'High Card', level: 1, played: 0 }];
+
+    if (nextPlanetNeed(hp)?.f !== 'Two Pair') {
+        throw new Error(`maxP>=2 must target most-played grindable, got ${JSON.stringify(nextPlanetNeed(hp))}`);
+    }
+
+    if (nextPlanetNeed([{ name: 'Straight Flush', level: 1, played: 3 }, { name: 'Pair', level: 1, played: 1 }]) !== null) {
+        throw new Error('SF-led play with <2 grindable plays must NOT target the unplayable fam');
+    }
+
+    if (nextPlanetNeed([{ name: 'Flush', level: 5, played: 9 }, { name: 'Straight Flush', level: 3, played: 0 }, { name: 'Pair', level: 1, played: 3 }])?.f !== 'Flush') {
+        throw new Error(`maxP over grindable fams must win, got ${JSON.stringify(nextPlanetNeed([{ name: 'Flush', level: 5, played: 9 }, { name: 'Straight Flush', level: 3, played: 0 }, { name: 'Pair', level: 1, played: 3 }]))}`);
+    }
+
+    if (nextPlanetNeed([{ name: 'Flush', level: 9, played: 9 }, { name: 'Straight Flush', level: 3, played: 0 }, { name: 'Pair', level: 1, played: 3 }]) !== null) {
+        throw new Error('maxed most-played fam must yield null (level 9 buys nothing), not SF filler');
+    }
+
+    if (scorePackOffer({ kind: 'planet', name: 'Neptune' }, { fam: null, needFam: null, levels: { 'Straight Flush': 1 }, played: { 'Straight Flush': 0 } }) !== 3) {
+        throw new Error('Neptune/SF with no play evidence must sit below the take bar (d2 case)');
+    }
+
+    if (scorePackOffer({ kind: 'planet', name: 'Uranus' }, { fam: null, needFam: null, levels: { 'Two Pair': 1 }, played: { 'Two Pair': 4 } }) !== 8) {
+        throw new Error('planet on 4-play grindable fam still beats skipping the pick');
+    }
+
+    if (scorePackOffer({ kind: 'planet', name: 'Neptune' }, { fam: 'Straight Flush', needFam: 'Straight Flush', levels: {}, played: { 'Straight Flush': 6 } }) !== 30) {
+        throw new Error('needFam planet keeps top score');
     }
 
     console.log('SELFTEST OK');
