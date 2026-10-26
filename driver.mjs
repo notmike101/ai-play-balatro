@@ -415,6 +415,14 @@ async function handleNewRun(obs) {
         delete suitTally[k];
     }
 
+    for (const k of Object.keys(runStats.fams)) {
+        delete runStats.fams[k];
+    }
+
+    runStats.lvl = 0;
+    runStats.acts.length = 0;
+    runStats.jmax = 0;
+
     await sleep(800);
 
     return true;
@@ -425,7 +433,7 @@ let curStake = null;
 
 /* per-run accumulator: digested at game end into out/digests.jsonl (report-only;
    policy stays untouched — repeated-window signals get a manual one-lever change) */
-const runStats = { lvl: 0, acts: [], jmax: 0 };
+const runStats = { lvl: 0, acts: [], jmax: 0, fams: {} };
 let curDeckKey = null;
 
 /**
@@ -489,6 +497,11 @@ async function main() {
 
             t.nullCards = (obs.hand || []).filter((c) => !c.rank).length;
             jw({ e: 'decide', a: t.action, fam: t.fam, pred: t.pred, rem: t.rem, n: t.n, ante: obs.run?.ante, b: obs.run?.blind?.name, tgt: obs.run?.blind?.target ?? null, rchips: t.r && t.r.ok ? (t.r.result.run?.chips || before) : null, err: t.r && !t.r.ok ? t.r.error?.code : null, ef: Object.keys(bank.eyeFams || {}).join('/'), lk: bank.lockFam || '' });
+
+            if (t.action === 'play' && t.fam) {
+                runStats.fams[t.fam] = (runStats.fams[t.fam] || 0) + 1;
+            }
+
             const dp = deckProbe(obs);
 
             if (dp) {
@@ -699,26 +712,38 @@ async function main() {
             const A = runStats.acts;
             const PNAME = /^(mercury|venus|earth|mars|jupiter|saturn|uranus|neptune|pluto)/i;
             const lvlAct = runStats.lvl + A.filter((a) => /^planet:/.test(a)).length + A.filter((a) => /^take:/.test(a) && PNAME.test(a.slice(5))).length;
-            /* authoritative level signal: levels in the terminal hand table (action
-               counting double-counts held planets / misses other paths — funnel diag only) */
-            const lvObs = (obs.hands || []).reduce((s, h) => s + (Number(h.level) || 0), 0);
-            const lvl = (obs.hands || []).length ? lvObs : lvlAct;
+            /* focal signal: level of the family actually played most (a sum across the
+               table is baseline-inflated by nine level-1 rows — run #3 died at ante 4 with
+               "lvl=12" and no alert); lvlMap shows every above-baseline row */
+            const fams = runStats.fams;
+            const focal = Object.entries(fams).sort((a, b) => b[1] - a[1])[0] || [null, 0];
+            const hRow = focal[0] ? (obs.hands || []).find((h) => h.name === focal[0]) : null;
+            const focalLvl = hRow ? Number(hRow.level) || 1 : null;
+            const lvlMap = (obs.hands || []).filter((h) => (Number(h.level) || 1) > 1).map((h) => `${h.name}:${h.level}`).join(',');
             const dig = {
                 e: 'rundigest',
                 won,
                 ante: obs.run?.ante,
-                lvl,
+                focal: focal[0],
+                focalPlays: focal[1],
+                focalLvl,
+                lvlMap,
                 lvlAct,
                 uses: runStats.lvl,
                 rerolls: A.filter((a) => a === 'reroll').length,
                 celestial: A.some((a) => a.startsWith('pack:') && /celestial/i.test(a)),
                 jokers: runStats.jmax,
-                alert: !won && lvl < 10 ? 'LOW_LEVELS' : (!won && (obs.run?.ante ?? 0) >= 5 ? 'CHIP_GAP' : null), /* eslint-disable-line no-nested-ternary */
+                alert: !won && focalLvl !== null && focalLvl <= 2 ? 'LOW_FOCAL_LEVEL' : (!won && (obs.run?.ante ?? 0) >= 5 ? 'CHIP_GAP' : null), /* eslint-disable-line no-nested-ternary */
             };
 
             jw(dig);
             fs.appendFileSync(path.join(OUT, 'digests.jsonl'), `${JSON.stringify({ t: Date.now(), rid: runSeq, ...dig })}\n`);
-            say('DIGEST', `lvl=${lvl} rerolls=${dig.rerolls} celestial=${dig.celestial ? 'y' : 'n'} jokers=${dig.jokers} alert=${dig.alert ?? '-'}`);
+            say('DIGEST', `focal=${dig.focal ?? '-'}L${dig.focalLvl ?? '?'} map=[${dig.lvlMap}] rerolls=${dig.rerolls} celestial=${dig.celestial ? 'y' : 'n'} jokers=${dig.jokers} alert=${dig.alert ?? '-'}`);
+
+            for (const k of Object.keys(runStats.fams)) {
+                delete runStats.fams[k];
+            }
+
             runStats.lvl = 0;
             runStats.acts.length = 0;
             runStats.jmax = 0;
