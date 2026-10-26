@@ -49,6 +49,35 @@ async function execHighlight(obs, cards, kind) {
 }
 
 /**
+ * Select the plan's cards, then use the tarot if its use action re-enabled; return latest obs.
+ *
+ * @param {object} obs - current hand-phase observation
+ * @param {object} tp - {target, cards, why} plan from planTargeted
+ * @returns {Promise<object>} observation after the attempt
+ */
+async function useTargeted(obs, tp) {
+    const rs = await act({ epoch: obs.epoch, action: 'select', cards: tp.cards.map((c) => c.id) });
+
+    if (!rs.ok) {
+        return obs;
+    }
+
+    const ci = (rs.result.consumables || []).find((x) => x.id === tp.target);
+
+    if (!(ci && (ci.actions || []).includes('use'))) {
+        jw({ e: 'tarottarget', why: tp.why, ok: false, code: 'use-not-enabled', acts: (ci && ci.actions) || [] });
+
+        return rs.result;
+    }
+
+    const ru = await act({ epoch: rs.result.epoch, action: 'use', target: tp.target });
+
+    jw({ e: 'tarottarget', why: tp.why, cards: tp.cards.map((c) => `${c.rank}-${String(c.suit || '?')[0]}`), ok: ru.ok, code: ru.error?.code });
+
+    return ru.ok ? ru.result : rs.result;
+}
+
+/**
  * Choose and execute the best play or discard for the current hand.
  *
  * @param {object} obs - observation snapshot for the hand/play phase
@@ -337,21 +366,7 @@ async function main() {
 
             // targeted tarot on hand cards: select then use (Magician/Empress/Tower/Death/Hierophant)
             for (const tp of planTargeted(obs)) {
-                const rs = await act({ epoch: obs.epoch, action: 'select', cards: tp.cards.map((c) => c.id) });
-
-                if (rs.ok) {
-                    const ci = (rs.result.consumables || []).find((x) => x.id === tp.target);
-
-                    if (ci && (ci.actions || []).includes('use')) {
-                        const ru = await act({ epoch: rs.result.epoch, action: 'use', target: tp.target });
-
-                        jw({ e: 'tarottarget', why: tp.why, cards: tp.cards.map((c) => `${c.rank}-${String(c.suit || '?')[0]}`), ok: ru.ok, code: ru.error?.code });
-                        obs = ru.ok ? ru.result : rs.result;
-                    } else {
-                        jw({ e: 'tarottarget', why: tp.why, ok: false, code: 'use-not-enabled', acts: (ci && ci.actions) || [] });
-                        obs = rs.result;
-                    }
-                }
+                obs = await useTargeted(obs, tp);
             }
 
             const before = obs.run.chips ?? null;
