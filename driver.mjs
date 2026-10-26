@@ -422,6 +422,9 @@ async function handleNewRun(obs) {
     runStats.lvl = 0;
     runStats.acts.length = 0;
     runStats.jmax = 0;
+    deckProbed = false; /* one probe per RUN: the first Blue snapshot only showed key
+                           shapes (deck(6) object at top level, no deck AREA) — reopen
+                           the question each run until a probe settles Blue's modelability */
 
     await sleep(800);
 
