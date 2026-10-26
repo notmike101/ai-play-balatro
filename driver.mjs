@@ -17,6 +17,7 @@ let bank = { key: '', pred: 0 };
 let strat = null;
 let bias = {};
 let lastStratFam = null;
+const suitTally = {};
 
 /**
  * Highlight cards, activate the matching control.
@@ -73,6 +74,10 @@ async function useTargeted(obs, tp) {
     const ru = await act({ epoch: rs.result.epoch, action: 'use', target: tp.target });
 
     jw({ e: 'tarottarget', why: tp.why, cards: tp.cards.map((c) => `${c.rank}-${String(c.suit || '?')[0]}`), ok: ru.ok, code: ru.error?.code });
+
+    if (ru.ok && tp.why.startsWith('suit->')) {
+        suitTally[tp.why.slice(5)] = (suitTally[tp.why.slice(5)] || 0) + tp.cards.length;
+    }
 
     return ru.ok ? ru.result : rs.result;
 }
@@ -307,6 +312,10 @@ async function handleNewRun(obs) {
         delete jokerFactor[k];
     }
 
+    for (const k of Object.keys(suitTally)) {
+        delete suitTally[k];
+    }
+
     await sleep(800);
 
     return true;
@@ -365,7 +374,7 @@ async function main() {
             }
 
             // targeted tarot on hand cards: select then use (Magician/Empress/Tower/Death/Hierophant)
-            for (const tp of planTargeted(obs)) {
+            for (const tp of planTargeted(obs, suitTally)) {
                 obs = await useTargeted(obs, tp);
             }
 
@@ -597,6 +606,10 @@ async function main() {
             lastStratFam = null;
             bank = { key: '', pred: 0 };
 
+            for (const k of Object.keys(suitTally)) {
+                delete suitTally[k];
+            }
+
             for (const k of Object.keys(jokerFactor)) {
                 delete jokerFactor[k];
             }
@@ -763,6 +776,14 @@ if (process.argv.includes('--selftest')) {
         ['The Sun', tHand, [3, 4, 2]],
         ['The World', tHand, [3, 4, 1]],
     ];
+
+    if (planTargeted({ hand: tHand, consumables: tCons('The Star') }, { Hearts: 5 }).length !== 0) {
+        throw new Error('non-committed-suit converter must be skipped');
+    }
+
+    if (planTargeted({ hand: tHand, consumables: tCons('The Sun') }, { Hearts: 5 }).length !== 1) {
+        throw new Error('committed-suit converter must fire');
+    }
 
     for (const [nm, hand, want] of tpCases) {
         const p = planTargeted({ hand, consumables: tCons(nm) });
