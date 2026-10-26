@@ -186,6 +186,22 @@ async function playTurn(obs) {
     }
 
     const best = ev[0];
+
+    /* The Pillar debuffs only cards already played this ante; fresh draws stay clean: dump ALL
+       dead cards not needed by best play in ONE action - one-per-discard burned the budget (died a1) */
+    if (bname === 'The Pillar' && discLeft > 0 && best.pred < rem) {
+        const inBest = new Set(best.cards.map((c) => c.id));
+        const dead = hand.filter((c) => c.debuffed && (c.actions || []).includes('select') && !inBest.has(c.id));
+
+        if (dead.length) {
+            const r0 = await execHighlight(obs, dead.slice(0, 5), 'discard_cards_from_highlighted');
+
+            if (r0.ok) {
+                return { action: 'discard', r: r0, n: dead.length };
+            }
+        }
+    }
+
     const needPer = rem / Math.max(1, handsLeft);
     const needMore = discLeft > 0 && handsLeft > 1 && best.pred < needPer;
 
@@ -728,7 +744,7 @@ async function main() {
 // pure-function check (no host child needed until these modules load)
 if (process.argv.includes('--selftest')) {
     const { evalHand } = await import('./lib/eval.mjs');
-    const { predict, calibrate, knownLayer, ctxOf } = await import('./lib/play.mjs');
+    const { predict, calibrate, knownLayer, ctxOf, allSubsetEvals, chooseDiscard } = await import('./lib/play.mjs');
     /**
      * Build a minimal selectable card for the evaluator selftest.
      *
@@ -866,6 +882,25 @@ if (process.argv.includes('--selftest')) {
 
     if (predict(tabHC, 'High Card', [C('K', 'Spades')], wrathCtx).score !== mysticOff) {
         throw new Error('wrathful fired on wrong suit');
+    }
+
+    const dSp = { id: 91, rank: '2', suit: 'Spades', actions: ['select'], debuffed: true };
+    const liveS = [C('6', 'Spades'), C('5', 'Spades'), C('4', 'Spades'), C('A', 'Spades')];
+    const evP = allSubsetEvals([...liveS, dSp, C('9', 'Hearts'), C('3', 'Clubs')], tabHC, null);
+    const deadFlush = evP.find((o) => o.fam === 'Flush');
+
+    if (!deadFlush || deadFlush.cards.length !== 5 || deadFlush.pred !== 244) {
+        throw new Error(`debuffed card must classify flush with zero chips ${deadFlush && deadFlush.pred}`);
+    }
+
+    if (predict(tabHC, 'Flush', [...liveS, dSp]).chips !== predict(tabHC, 'Flush', liveS).chips) {
+        throw new Error('debuffed card added chips');
+    }
+
+    const dumpHand = [C('9', 'Hearts'), C('8', 'Diamonds'), C('7', 'Clubs'), C('3', 'Hearts'), C('9', 'Spades'), C('2', 'Diamonds')].map((c, i) => ({ ...c, id: 80 + i })).concat([dSp]);
+
+    if (chooseDiscard(dumpHand, null, null)[0].id !== 91) {
+        throw new Error('discard must dump debuffed card before low live junk');
     }
 
     const tHand = [
