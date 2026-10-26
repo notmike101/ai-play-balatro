@@ -407,7 +407,7 @@ async function main() {
 
             const before = obs.run.chips ?? null;
 
-            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '', (c.enhancements || []).concat(c.key && c.key !== 'c_base' ? [c.key] : [], c.values && c.values.type ? [`t:${c.values.type}`] : []).join('|')]), chips: obs.run.chips, epoch: obs.epoch });
+            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '', (c.enhancements || []).concat(c.key && c.key !== 'c_base' ? [c.key] : [], c.values && c.values.type ? [`t:${c.values.type}`] : []).join('|')]), chips: obs.run.chips, epoch: obs.epoch, dl: obs.run.discards_left ?? null, hl: obs.run.hands_left ?? null, jk: (obs.jokers || []).map((j) => [j.name, j.value ?? null, j.extra ?? null]), rerolls: obs.run.rerolls_left ?? obs.run.rerolls ?? null });
             const t = await playTurn(obs);
 
             t.nullCards = (obs.hand || []).filter((c) => !c.rank).length;
