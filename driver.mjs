@@ -986,7 +986,7 @@ if (process.argv.includes('--selftest')) {
         throw new Error('face-down subset must be EV-discounted');
     }
 
-    if (!allSubsetEvals(fdHand, tabHC, null).some((o) => o.cards.length === 2 && o.cards.filter((c) => c.rank === null).length === 1 && o.util === o.pred)) {
+    if (!allSubsetEvals(fdHand, tabHC, null).some((o) => o.cards.length === 2 && o.cards.filter((c) => c.faceDown).length === 1 && o.util === o.pred)) {
         throw new Error('lone face-down must keep full credit');
     }
 
