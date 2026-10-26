@@ -44,21 +44,32 @@ function syncJokerSig(obs) {
 let deckProbed = false;
 
 /**
- * One-shot telemetry probe (once per process, only while a Blue Joker is owned):
- * dumps the observation's area kinds/limits/card-counts so we can see whether
- * remaining-deck size — Blue Joker's state — is observable at all.
+ * One-shot telemetry probe (while a Blue Joker is owned; retries until a non-empty
+ * snapshot): dumps area kinds/counts PLUS a sanitized key/count scan of the whole
+ * observation, so a top-level deck/draw field can't hide from the "unmodelable" claim.
  *
  * @param {object} obs - current observation
- * @returns {(string | null)} area summary or null
+ * @returns {(string | null)} probe summary or null
  */
 function deckProbe(obs) {
     if (deckProbed || !(obs.jokers || []).some((j) => j.name === 'Blue Joker')) {
         return null;
     }
 
+    const areas = (obs.areas || []).map((a) => `${a.kind}:${a.limit ?? '-'}:${(a.cards || []).length}:${a.count ?? '-'}`).join(',');
+    const keys = Object.entries(obs).map(([k, v]) => {
+        const shape = Array.isArray(v) ? v.length : (v && typeof v === 'object' ? Object.keys(v).length : typeof v); /* eslint-disable-line no-nested-ternary */
+
+        return `${k}(${shape})`;
+    }).join(',');
+
+    if (!areas && Object.keys(obs).length === 0) {
+        return null;
+    }
+
     deckProbed = true;
 
-    return (obs.areas || []).map((a) => `${a.kind}:${a.limit ?? '-'}:${(a.cards || []).length}:${a.count ?? '-'}`).join(',');
+    return `areas=[${areas}] obs_keys=[${keys}] run_keys=[${Object.keys(obs.run || {}).join(',')}]`;
 }
 
 /**
@@ -687,17 +698,22 @@ async function main() {
 
             const A = runStats.acts;
             const PNAME = /^(mercury|venus|earth|mars|jupiter|saturn|uranus|neptune|pluto)/i;
-            const lvl = runStats.lvl + A.filter((a) => /^planet:/.test(a)).length + A.filter((a) => /^take:/.test(a) && PNAME.test(a.slice(5))).length;
+            const lvlAct = runStats.lvl + A.filter((a) => /^planet:/.test(a)).length + A.filter((a) => /^take:/.test(a) && PNAME.test(a.slice(5))).length;
+            /* authoritative level signal: levels in the terminal hand table (action
+               counting double-counts held planets / misses other paths — funnel diag only) */
+            const lvObs = (obs.hands || []).reduce((s, h) => s + (Number(h.level) || 0), 0);
+            const lvl = (obs.hands || []).length ? lvObs : lvlAct;
             const dig = {
                 e: 'rundigest',
                 won,
                 ante: obs.run?.ante,
                 lvl,
+                lvlAct,
                 uses: runStats.lvl,
                 rerolls: A.filter((a) => a === 'reroll').length,
                 celestial: A.some((a) => a.startsWith('pack:') && /celestial/i.test(a)),
                 jokers: runStats.jmax,
-                alert: !won && lvl < 3 ? 'LOW_LEVELS' : (!won && (obs.run?.ante ?? 0) >= 5 ? 'CHIP_GAP' : null), /* eslint-disable-line no-nested-ternary */
+                alert: !won && lvl < 10 ? 'LOW_LEVELS' : (!won && (obs.run?.ante ?? 0) >= 5 ? 'CHIP_GAP' : null), /* eslint-disable-line no-nested-ternary */
             };
 
             jw(dig);
@@ -1084,11 +1100,11 @@ if (process.argv.includes('--selftest')) {
 
     const gCtx = ctxOf({ jokers: [{ name: 'Greedy Joker', values: { extra: { s_mult: 3, suit: 'Diamonds' } } }], run: { discards_left: 1 }, hands: [] });
 
-    if (predict(tabHC, 'High Card', [C('5', 'Diamonds'), C('9', 'Spades')], gCtx).score !== 76) {
-        throw new Error(`greedy suit mult must apply ${predict(tabHC, 'High Card', [C('5', 'Diamonds'), C('9', 'Spades')], gCtx).score}`);
+    if (predict(tabHC, 'High Card', [C('5', 'Diamonds')], gCtx).score !== 40) {
+        throw new Error(`greedy suit mult must apply ${predict(tabHC, 'High Card', [C('5', 'Diamonds')], gCtx).score}`);
     }
 
-    if (predict(tabHC, 'High Card', [C('5', 'Hearts'), C('9', 'Spades')], gCtx).score !== 19) {
+    if (predict(tabHC, 'High Card', [C('5', 'Hearts')], gCtx).score !== 10) {
         throw new Error('greedy must ignore non-diamond cards');
     }
 
