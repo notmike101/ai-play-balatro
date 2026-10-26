@@ -6,13 +6,17 @@ import path from 'node:path';
 import { OUT, jw, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, jokerFactor } from './lib/knowledge.mjs';
 import { observe, act } from './lib/link.mjs';
 import { allSubsetEvals, chooseDiscard, calibrate, famBase } from './lib/play.mjs';
-import { handleShop, handlePackOpen } from './lib/shop.mjs';
+import { handleShop, handlePackOpen, planetFam } from './lib/shop.mjs';
+import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables } from './lib/strategy.mjs';
 import { setGameSpeed } from './lib/settings.mjs';
 
 // ---------- play-phase decision ----------
 
 // per-blind score-accumulator estimate
 let bank = { key: '', pred: 0 };
+let strat = null;
+let bias = {};
+let lastStratFam = null;
 
 /**
  * Highlight cards, activate the matching control.
@@ -60,7 +64,7 @@ async function playTurn(obs) {
     const forced5 = /Psychic/.test(bname);
     // only one hand type this blind
     const oneFam = /^(The Eye|The Mouth)$/.test(bname);
-    let ev = allSubsetEvals(hand, obs.hands);
+    let ev = allSubsetEvals(hand, obs.hands, bias);
 
     if (forced5) {
         ev = ev.filter((o) => o.cards.length === 5);
@@ -92,7 +96,7 @@ async function playTurn(obs) {
             }
         }
 
-        const playable = hand.filter((c) => !c.debuff && (c.actions || []).includes('select'));
+        const playable = hand.filter((c) => !c.debuffed && (c.actions || []).includes('select'));
         const five = playable.slice(0, 5);
 
         if (!five.length) {
@@ -106,7 +110,7 @@ async function playTurn(obs) {
 
     const best = ev[0];
     const needPer = rem / Math.max(1, handsLeft);
-    const needMore = discLeft > 0 && handsLeft > 1 && best.pred < needPer * 0.9;
+    const needMore = discLeft > 0 && handsLeft > 1 && best.pred < needPer;
 
     if (needMore) {
         const d = chooseDiscard(hand, best, bank.lockFam ?? null);
@@ -129,6 +133,30 @@ async function playTurn(obs) {
     }
 
     return { action: 'play', r, fam: best.fam, scoring: best.scoring, pred: best.pred, rem };
+}
+
+/**
+ * Which family this hand will actually play (used to pick the matching planet BEFORE playing).
+ *
+ * @param {object} obs - current observation
+ * @returns {(string | null)} family name or null
+ */
+function peekPlayFam(obs) {
+    let ev = allSubsetEvals(obs.hand || [], obs.hands, bias);
+
+    if (/Psychic/.test(obs.run?.blind?.name || '')) {
+        ev = ev.filter((o) => o.cards.length === 5);
+    }
+
+    if (bank.lockFam) {
+        const f = ev.filter((o) => o.fam === bank.lockFam);
+
+        if (f.length) {
+            ev = f;
+        }
+    }
+
+    return ev.length ? ev[0].fam : null;
 }
 
 // ---------- New Run setup ----------
@@ -232,6 +260,10 @@ async function handleNewRun(obs) {
 
     pendingStakeLabel = stakeLbl || unwon;
     say('run started, stake label =', pendingStakeLabel);
+
+    strat = null;
+    bias = {};
+    lastStratFam = null;
     await sleep(800);
 
     return true;
@@ -253,7 +285,7 @@ async function main() {
             continue;
         }
 
-        const obs = await observe();
+        let obs = await observe();
         const ph = obs.phase;
 
         fs.writeFileSync(path.join(OUT, 'state.json'), JSON.stringify({ t: Date.now(), phase: ph, epoch: obs.epoch, run: obs.run && { money: obs.run.money, ante: obs.run.ante, round: obs.run.round, stake: obs.run.stake, deck: obs.run.deck?.key, score: obs.run.current_score, hands_left: obs.run.hands_left, discards_left: obs.run.discards_left, target: obs.run.blind?.target, name: obs.run.blind?.name }, jokers: (obs.jokers || []).map((j) => j.name), wins: [...wins] }, null, 1));
@@ -261,15 +293,6 @@ async function main() {
         if ((ph === 'hand' || ph === 'play') && obs.run) {
             curStake = obs.run.stake;
             curDeckKey = obs.run.deck?.key;
-
-            // use held planets first
-            for (const c of obs.consumables || []) {
-                if (c.kind === 'planet' && (c.actions || []).includes('use')) {
-                    const r = await act({ epoch: obs.epoch, action: 'use', target: c.id });
-
-                    obs.epoch = r.ok ? r.result.epoch : obs.epoch;
-                }
-            }
 
             const bkey = `${obs.run.round}:${obs.run.blind?.name || ''}`;
 
@@ -284,9 +307,22 @@ async function main() {
                 bank.pred = 0;
             }
 
+            // strategic planet: level the family THIS hand will play; other planets bank for later
+            const pf = peekPlayFam(obs);
+            const pc = pf && (obs.consumables || []).find((c) => c.kind === 'planet' && (c.actions || []).includes('use') && planetFam(c) === pf);
+
+            if (pc) {
+                const r = await act({ epoch: obs.epoch, action: 'use', target: pc.id });
+
+                if (r.ok) {
+                    obs.epoch = r.result.epoch;
+                    jw({ e: 'planet', fam: pf });
+                }
+            }
+
             const before = obs.run.current_score ?? 0;
 
-            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuff ? 'D' : '']), epoch: obs.epoch });
+            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '']), epoch: obs.epoch });
             const t = await playTurn(obs);
 
             t.nullCards = (obs.hand || []).filter((c) => !c.rank).length;
@@ -364,6 +400,40 @@ async function main() {
         }
 
         if (ph === 'blind_select') {
+            strat = chooseStrategy(obs);
+            bias = famBiasMap(strat, obs);
+
+            if (strat.fam !== lastStratFam) {
+                lastStratFam = strat.fam;
+                say('strategy:', strat.fam, strat.why);
+            }
+
+            const ja = (obs.areas || []).find((a) => a.kind === 'jokers');
+            const order = jokerOrder(obs.jokers);
+
+            if (ja?.reorder && (obs.jokers || []).length > 1 && reorderNeeds(obs.jokers, order)) {
+                const rr = await act({ epoch: obs.epoch, action: 'reorder', target: ja.id, cards: order });
+
+                jw({ e: 'reorder', ok: rr.ok, code: rr.error?.code, order });
+                obs = rr.ok ? rr.result : obs;
+            }
+
+            const cLimit = (obs.areas || []).find((a) => a.kind === 'consumeables')?.limit ?? 2;
+
+            for (const plan of planConsumables(obs, strat, {
+                phase: ph, money: obs.run?.money, slotFree: (obs.consumables || []).length < cLimit,
+            })) {
+                const o2 = await observe();
+                const item = (o2.consumables || []).find((c) => c.id === plan.target);
+
+                if (item && (item.actions || []).includes('use')) {
+                    const ru = await act({ epoch: o2.epoch, action: 'use', target: item.id });
+
+                    jw({ e: 'consuse', why: plan.why, name: item.name, ok: ru.ok, code: ru.error?.code });
+                    obs = ru.ok ? ru.result : await observe();
+                }
+            }
+
             const sel = (obs.controls || []).find((c) => c.enabled && c.kind === 'select_blind');
             const boss = (obs.run?.blinds || []).find((b) => b.slot === 'Boss' && b.state === 'Select');
 
@@ -470,6 +540,9 @@ async function main() {
             }
 
             pendingStakeLabel = null;
+            strat = null;
+            bias = {};
+            lastStratFam = null;
             const nr = (obs.controls || []).find((c) => c.enabled && /setup_run|new_run/i.test(c.kind));
 
             if (nr) {
