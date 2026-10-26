@@ -304,7 +304,8 @@ async function main() {
                true score is < target, so re-anchor to zero instead of believing the phantom "already won". */
             if (bank.target > 0 && bank.pred >= bank.target) {
                 jw({ e: 'resync', bank: Math.round(bank.pred), target: bank.target });
-                bank.pred = 0;
+                // blind alive => real score < target but usually close (we just played toward it); re-anchor at 80%, not zero
+                bank.pred = bank.target * 0.8;
             }
 
             // strategic planet: level the family THIS hand will play; other planets bank for later
