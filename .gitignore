@@ -4,3 +4,4 @@ out/*
 *.png
 *.err
 *.jsonlout/
+tmp

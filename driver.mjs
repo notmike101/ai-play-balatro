@@ -968,7 +968,7 @@ if (process.argv.includes('--selftest')) {
     }
 
     const vampCtx = ctxOf({ jokers: [{ name: 'Vampire', values: { x_mult: 1.4, extra: 0.1 } }], run: { discards_left: 1 }, hands: [] });
-    const enhK = [{ ...C('K', 'Hearts'), enhancements: ['Steel'] }, { ...C('K', 'Spades'), enhancements: ['Steel'] }];
+    const enhK = [{ ...C('K', 'Hearts'), key: 'm_bonus' }, { ...C('K', 'Spades'), enhancements: ['Steel'] }, C('K', 'Clubs')];
 
     if (Math.abs(predict(tabHC, 'High Card', enhK, vampCtx).mult - 1.6) > 1e-9) {
         throw new Error(`vampire store+pending enhanced must give x1.6, got ${predict(tabHC, 'High Card', enhK, vampCtx).mult}`);
