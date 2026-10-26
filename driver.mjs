@@ -6,7 +6,7 @@ import path from 'node:path';
 import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, jokerFactor, jokerSig, JUNK_JOKER } from './lib/knowledge.mjs';
 import { observe, act } from './lib/link.mjs';
 import { allSubsetEvals, chooseDiscard, calibrate, famBase, ctxOf, resetRoundReps, syncReps, getRoundReps } from './lib/play.mjs';
-import { handleShop, handlePackOpen, planetFam, nextPlanetNeed } from './lib/shop.mjs';
+import { handleShop, handlePackOpen, planetFam, nextPlanetNeed, resetShopRun } from './lib/shop.mjs';
 import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables, planTargeted, gateAllows, scorePackOffer } from './lib/strategy.mjs';
 import { setGameSpeed } from './lib/settings.mjs';
 
@@ -452,6 +452,7 @@ async function handleNewRun(obs) {
     runStats.acts.length = 0;
     runStats.jmax = 0;
     handsSnap = [];
+    resetShopRun();
     deckProbed = false; /* one probe per RUN: the first Blue snapshot only showed key
                            shapes (deck(6) object at top level, no deck AREA) — reopen
                            the question each run until a probe settles Blue's modelability */
@@ -801,6 +802,7 @@ async function main() {
             runStats.acts.length = 0;
             runStats.jmax = 0;
             handsSnap = [];
+            resetShopRun();
 
             if (won && lbl) {
                 wins.add(lbl);
