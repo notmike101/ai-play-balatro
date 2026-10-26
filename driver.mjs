@@ -18,7 +18,8 @@ let strat = null;
 let bias = {};
 let lastStratFam = null;
 const suitTally = {};
-let runSeq = Math.floor(Date.now() / 1_000); // restart-unique: seeded from clock, +1 per run
+// restart-unique: seeded from clock, +1 per run
+let runSeq = Math.floor(Date.now() / 1_000);
 
 /**
  * Highlight cards, activate the matching control.
