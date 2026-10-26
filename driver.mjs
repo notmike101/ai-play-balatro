@@ -939,6 +939,66 @@ if (process.argv.includes('--selftest')) {
         throw new Error('wrathful fired on wrong suit');
     }
 
+    const banCtx = ctxOf({ jokers: [{ name: 'Banner', values: { extra: 30 } }], run: { discards_left: 3 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], banCtx).score !== 109) {
+        throw new Error(`banner +30/discards-left must be exact ${predict(tabHC, 'High Card', [C('K', 'Hearts')], banCtx).score}`);
+    }
+
+    const schCtx = ctxOf({ jokers: [{ name: 'Scholar', values: { extra: { chips: 6, mult: 2 } } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('A', 'Hearts'), C('K', 'Hearts')], schCtx).score !== 117) {
+        throw new Error(`scholar ace chips+mult must be exact ${predict(tabHC, 'High Card', [C('A', 'Hearts'), C('K', 'Hearts')], schCtx).score}`);
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], schCtx).score !== mysticOff) {
+        throw new Error('scholar fired on non-ace');
+    }
+
+    const toddCtx = ctxOf({ jokers: [{ name: 'Odd Todd', values: { extra: 1 } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('10', 'Spades'), C('A', 'Hearts')], toddCtx).chips !== 36) {
+        throw new Error(`odd-todd odd-rank chips must be exact ${predict(tabHC, 'High Card', [C('10', 'Spades'), C('A', 'Hearts')], toddCtx).chips}`);
+    }
+
+    const stevCtx = ctxOf({ jokers: [{ name: 'Even Steven', values: { extra: 1 } }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', [C('2', 'Spades'), C('4', 'Hearts')], stevCtx).score !== 51) {
+        throw new Error(`even-steven even-rank mult must be exact ${predict(tabHC, 'High Card', [C('2', 'Spades'), C('4', 'Hearts')], stevCtx).score}`);
+    }
+
+    const vampCtx = ctxOf({ jokers: [{ name: 'Vampire', values: { x_mult: 1.4, extra: 0.1 } }], run: { discards_left: 1 }, hands: [] });
+    const enhK = [{ ...C('K', 'Hearts'), enhancements: ['Steel'] }, { ...C('K', 'Spades'), enhancements: ['Steel'] }];
+
+    if (Math.abs(predict(tabHC, 'High Card', enhK, vampCtx).mult - 1.6) > 1e-9) {
+        throw new Error(`vampire store+pending enhanced must give x1.6, got ${predict(tabHC, 'High Card', enhK, vampCtx).mult}`);
+    }
+
+    const fdHand = [
+        { id: 71, rank: null, suit: null, actions: ['select'] },
+        { id: 72, rank: null, suit: null, actions: ['select'] },
+        { ...C('K', 'Hearts'), id: 73 },
+        { ...C('10', 'Spades'), id: 74 },
+        { ...C('3', 'Clubs'), id: 75 },
+    ];
+
+    if (!allSubsetEvals(fdHand, tabHC, null).some((o) => o.cards.length === 5 && o.util === Math.round(o.pred * 0.55))) {
+        throw new Error('face-down subset must be EV-discounted');
+    }
+
+    if (!allSubsetEvals(fdHand, tabHC, null).some((o) => o.cards.length === 2 && o.cards.filter((c) => c.rank === null).length === 1 && o.util === o.pred)) {
+        throw new Error('lone face-down must keep full credit');
+    }
+
+    jokerFactor.Pair = 100;
+    calibrate('Pair', [{ rank: 'K', suit: 'Hearts', faceDown: true }, { rank: 'K', suit: 'Spades', faceDown: true }], 10, 2, 9_999, ctxOf({ jokers: [], run: { discards_left: 3 }, hands: [] }));
+
+    if (jokerFactor.Pair !== 100) {
+        throw new Error('face-down rows must not train jokerFactor');
+    }
+
+    delete jokerFactor.Pair;
+
     const dSp = { id: 91, rank: '2', suit: 'Spades', actions: ['select'], debuffed: true };
     const liveS = [C('6', 'Spades'), C('5', 'Spades'), C('4', 'Spades'), C('A', 'Spades')];
     const evP = allSubsetEvals([...liveS, dSp, C('9', 'Hearts'), C('3', 'Clubs')], tabHC, null);
