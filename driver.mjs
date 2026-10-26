@@ -3,7 +3,7 @@
    Monitor: out/state.json (current summary), out/log.jsonl (per-decision), out/results.jsonl (run outcomes). */
 import fs from 'node:fs';
 import path from 'node:path';
-import { OUT, jw, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, jokerFactor } from './lib/knowledge.mjs';
+import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, jokerFactor } from './lib/knowledge.mjs';
 import { observe, act } from './lib/link.mjs';
 import { allSubsetEvals, chooseDiscard, calibrate, famBase } from './lib/play.mjs';
 import { handleShop, handlePackOpen, planetFam } from './lib/shop.mjs';
@@ -18,6 +18,7 @@ let strat = null;
 let bias = {};
 let lastStratFam = null;
 const suitTally = {};
+let runSeq = 0;
 
 /**
  * Highlight cards, activate the matching control.
@@ -325,6 +326,9 @@ async function handleNewRun(obs) {
     pendingStakeLabel = stakeLbl || unwon;
     say('run started, stake label =', pendingStakeLabel);
 
+    runSeq += 1;
+    setRunId(runSeq);
+    jw({ e: 'runstart', stake: stakeLbl || unwon });
     strat = null;
     bias = {};
     lastStratFam = null;
