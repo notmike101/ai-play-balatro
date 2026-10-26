@@ -41,6 +41,26 @@ function syncJokerSig(obs) {
     }
 }
 
+let deckProbed = false;
+
+/**
+ * One-shot telemetry probe (once per process, only while a Blue Joker is owned):
+ * dumps the observation's area kinds/limits/card-counts so we can see whether
+ * remaining-deck size — Blue Joker's state — is observable at all.
+ *
+ * @param {object} obs - current observation
+ * @returns {(string | null)} area summary or null
+ */
+function deckProbe(obs) {
+    if (deckProbed || !(obs.jokers || []).some((j) => j.name === 'Blue Joker')) {
+        return null;
+    }
+
+    deckProbed = true;
+
+    return (obs.areas || []).map((a) => `${a.kind}:${a.limit ?? '-'}:${(a.cards || []).length}:${a.count ?? '-'}`).join(',');
+}
+
 /**
  * Highlight cards, activate the matching control.
  *
@@ -453,6 +473,11 @@ async function main() {
 
             t.nullCards = (obs.hand || []).filter((c) => !c.rank).length;
             jw({ e: 'decide', a: t.action, fam: t.fam, pred: t.pred, rem: t.rem, n: t.n, ante: obs.run?.ante, b: obs.run?.blind?.name, tgt: obs.run?.blind?.target ?? null, rchips: t.r && t.r.ok ? (t.r.result.run?.chips || before) : null, err: t.r && !t.r.ok ? t.r.error?.code : null, ef: Object.keys(bank.eyeFams || {}).join('/'), lk: bank.lockFam || '' });
+            const dp = deckProbe(obs);
+
+            if (dp) {
+                jw({ e: 'deckprobe', areas: dp });
+            }
 
             if (t.r && !t.r.ok) {
                 say('turn err', t.r.error?.code);
