@@ -1338,8 +1338,11 @@ if (process.argv.includes('--selftest')) {
         { ...C('3', 'Clubs'), id: 75 },
     ];
 
-    if (!allSubsetEvals(fdHand, tabHC, null).some((o) => o.cards.length === 5 && o.util === Math.round(o.pred * 0.55))) {
-        throw new Error('face-down subset must be EV-discounted');
+    const o5fd = allSubsetEvals(fdHand, tabHC, null).find((o) => o.cards.length === 5 && o.cards.filter((c) => c.faceDown).length >= 2);
+    const raw5 = predict(tabHC, o5fd.fam, o5fd.scoring).score;
+
+    if (!(o5fd && o5fd.pred === Math.round(raw5 * 0.3) && o5fd.util === o5fd.pred)) {
+        throw new Error('face-down subset must be EV-discounted in pred AND util (measured 0.20-0.41 on Mark)');
     }
 
     if (!allSubsetEvals(fdHand, tabHC, null).some((o) => o.cards.length === 2 && o.cards.filter((c) => c.faceDown).length === 1 && o.util === o.pred)) {
