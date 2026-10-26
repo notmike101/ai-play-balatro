@@ -3,7 +3,7 @@
    Monitor: out/state.json (current summary), out/log.jsonl (per-decision), out/results.jsonl (run outcomes). */
 import fs from 'node:fs';
 import path from 'node:path';
-import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, jokerFactor, JUNK_JOKER } from './lib/knowledge.mjs';
+import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, jokerFactor, jokerSig, JUNK_JOKER } from './lib/knowledge.mjs';
 import { observe, act } from './lib/link.mjs';
 import { allSubsetEvals, chooseDiscard, calibrate, famBase, ctxOf, resetRoundReps, syncReps, getRoundReps } from './lib/play.mjs';
 import { handleShop, handlePackOpen, planetFam, nextPlanetNeed } from './lib/shop.mjs';
@@ -42,6 +42,7 @@ function syncJokerSig(obs) {
 
         for (const k of Object.keys(jokerFactor)) {
             delete jokerFactor[k];
+            delete jokerSig[k];
         }
     }
 }
@@ -436,6 +437,7 @@ async function handleNewRun(obs) {
 
     for (const k of Object.keys(jokerFactor)) {
         delete jokerFactor[k];
+        delete jokerSig[k];
     }
 
     for (const k of Object.keys(suitTally)) {
@@ -812,6 +814,7 @@ async function main() {
 
             for (const k of Object.keys(jokerFactor)) {
                 delete jokerFactor[k];
+                delete jokerSig[k];
             }
 
             const nr = (obs.controls || []).find((c) => c.enabled && /setup_run|new_run/i.test(c.kind));
@@ -1061,10 +1064,29 @@ if (process.argv.includes('--selftest')) {
     }
 
     const kPair = [C('K', 'Hearts'), C('K', 'Spades')];
+    const plainMadCtx = ctxOf({ jokers: [{ name: 'Mad Joker' }], run: { discards_left: 1 }, hands: [] });
 
-    if (predict(tabHC, 'Pair', kPair, madCtx).score !== predict(tabHC, 'Pair', kPair).score) {
+    /* same joker NAME both sides (identical lineup sig cancels the residual factor
+       gate exactly) - only the t_mult state differs, isolating the family gate */
+    if (predict(tabHC, 'Pair', kPair, madCtx).score !== predict(tabHC, 'Pair', kPair, plainMadCtx).score) {
         throw new Error('mad joker fired on wrong family');
     }
+
+    /* lineup-churn gate: a trained residual factor must apply ONLY under the lineup it
+       was learned under (over-pred 1.29x/1.4x runs 1793030565+0566: TP factor learned
+       before Saturn buys kept scaling new lineups) */
+    jokerFactor['High Card'] = 3;
+    jokerSig['High Card'] = 'Ghost:1';
+
+    const churnA = ctxOf({ jokers: [{ name: 'Ghost' }], run: { discards_left: 1 }, hands: [] });
+    const churnB = ctxOf({ jokers: [{ name: 'Ghost' }, { name: 'Baron' }], run: { discards_left: 1 }, hands: [] });
+
+    if (predict(tabHC, 'High Card', kSc, churnB).score * 3 !== predict(tabHC, 'High Card', kSc, churnA).score) {
+        throw new Error(`factor must scale matching lineup only, A=${predict(tabHC, 'High Card', kSc, churnA).score} B=${predict(tabHC, 'High Card', kSc, churnB).score}`);
+    }
+
+    delete jokerFactor['High Card'];
+    delete jokerSig['High Card'];
 
     const wrathCtx = ctxOf({ jokers: [{ name: 'Wrathful Joker', values: { extra: { s_mult: 6, suit: 'Hearts' } } }], run: { discards_left: 1 }, hands: [] });
 
@@ -1310,6 +1332,7 @@ if (process.argv.includes('--selftest')) {
 
     for (const k of Object.keys(jokerFactor)) {
         delete jokerFactor[k];
+        delete jokerSig[k];
     }
 
     const tpC = [C('K', 'Hearts'), C('K', 'Spades'), C('9', 'Hearts'), C('9', 'Spades')];
@@ -1556,6 +1579,7 @@ if (process.argv.includes('--selftest')) {
 
     for (const k of Object.keys(jokerFactor)) {
         delete jokerFactor[k];
+        delete jokerSig[k];
     }
 
     /* The Flint (build text "Base Chips and Mult are halved"): table base halves,
