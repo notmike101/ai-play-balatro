@@ -220,7 +220,7 @@ async function playTurn(obs) {
 
         const r = await execHighlight(obs, five, 'play_cards_from_highlighted');
 
-        return { action: 'play', r, fam: '?', scoring: [], pred: 0, rem, preCtx };
+        return { action: 'play', r, fam: '?', scoring: [], pred: 0, rem, preCtx, boss: bname };
     }
 
     const best = ev[0];
@@ -271,7 +271,7 @@ async function playTurn(obs) {
         (bank.eyeFams = bank.eyeFams || {})[best.fam] = 1;
     }
 
-    return { action: 'play', r, fam: best.fam, scoring: best.scoring, cards: best.cards, pred: best.pred, rem, preCtx };
+    return { action: 'play', r, fam: best.fam, scoring: best.scoring, cards: best.cards, pred: best.pred, rem, preCtx, boss: bname };
 }
 
 /**
@@ -543,7 +543,10 @@ async function main() {
                 const credit = d !== null ? d : t.pred;
 
                 // face-down (Fish/Mark) hands score under guessed fams — never fold their deltas into jokerFactor
-                if (d !== null && d > 0 && t.scoring && t.scoring.length && t.nullCards === 0) {
+                /* The Flint's halving is unmodeled and unattributable (measured run 4202:
+                   Straight pred 1009 scored 516, HC pred 180 scored 500) — folding those
+                   deltas would teach jokerFactor the BOSS, not the lineup; skip the blind */
+                if (d !== null && d > 0 && t.scoring && t.scoring.length && t.nullCards === 0 && !/flint/i.test(t.boss || '')) {
                     const b = famBase(obs.hands, t.fam);
 
                     calibrate(t.fam, t.scoring, b.chips, b.mult, d, { ...(t.preCtx ?? ctxOf(obs)), played: t.cards });
