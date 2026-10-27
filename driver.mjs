@@ -541,16 +541,23 @@ async function main() {
                 bank.pred = 0;
             }
 
-            // strategic planet: level the family THIS hand will play; other planets bank for later
+            /* PLANET BANKRUPT FIX (164: Jupiter+Saturn sat [use] all of a3-a5 while the
+               engine grinded L2 and died pred 90 - the peek-match gate meant a held
+               planet only fires if its OWN fam plays this turn, which almost never
+               repeats; levels are permanent, waiting buys nothing). Exception kept:
+               level-decay bosses (The Arm erodes per play) - bank while it is up. */
             const pf = peekPlayFam(obs);
-            const pc = pf && (obs.consumables || []).find((c) => String(c.kind || '').toLowerCase() === 'planet' && (c.actions || []).includes('use') && planetFam(c) === pf);
+            const armUp = /decrease level/i.test((obs.run?.blind?.effect || []).join(' '));
+            const pls = (obs.consumables || []).filter((c) => String(c.kind || '').toLowerCase() === 'planet' && (c.actions || []).includes('use'));
+            const pc = (pf && pls.find((c) => planetFam(c) === pf)) || (!armUp ? pls[0] : null);
+            const pfam = pc ? planetFam(pc) : null;
 
             if (pc) {
                 const r = await act({ epoch: obs.epoch, action: 'use', target: pc.id });
 
                 if (r.ok) {
                     obs = r.result;
-                    jw({ e: 'planet', fam: pf });
+                    jw({ e: 'planet', fam: pfam });
                     runStats.lvl++;
                 }
             }
