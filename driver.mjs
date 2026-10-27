@@ -6,7 +6,7 @@ import path from 'node:path';
 import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, jokerFactor, jokerSig, JUNK_JOKER } from './lib/knowledge.mjs';
 import { observe, act } from './lib/link.mjs';
 import { allSubsetEvals, chooseDiscard, calibrate, famBase, ctxOf, resetRoundReps, syncReps, getRoundReps } from './lib/play.mjs';
-import { handleShop, handlePackOpen, planetFam, nextPlanetNeed, resetShopRun } from './lib/shop.mjs';
+import { handleShop, handlePackOpen, planetFam, nextPlanetNeed, resetShopRun, setPackMetaHands } from './lib/shop.mjs';
 import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables, planTargeted, gateAllows, scorePackOffer } from './lib/strategy.mjs';
 import { setGameSpeed } from './lib/settings.mjs';
 
@@ -569,6 +569,7 @@ async function main() {
 
             if ((obs.hands || []).length) {
                 handsSnap = obs.hands;
+                setPackMetaHands(obs.hands);
             }
 
             jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '', (c.enhancements || []).concat(c.key && c.key !== 'c_base' ? [c.key] : [], c.values && c.values.type ? [`t:${c.values.type}`] : [], c.seal ? [`S:${c.seal}`] : [], (c.values && c.values.seal) ? [`S:${c.values.seal}`] : []).join('|')]), chips: obs.run.chips, epoch: obs.epoch, dl: obs.run.discards_left ?? null, hl: obs.run.hands_left ?? null, jk: (obs.jokers || []).map((j) => [j.name, j.value ?? null, j.extra ?? null, j.values ?? null]), rerolls: obs.run.rerolls_left ?? obs.run.rerolls ?? null });
