@@ -264,7 +264,11 @@ async function playTurn(obs) {
         }
     }
 
-    const needPer = rem / Math.max(1, handsLeft);
+    /* The Mouth (71854: hands 2-4 with FRESH families scored 0 - "the first played
+       hand of the round is the only hand which can score"): the blind rides on the
+       first hand, so pace it as all-or-nothing and fish discards into it instead of
+       dividing the target by handsLeft and playing a 5500-vs-22000 hand "on budget" */
+    const needPer = bname === 'The Mouth' && !bank.lockFam ? rem : rem / Math.max(1, handsLeft);
     /* FISH THE LAST HAND (Needle class: 13 deaths with dl=4 untouched - the old
        handsLeft>1 guard made Needle discard dead weight): when the projected hand
        falls short of the score needed in the hands remaining, spend discards to
