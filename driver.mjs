@@ -116,7 +116,8 @@ async function execHighlight(obs, cards, kind) {
  * @returns {Promise<object>} observation after the attempt
  */
 async function useTargeted(obs, tp) {
-    const rs = await act({ epoch: obs.epoch, action: 'select', cards: tp.cards.map((c) => c.id) });
+    const targets = tp.jid ? [tp.jid] : tp.cards.map((c) => c.id);
+    const rs = await act({ epoch: obs.epoch, action: 'select', cards: targets });
 
     if (!rs.ok) {
         jw({ e: 'tarottarget', why: tp.why, ok: false, code: 'select-fail', err: rs.error?.code });
@@ -134,7 +135,7 @@ async function useTargeted(obs, tp) {
 
     const ru = await act({ epoch: rs.result.epoch, action: 'use', target: tp.target });
 
-    jw({ e: 'tarottarget', why: tp.why, cards: tp.cards.map((c) => `${c.rank}-${String(c.suit || '?')[0]}`), ok: ru.ok, code: ru.error?.code });
+    jw({ e: 'tarottarget', why: tp.why, cards: tp.jid ? [`jk:${tp.jid}`] : tp.cards.map((c) => `${c.rank}-${String(c.suit || '?')[0]}`), ok: ru.ok, code: ru.error?.code });
 
     if (ru.ok && tp.why.startsWith('suit->')) {
         suitTally[tp.why.slice(5)] = (suitTally[tp.why.slice(5)] || 0) + tp.cards.length;
@@ -1500,6 +1501,18 @@ if (process.argv.includes('--selftest')) {
 
     if (pdFallback.length !== 1 || pdFallback[0].cards.map((x) => x.id).join() !== '3,4') {
         throw new Error(`death must fall back to best right-with-weaker-left pair when best is leftmost, got ${JSON.stringify(pdFallback[0] && pdFallback[0].cards.map((x) => x.id))}`);
+    }
+
+    const jkp = planTargeted({ hand: tHand, consumables: tCons('The Lovers'), jokers: [{ id: 'j1', name: 'Blueprint', score: 900 }, { id: 'j2', name: 'Joker', score: 40 }] });
+
+    if (jkp.length !== 1 || jkp[0].jid !== 'j1' || !/^jkcopy The Lovers/.test(jkp[0].why)) {
+        throw new Error(`Lovers must plan a joker-copy onto the top scorer, got ${JSON.stringify(jkp)}`);
+    }
+
+    const jkSolo = planTargeted({ hand: tHand, consumables: tCons('The Lovers'), jokers: [{ id: 'j1', name: 'Blueprint', score: 900 }] });
+
+    if (jkSolo.length !== 0 && String(jkSolo[0].why).startsWith('jkcopy')) {
+        throw new Error('Lovers must not plan a joker-copy while no slot can gain from it (needs >=2 jokers)');
     }
 
     const handFlushSteel = [
