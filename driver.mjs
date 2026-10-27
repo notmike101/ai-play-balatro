@@ -119,6 +119,8 @@ async function useTargeted(obs, tp) {
     const rs = await act({ epoch: obs.epoch, action: 'select', cards: tp.cards.map((c) => c.id) });
 
     if (!rs.ok) {
+        jw({ e: 'tarottarget', why: tp.why, ok: false, code: 'select-fail', err: rs.error?.code });
+
         return obs;
     }
 
