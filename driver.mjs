@@ -554,7 +554,7 @@ async function main() {
                 handsSnap = obs.hands;
             }
 
-            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '', (c.enhancements || []).concat(c.key && c.key !== 'c_base' ? [c.key] : [], c.values && c.values.type ? [`t:${c.values.type}`] : []).join('|')]), chips: obs.run.chips, epoch: obs.epoch, dl: obs.run.discards_left ?? null, hl: obs.run.hands_left ?? null, jk: (obs.jokers || []).map((j) => [j.name, j.value ?? null, j.extra ?? null, j.values ?? null]), rerolls: obs.run.rerolls_left ?? obs.run.rerolls ?? null });
+            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '', (c.enhancements || []).concat(c.key && c.key !== 'c_base' ? [c.key] : [], c.values && c.values.type ? [`t:${c.values.type}`] : [], c.seal ? [`S:${c.seal}`] : [], (c.values && c.values.seal) ? [`S:${c.values.seal}`] : []).join('|')]), chips: obs.run.chips, epoch: obs.epoch, dl: obs.run.discards_left ?? null, hl: obs.run.hands_left ?? null, jk: (obs.jokers || []).map((j) => [j.name, j.value ?? null, j.extra ?? null, j.values ?? null]), rerolls: obs.run.rerolls_left ?? obs.run.rerolls ?? null });
             const t = await playTurn(obs);
 
             t.nullCards = (obs.hand || []).filter((c) => !c.rank).length;
@@ -1485,8 +1485,29 @@ if (process.argv.includes('--selftest')) {
         throw new Error('held targeted tarot without use action must still plan (select enables it)');
     }
 
-    if (planTargeted({ hand: tHand, consumables: tCons('Death') }).length !== 0) {
-        throw new Error('death must skip when best card is leftmost');
+    const pdFallback = planTargeted({ hand: tHand, consumables: tCons('Death') });
+
+    if (pdFallback.length !== 1 || pdFallback[0].cards.map((x) => x.id).join() !== '3,4') {
+        throw new Error(`death must fall back to best right-with-weaker-left pair when best is leftmost, got ${JSON.stringify(pdFallback[0] && pdFallback[0].cards.map((x) => x.id))}`);
+    }
+
+    const handFlushSteel = [
+        { id: 11, rank: 'K', suit: 'Hearts', actions: ['select'] },
+        { id: 12, rank: 'Q', suit: 'Spades', actions: ['select'] },
+        { id: 13, rank: 'J', suit: 'Spades', actions: ['select'] },
+        { id: 14, rank: '9', suit: 'Spades', actions: ['select'] },
+        { id: 15, rank: '2', suit: 'Spades', actions: ['select'] },
+    ];
+    const pSteel = planTargeted({ hand: handFlushSteel, consumables: tCons('Justice') });
+
+    if (pSteel.length !== 1 || pSteel[0].cards[0].id !== 12 || pSteel[0].why !== 'enhance best flushsuit') {
+        throw new Error(`steel must enhance flush-suit best (Q Spades) not off-suit K, got ${JSON.stringify(pSteel[0] && [pSteel[0].cards[0].id, pSteel[0].why])}`);
+    }
+
+    const pPlainBest = planTargeted({ hand: handFlushSteel, consumables: tCons('Strength') });
+
+    if (pPlainBest.length !== 1 || pPlainBest[0].cards[0].id !== 11) {
+        throw new Error('non-steel best1 keeps plain rank order');
     }
 
     const tHand2 = [tHand[1], tHand[0], tHand[2], tHand[3]];
