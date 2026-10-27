@@ -717,27 +717,10 @@ async function main() {
             jw({ e: 'blind', ante: obs.run?.ante, m: obs.run?.money, name: obs.run?.blind?.name || (obs.run?.blinds || []).map((b) => `${b.name}:${b.state}`).join(','), target: obs.run?.blind?.target, effect: obs.run?.blind?.effect, jokers: ((obs.jokers || []).map((j) => j.name || j.key)), cons: ((obs.consumables || []).map((c) => `${c.name}[${(c.actions || []).join('/')}]`)), boss: boss && { name: boss.name, effect: boss.effect, target: boss.target }, ctrl: (obs.controls || []).map((c) => `${c.kind}${c.enabled ? '' : ':off'}`), rk: Object.keys(obs.run || {}).join(','), tv: JSON.stringify(obs.run?.tags ?? null).slice(0, 200), vv: JSON.stringify(obs.run?.vouchers ?? null).slice(0, 240) });
             runStats.jmax = Math.max(runStats.jmax, (obs.jokers || []).length);
 
-            /* SKIP PROBE (9b0b862 census: skip_blind enabled for SB/BB but DISABLED on
-               boss blinds in this build; tv has been [] forever because we never skip):
-               skip ante-2 Small Blind ONCE per run with >=$10 to capture what a tag
-               actually is here (name, where it lands, which controls appear) before any
-               real skip policy exists. Cost ~$5 blind reward; answers the whole tag
-               economy question the funnel has been dodging since r1 */
-            const skipCtl = (obs.controls || []).find((c) => c.enabled && c.kind === 'skip_blind');
-
-            /* blind?.name is NULL until selected (the row prints the joined state-list) -
-               match the Select-state entry instead, else this probe can never fire */
-            const blindLbl = obs.run?.blind?.name || (obs.run?.blinds || []).map((b) => `${b.name}:${b.state}`).join(',');
-
-            if (skipCtl && /(small|big) blind:select/i.test(blindLbl) && obs.run?.ante >= 2 && (obs.run?.money ?? 0) >= 4 && !runStats.skipProbe) {
-                runStats.skipProbe = true;
-
-                const rs = await act({ epoch: obs.epoch, action: 'activate', target: skipCtl.id });
-
-                jw({ e: 'skipprobe', ok: rs.ok, code: rs.error?.code, tags: JSON.stringify(rs.result?.run?.tags ?? null).slice(0, 200), ctrl: (rs.result?.controls || []).map((c) => `${c.kind}${c.enabled ? '' : ':off'}`) });
-                continue;
-            }
-
+            /* SKIP ECONOMY CLOSED (probe 1793083050 a2 BB: activate skip_blind => ok, blind
+               flips to Skipped, boss advances, BUT run.tags stayed [] and NO new controls -
+               this build pays nothing for skipping, pure reward loss. Boss blinds also
+               skip-disabled. Skip policy and Rocket-revival are both dead ends here.) */
             if (sel) {
                 const r = await act({ epoch: obs.epoch, action: 'activate', target: sel.id });
 
