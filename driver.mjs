@@ -1658,6 +1658,39 @@ if (process.argv.includes('--selftest')) {
         throw new Error(`baron pair with played K kicker must score 26*2*1.5=78, got ${pairKick?.pred}`);
     }
 
+    /* Crimson Heart (random joker disabled every hand): single-joker engine EV
+       must drop to the jokerless score; two-copy engine keeps half its value */
+    const chTab = [{ name: 'Pair', chips: 10, mult: 2, level: 1 }];
+    const chHand = [
+        { ...C('K', 'Hearts'), id: 10, actions: ['select'] },
+        { ...C('K', 'Spades'), id: 11, actions: ['select'] },
+        { ...C('3', 'Clubs'), id: 12, actions: ['select'] },
+    ];
+    const chFull = ctxOf({ jokers: [{ name: 'Joker', values: { mult: 30 } }], run: {} });
+    const chOne = ctxOf({ jokers: [{ name: 'Joker', values: { mult: 30 } }], run: { blind: { name: 'Crimson Heart' } } });
+    const chTwo = ctxOf({
+        jokers: [{ name: 'Joker', values: { mult: 30 } }, { name: 'Joker', values: { mult: 30 } }],
+        run: { blind: { name: 'Crimson Heart' } },
+    });
+    /**
+     * Best Pair prediction for a context.
+     *
+     * @param {object} cx - decision context from ctxOf
+     * @returns {number} pair prediction
+     */
+    const chPred = (cx) => allSubsetEvals(chHand, chTab, null, cx).find((x) => x.fam === 'Pair' && x.cards.length === 2).pred;
+    const chP1 = chPred(chFull);
+    const chP2 = chPred(chOne);
+    const chP3 = chPred(chTwo);
+
+    if (!(chP2 < chP1)) {
+        throw new Error(`crimson heart must discount single-joker engine: ${chP2} vs full ${chP1}`);
+    }
+
+    if (chP3 !== chP1) {
+        throw new Error(`crimson heart two-copy EV must equal one-copy full: ${chP3} vs ${chP1}`);
+    }
+
     for (const k of Object.keys(jokerFactor)) {
         delete jokerFactor[k];
         delete jokerSig[k];
