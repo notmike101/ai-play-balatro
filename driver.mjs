@@ -725,7 +725,7 @@ async function main() {
                economy question the funnel has been dodging since r1 */
             const skipCtl = (obs.controls || []).find((c) => c.enabled && c.kind === 'skip_blind');
 
-            if (skipCtl && /small/i.test(obs.run?.blind?.name || '') && obs.run?.ante === 2 && (obs.run?.money ?? 0) >= 10 && !runStats.skipProbe) {
+            if (skipCtl && /(small|big)/i.test(obs.run?.blind?.name || '') && obs.run?.ante >= 2 && (obs.run?.money ?? 0) >= 6 && !runStats.skipProbe) {
                 runStats.skipProbe = true;
 
                 const rs = await act({ epoch: obs.epoch, action: 'activate', target: skipCtl.id });
