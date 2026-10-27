@@ -556,7 +556,19 @@ async function main() {
             }
 
             // targeted tarot on hand cards: select then use (Magician/Empress/Tower/Death/Hierophant)
-            for (const tp of planTargeted(obs, suitTally)) {
+            const ttPlans = planTargeted(obs, suitTally);
+
+            /* DEATH-DIAG (73695+75486: Death held 20+ hands, zero plan rows, zero
+               useTargeted rows => the branch never produced a plan; dump inputs). */
+            const dHold = (obs.consumables || []).some((c) => /death/i.test(`${c.name}${c.key || ''}`));
+
+            if (dHold && (runStats.deathDiag ?? (runStats.deathDiag = 0)) < 3) {
+                runStats.deathDiag++;
+
+                jw({ e: 'deathdiag', cons: (obs.consumables || []).map((c) => [c.name, c.kind, (c.actions || []).join('/'), !!c.face_down, !!c.debuffed]), handN: (obs.hand || []).length, plans: ttPlans.map((p) => p.why) });
+            }
+
+            for (const tp of ttPlans) {
                 obs = await useTargeted(obs, tp);
             }
 
