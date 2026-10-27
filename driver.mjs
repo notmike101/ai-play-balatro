@@ -1515,6 +1515,21 @@ if (process.argv.includes('--selftest')) {
         throw new Error(`death must fall back to best right-with-weaker-left pair when best is leftmost, got ${JSON.stringify(pdFallback[0] && pdFallback[0].cards.map((x) => x.id))}`);
     }
 
+    const tDesc = [
+        { id: 21, rank: 'K', suit: 'Hearts', actions: ['select'] },
+        { id: 22, rank: 'Q', suit: 'Hearts', actions: ['select'] },
+        { id: 23, rank: '7', suit: 'Hearts', actions: ['select'] },
+        { id: 24, rank: '6', suit: 'Spades', actions: ['select'] },
+        { id: 25, rank: '4', suit: 'Diamonds', actions: ['select'] },
+        { id: 26, rank: '2', suit: 'Spades', actions: ['select'] },
+        { id: 27, rank: '2', suit: 'Hearts', actions: ['select'] },
+    ];
+    const pDesc = planTargeted({ hand: tDesc, consumables: tCons('Death') });
+
+    if (pDesc.length !== 1 || pDesc[0].cards.map((x) => x.id).join() !== '25,27') {
+        throw new Error(`death on a rank-descending hand must demote the cheapest higher card (4d id25) into the duplicate rank anchor 2h id27, got ${JSON.stringify(pDesc[0] && pDesc[0].cards.map((x) => x.id))}`);
+    }
+
     const jkp = planTargeted({ hand: tHand, consumables: tCons('The Lovers'), jokers: [{ id: 'j1', name: 'Blueprint', score: 900 }, { id: 'j2', name: 'Joker', score: 40 }] });
 
     if (jkp.length !== 1 || jkp[0].jid !== 'j1' || !/^jkcopy The Lovers/.test(jkp[0].why)) {
