@@ -265,7 +265,12 @@ async function playTurn(obs) {
     }
 
     const needPer = rem / Math.max(1, handsLeft);
-    const needMore = discLeft > 0 && handsLeft > 1 && best.pred < needPer;
+    /* FISH THE LAST HAND (Needle class: 13 deaths with dl=4 untouched - the old
+       handsLeft>1 guard made Needle discard dead weight): when the projected hand
+       falls short of the score needed in the hands remaining, spend discards to
+       upgrade it. A discard cannot lose the round - only the play can - so this
+       is strictly free equity (Water's no-discard fail just falls through) */
+    const needMore = discLeft > 0 && best.pred < needPer;
 
     if (needMore) {
         const d = chooseDiscard(hand, best, bank.lockFam ?? null);
