@@ -714,7 +714,7 @@ async function main() {
             /* ctrl: Director's Cut is bought 29x and NEVER used - the boss-reroll affordance
                at blind select is unprobed; log every control kind (and enabled bit) plus the
                run-object key union once per blind to find where redeemed vouchers surface */
-            jw({ e: 'blind', ante: obs.run?.ante, name: obs.run?.blind?.name || (obs.run?.blinds || []).map((b) => `${b.name}:${b.state}`).join(','), target: obs.run?.blind?.target, effect: obs.run?.blind?.effect, jokers: ((obs.jokers || []).map((j) => j.name || j.key)), cons: ((obs.consumables || []).map((c) => `${c.name}[${(c.actions || []).join('/')}]`)), boss: boss && { name: boss.name, effect: boss.effect, target: boss.target }, ctrl: (obs.controls || []).map((c) => `${c.kind}${c.enabled ? '' : ':off'}`), rk: Object.keys(obs.run || {}).join(','), tv: JSON.stringify(obs.run?.tags ?? null).slice(0, 200), vv: JSON.stringify(obs.run?.vouchers ?? null).slice(0, 240) });
+            jw({ e: 'blind', ante: obs.run?.ante, m: obs.run?.money, name: obs.run?.blind?.name || (obs.run?.blinds || []).map((b) => `${b.name}:${b.state}`).join(','), target: obs.run?.blind?.target, effect: obs.run?.blind?.effect, jokers: ((obs.jokers || []).map((j) => j.name || j.key)), cons: ((obs.consumables || []).map((c) => `${c.name}[${(c.actions || []).join('/')}]`)), boss: boss && { name: boss.name, effect: boss.effect, target: boss.target }, ctrl: (obs.controls || []).map((c) => `${c.kind}${c.enabled ? '' : ':off'}`), rk: Object.keys(obs.run || {}).join(','), tv: JSON.stringify(obs.run?.tags ?? null).slice(0, 200), vv: JSON.stringify(obs.run?.vouchers ?? null).slice(0, 240) });
             runStats.jmax = Math.max(runStats.jmax, (obs.jokers || []).length);
 
             /* SKIP PROBE (9b0b862 census: skip_blind enabled for SB/BB but DISABLED on
@@ -725,7 +725,11 @@ async function main() {
                economy question the funnel has been dodging since r1 */
             const skipCtl = (obs.controls || []).find((c) => c.enabled && c.kind === 'skip_blind');
 
-            if (skipCtl && /(small|big)/i.test(obs.run?.blind?.name || '') && obs.run?.ante >= 2 && (obs.run?.money ?? 0) >= 6 && !runStats.skipProbe) {
+            /* blind?.name is NULL until selected (the row prints the joined state-list) -
+               match the Select-state entry instead, else this probe can never fire */
+            const blindLbl = obs.run?.blind?.name || (obs.run?.blinds || []).map((b) => `${b.name}:${b.state}`).join(',');
+
+            if (skipCtl && /(small|big) blind:select/i.test(blindLbl) && obs.run?.ante >= 2 && (obs.run?.money ?? 0) >= 4 && !runStats.skipProbe) {
                 runStats.skipProbe = true;
 
                 const rs = await act({ epoch: obs.epoch, action: 'activate', target: skipCtl.id });
