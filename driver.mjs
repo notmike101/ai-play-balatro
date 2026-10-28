@@ -1654,9 +1654,9 @@ if (process.argv.includes('--selftest')) {
 
     if (!(scorePackOffer({ kind: 'planet', name: 'Uranus' }, tierCtx) === 4.6
         && scorePackOffer({ kind: 'planet', name: 'Saturn' }, tierCtx) === 4.1
-        && scorePackOffer({ kind: 'planet', name: 'Pluto' }, tierCtx) === 4
+        && scorePackOffer({ kind: 'planet', name: 'Pluto' }, tierCtx) === 3
         && scorePackOffer({ kind: 'planet', name: 'Venus' }, tierCtx) === 3)) {
-        throw new Error('off-target planet tiers must escalate with plays (TP8:4.6 Str4:4.1 HC1:4 Trips0:3)');
+        throw new Error('off-target planet tiers must escalate with plays, ungrindable HC planet floors with Trips (TP8:4.6 Str4:4.1 HC1:3 Trips0:3)');
     }
 
     /* standard-pack bare enhancers (name-only, no rank): taken 0/9 before the
