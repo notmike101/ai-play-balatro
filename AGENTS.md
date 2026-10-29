@@ -11,6 +11,7 @@ WebSocket bridge and grinds the stake ladder unattended.
   `observe/act`, CDP recovery helpers (`reloadPage`, `nudgeUnpause` over loopback :9222).
 - `lib/play.mjs` hand-eval + per-hand prediction/calibration; `lib/strategy.mjs` family
   focus, joker tiers, pack/tarot scoring; `lib/shop.mjs` shop/pack buying;
+  `lib/digest.mjs` pure per-run digest rollup + accumulator reset;
   `lib/knowledge.mjs` durable state under `out/` (log, results, digests, wins, stake locks,
   `policy.json`); `tests/selftest.mjs` the assertion suite (run via driver).
 - `automation-host.mjs` — page-side WS host (page connects to us; one owner of :4180).
