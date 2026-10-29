@@ -5,10 +5,16 @@ WebSocket bridge and grinds the stake ladder unattended.
 
 ## Layout
 
-- `driver.mjs` — decision loop + play/discard/shop/pack policy (state: per-blind bank,
+- `driver.mjs` — decision loop + shop/pack/overlay/setup policy (state: per-blind bank,
   per-ante played ranks, strategy focus). Phase-driven: `observe()` -> act on controls.
 - `lib/link.mjs` — bridge host lifecycle (spawns `automation-host.mjs`, ws://127.0.0.1:4180),
   `observe/act`, CDP recovery helpers (`reloadPage`, `nudgeUnpause` over loopback :9222).
+- `lib/acts.mjs` — act primitives: highlight play/discard with direct-verb fallback,
+  targeted-tarot select-then-use, joker-lineup sync, deck probe (once per run).
+- `lib/playturn.mjs` — hand-phase engine: `playTurn` (which hand to play vs discard,
+  incl the stake-2 one-discard desperation cap and boss handling for Mouth/Eye/Pillar/
+  face-down scaling) and `handleHand` (the whole turn pipeline: blind-bank sync, planet/
+  tarot prep, telemetry `turn`/`decide` rows, calibration, zombie-pause recovery).
 - `lib/play.mjs` hand-eval + per-hand prediction/calibration; `lib/strategy.mjs` family
   focus, joker tiers, pack/tarot scoring; `lib/shop.mjs` shop/pack buying;
   `lib/digest.mjs` pure per-run digest rollup + accumulator reset;
