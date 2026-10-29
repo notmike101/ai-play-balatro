@@ -3,7 +3,7 @@
    Monitor: out/state.json (current summary), out/log.jsonl (per-decision), out/results.jsonl (run outcomes). */
 import fs from 'node:fs';
 import path from 'node:path';
-import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, jokerFactor, jokerSig, JUNK_JOKER } from './lib/knowledge.mjs';
+import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, setStakeCtx, saveStakeLock, jokerFactor, jokerSig, JUNK_JOKER } from './lib/knowledge.mjs';
 import { observe, act, nudgeUnpause } from './lib/link.mjs';
 import { allSubsetEvals, chooseDiscard, calibrate, famBase, ctxOf, resetRoundReps, syncReps, getRoundReps } from './lib/play.mjs';
 import { handleShop, handlePackOpen, planetFam, nextPlanetNeed, resetShopRun, setPackMetaHands } from './lib/shop.mjs';
@@ -636,6 +636,7 @@ async function main() {
         const ph = obs.phase;
 
         fs.writeFileSync(path.join(OUT, 'state.json'), JSON.stringify({ t: Date.now(), phase: ph, epoch: obs.epoch, run: obs.run && { money: obs.run.money, ante: obs.run.ante, round: obs.run.round, stake: obs.run.stake, deck: obs.run.deck?.key, score: obs.run.current_score, hands_left: obs.run.hands_left, discards_left: obs.run.discards_left, target: obs.run.blind?.target, name: obs.run.blind?.name }, jokers: (obs.jokers || []).map((j) => j.name), wins: [...wins] }, null, 1));
+        setStakeCtx(obs.run?.stake ?? null);
 
         /* STAKE GUARD (user directive 10-29; wins-file array bug let the driver
            replay White through the whole Red era): if the live run's stake differs
@@ -1039,6 +1040,10 @@ async function main() {
             if (won && lbl) {
                 wins.add(lbl);
                 saveWins();
+                /* preserve the EXACT knob set that beat this stake; reruns of this
+                   stake and inherited starts of higher stakes resolve via policy() */
+                saveStakeLock(lbl, { ...policy(), lockedAt: Date.now() });
+                say('policy locked for', lbl);
 
                 if (stakeNum !== null && stakeNum !== undefined) {
                     stakeMap[lbl] = stakeNum;
