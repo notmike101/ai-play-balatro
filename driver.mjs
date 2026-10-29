@@ -654,7 +654,16 @@ async function main() {
                 /* no chips field: fall back to prediction estimate. Exception: Cerulean-Bell all-face-down hands score
                    nothing and the observed null-rank hand proves the play never scored — don't bank phantoms. */
                 const phantom = d === 0 && t.nullCards > 0;
-                const credit = d !== null ? d : t.pred;
+                /* HONEST-SCALE BANKING (Mark med .58 / Fish .56 post-pEff: gate scale was
+                   shipped but the bank kept folding raw preds -> 2x phantom overshoot ->
+                   resync->0 every fd blind, needMore fed by fiction): credit face-down
+                   plays at the same 0.6 pEff factor from the SAME evidence (EV medians
+                   .56-.62 of raw pred), so resync fires on reality */
+                let credit = d !== null ? d : t.pred;
+
+                if (d === null && t.nullCards > 0) {
+                    credit = (t.pred ?? 0) * 0.6;
+                }
 
                 // face-down (Fish/Mark) hands score under guessed fams — never fold their deltas into jokerFactor
                 /* The Flint now halved in predict, but rounding of the halved base is
