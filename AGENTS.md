@@ -13,7 +13,12 @@ WebSocket bridge and grinds the stake ladder unattended.
   focus, joker tiers, pack/tarot scoring; `lib/shop.mjs` shop/pack buying;
   `lib/digest.mjs` pure per-run digest rollup + accumulator reset;
   `lib/knowledge.mjs` durable state under `out/` (log, results, digests, wins, stake locks,
-  `policy.json`); `tests/selftest.mjs` the assertion suite (run via driver).
+  `policy.json`).
+- `tests/` assertion suite, run via `node driver.mjs --selftest`: `selftest.mjs` is a
+  19-line runner chaining six topic modules (`handfams`, `lineup`, `calibration`,
+  `policy`, `jokerefx`, `digest`); shared fixtures (cards, tables, contexts) live in
+  `tests/support.mjs`. Put new assertions in the matching topic module, fixtures in
+  support — do not grow one file past a few hundred lines.
 - `automation-host.mjs` — page-side WS host (page connects to us; one owner of :4180).
 - `out/log.jsonl` append-only telemetry, every row `{ts, rid, e, ...}`. `RUNBOOK.md` has
   the operational deep dives; `tmp/` holds throwaway probes (gitignored, but linted).
@@ -49,6 +54,9 @@ node tmp/watchrun.mjs               # one-shot: exits when the next clean run-di
   the fallback when highlight/select dies (`e:"directverb"` rows).
 - Boss semantics come from the game's own `blind.effect` strings, never wiki memory;
   unknown card behavior => ASK THE USER (they are this build's card oracle).
+- Prefer small cohesive files everywhere (user standing rule, 10-29): when a file grows
+  past ~a few hundred lines, split it along topic seams and keep a thin runner/facade;
+  shared helpers move to a `support`/`lib` module rather than being duplicated.
 - Never leave two supervisors/hosts alive (:4180 single owner, "already in use" loops);
   service readiness probes never match — verify via ptree/`out/drv-stdout.txt`/state.json.
 - Time: `ts` fields are epoch ms (authoritative); console/proc tails use 12-h local.
