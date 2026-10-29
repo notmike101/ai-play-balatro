@@ -911,7 +911,7 @@ async function main() {
         }
 
         if (ph === 'menu') {
-            const p = (obs.controls || []).find((c) => c.enabled && /start_run|setup_run|\bplay\b/i.test(`${c.kind} ${c.label || ''}`));
+            const p = (obs.controls || []).find((c) => c.enabled && c.kind === 'start_run');
 
             if (p) {
                 const r = await act({ epoch: obs.epoch, action: 'activate', target: p.id });
@@ -925,6 +925,11 @@ async function main() {
 
                 continue;
             }
+
+            // this build's menu setup_run (Play -> save overlay) crashes on authored WS click; needs a physical/CDP click
+            say('menu idle: needs physical Play click to open run overlay');
+            await sleep(3_000);
+            continue;
         }
 
         if (ph === 'game_won' || ph === 'game_over') {
