@@ -705,7 +705,11 @@ async function main() {
         // unlock/gameover banners: dismiss via any continue-ish control
         if (ph === 'overlay') {
             const setupUI = (obs.controls || []).some((c) => /setup_run|start_setup_run/.test(c.kind)
-                || (c.kind === 'option_cycle' && Array.isArray(c.options) && c.options.some((s) => /deck|stake/i.test(String(s)))));
+                || (c.kind === 'option_cycle' && Array.isArray(c.options) && c.options.some((s) => /deck|stake/i.test(String(s))))
+                /* the New Run tab marker is present from the FIRST overlay frame, while the
+                   deck/stake option rows lag one animation tick - without this the back-out
+                   guard below ate the user's physical PLAY click (10-29 dismissal) */
+                || (c.kind === 'change_tab' && /new run/i.test(String(c.label ?? ''))));
             const cu = !setupUI && (obs.controls || []).find((c) => c.enabled && /continue|done|dismiss/i.test(`${c.kind} ${c.label || ''}`));
 
             if (cu) {
@@ -721,7 +725,7 @@ async function main() {
             // stranded in settings/pause menu: back out
             const settingsUI = (obs.controls || []).some((c) => ['change_tab', 'option_cycle', 'toggle_button'].includes(c.kind));
 
-            const bk = settingsUI ? (obs.controls || []).find((c) => c.enabled && /close|exit|back|resume/i.test(`${c.kind} ${c.label || ''}`)) : null;
+            const bk = !setupUI && settingsUI ? (obs.controls || []).find((c) => c.enabled && /close|exit|back|resume/i.test(`${c.kind} ${c.label || ''}`)) : null;
 
             if (bk) {
                 const r = await act({ epoch: obs.epoch, action: 'activate', target: bk.id });
