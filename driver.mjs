@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, jokerFactor, jokerSig, JUNK_JOKER } from './lib/knowledge.mjs';
-import { observe, act } from './lib/link.mjs';
+import { observe, act, nudgeUnpause } from './lib/link.mjs';
 import { allSubsetEvals, chooseDiscard, calibrate, famBase, ctxOf, resetRoundReps, syncReps, getRoundReps } from './lib/play.mjs';
 import { handleShop, handlePackOpen, planetFam, nextPlanetNeed, resetShopRun, setPackMetaHands } from './lib/shop.mjs';
 import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables, planTargeted, gateAllows, scorePackOffer } from './lib/strategy.mjs';
@@ -14,6 +14,8 @@ import { setGameSpeed } from './lib/settings.mjs';
 
 // per-blind score-accumulator estimate
 let bank = { key: '', pred: 0 };
+// consecutive playTurn act failures; 3 in a row => zombie-pause, CDP-Escape nudge
+let turnErrStreak = 0;
 let strat = null;
 let bias = {};
 let lastStratFam = null;
@@ -87,9 +89,40 @@ function deckProbe(obs) {
  * @returns {Promise<object>} act result envelope
  */
 async function execHighlight(obs, cards, kind) {
-    const r = await act({ epoch: obs.epoch, action: 'select', cards: cards.map((c) => c.id) });
+    let verb = null;
+
+    if (kind === 'play_cards_from_highlighted') {
+        verb = 'play';
+    } else if (kind === 'discard_cards_from_highlighted') {
+        verb = 'discard';
+    }
+
+    const ids = cards.map((c) => c.id);
+
+    /* CERULEAN BELL pins one card always-selected: a play set that omits it can be
+       rejected by the game, and the pinned card rides along physically no matter what —
+       fold every selected card into PLAY sets (never discards: pinned cards must stay) */
+    if (kind === 'play_cards_from_highlighted') {
+        for (const c of obs.hand || []) {
+            if (c.selected && !ids.includes(c.id)) {
+                ids.push(c.id);
+            }
+        }
+    }
+
+    const r = await act({ epoch: obs.epoch, action: 'select', cards: ids });
 
     if (!r.ok) {
+        /* select path dead (focus-pause, tab quirk) while the adapter's DIRECT
+           play/discard verb still works — proven on the a8 Bell win (10-29):
+           play{cards} executed when every select/highlight act returned
+           action_unavailable */
+        if (verb) {
+            jw({ e: 'directverb', verb, why: r.error?.code, ids });
+
+            return await act({ epoch: obs.epoch, action: verb, cards: ids });
+        }
+
         return r;
     }
 
@@ -102,6 +135,12 @@ async function execHighlight(obs, cards, kind) {
     }
 
     if (!ctl) {
+        if (verb) {
+            jw({ e: 'directverb', verb, why: 'no_ctl', ids });
+
+            return await act({ epoch: o.epoch, action: verb, cards: ids });
+        }
+
         return { ok: false, error: { code: 'no_highlight_ctl', message: kind } };
     }
 
@@ -641,6 +680,17 @@ async function main() {
 
             if (t.r && !t.r.ok) {
                 say('turn err', t.r.error?.code);
+
+                /* ZOMBIE-PAUSE ESCAPE (a8 Bell win rescue 10-29): game rejects every
+                   in-hand action while phase/overlay/ready all look clean; only a real
+                   Escape key wakes it. Three consecutive turn failures = stuck, not
+                   an epoch race — nudge over CDP; the overlay handler does Back-next */
+                if (++turnErrStreak >= 3) {
+                    jw({ e: 'unstick', code: t.r.error?.code, streak: turnErrStreak });
+                    await nudgeUnpause();
+                    turnErrStreak = 0;
+                }
+
                 await sleep(1_500);
                 const again = await observe();
 
@@ -684,6 +734,10 @@ async function main() {
                 if (phantom) {
                     jw({ e: 'phantom', fam: t.fam, pred: t.pred });
                 }
+            }
+
+            if (t.r?.ok) {
+                turnErrStreak = 0;
             }
 
             idle = 0;
