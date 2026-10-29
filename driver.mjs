@@ -457,32 +457,32 @@ async function handleNewRun(obs) {
     fs.writeFileSync(path.join(OUT, 'overlay.json'), JSON.stringify(obs));
     const wantDeck = pol.deck || 'Red Deck';
     const unwon = STAKE_LABELS.find((l) => !wins.has(l)) || STAKE_LABELS[7];
+    const stakeWant = STAKE_LABELS.indexOf(unwon) + 1;
     let o = obs;
 
     for (let round = 0; round < 40; round++) {
         const cycles = (o.controls || []).filter((c) => c.enabled && c.kind === 'option_cycle' && Array.isArray(c.options));
-        // NOTE: option_cycle `index` is 1-based (index 1 == options[0]); auto-detect base from a control whose index is valid 0-based.
-        const base0 = cycles.some((c) => c.index >= c.options.length);
-        /**
-         * Read an option label, compensating for the 1-based index reported by controls.
-         *
-         * @param {object} c - option_cycle control
-         * @param {number} i - control-reported index
-         * @returns {string} option label
-         */
-        // eslint-disable-next-line unicorn/consistent-function-scoping -- reads base0 detected per loop round
-        const at = (c, i) => c.options[i - (base0 ? 0 : 1)];
-        const deckC = cycles.find((c) => c.options.some((s) => /deck/i.test(s)));
-        const stakeC = cycles.find((c) => c !== deckC && c.options.some((s) => /stake/i.test(s)));
+        /* PROVEN against the live setup overlay (13-start loop 10-29): indices are
+           1-based (deck index 1 == "Red Deck" = game default; stake index 1 == stake 1
+           = game's stake 1) and the STAKE control's options are NUMBERS [1..8], not
+           label strings - the old /stake/i label probe never matched, so the stake
+           arrow was never clicked and every claimed stake was fiction */
+        const at = (c, i) => c.options[i - 1];
+        const deckC = cycles.find((c) => c.options.some((s) => /deck/i.test(String(s))));
+        const stakeC = cycles.find((c) => c !== deckC && c.options.length >= 2 && c.options.every((s) => {
+            const v = Number(s);
+
+            return Number.isInteger(v) && v >= 1 && v <= 8;
+        }));
         let c = null;
         let ti = -1;
 
         if (deckC && at(deckC, deckC.index) !== wantDeck) {
             c = deckC;
             ti = deckC.options.indexOf(wantDeck);
-        } else if (stakeC && at(stakeC, stakeC.index) !== unwon) {
+        } else if (stakeC && Number(at(stakeC, stakeC.index)) !== stakeWant) {
             c = stakeC;
-            ti = stakeC.options.indexOf(unwon);
+            ti = stakeC.options.findIndex((s) => Number(s) === stakeWant);
         }
 
         if (!c || ti < 0) {
@@ -490,7 +490,7 @@ async function handleNewRun(obs) {
         }
 
         const n = c.options.length;
-        const cur = ((c.index + (base0 ? 0 : n - 1)) % n);
+        const cur = ((c.index - 1 + n) % n);
         const delta = (ti - cur + n) % n;
         const useCtl = cyclePartner(o.controls, c, delta <= n / 2 ? 'r' : 'l');
 
@@ -508,9 +508,13 @@ async function handleNewRun(obs) {
         o = r.result;
     }
 
-    const stakeCyc = (o.controls || []).find((c) => c.kind === 'option_cycle' && Array.isArray(c.options) && c.options.some((s) => /stake/i.test(s)));
-    const sBase0 = stakeCyc && stakeCyc.index >= stakeCyc.options.length;
-    const stakeLbl = stakeCyc ? stakeCyc.options[stakeCyc.index - (sBase0 ? 0 : 1)] : null;
+    const stakeCyc = (o.controls || []).find((c) => c.kind === 'option_cycle' && Array.isArray(c.options) && (c.options.some((s) => /stake/i.test(String(s))) || (c.options.length >= 2 && c.options.every((s) => {
+        const v = Number(s);
+
+        return Number.isInteger(v) && v >= 1 && v <= 8;
+    }))));
+    const rawStake = stakeCyc ? stakeCyc.options[stakeCyc.index - 1] : null;
+    const stakeLbl = rawStake == null ? null : (/stake/i.test(String(rawStake)) ? String(rawStake) : STAKE_LABELS[Number(rawStake) - 1] || null);
     const start = (o.controls || []).find((c) => c.enabled && /start_setup_run/.test(c.kind));
 
     if (!start) {
