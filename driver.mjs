@@ -198,12 +198,24 @@ async function playTurn(obs) {
        falls short of the score needed in the hands remaining, spend discards to
        upgrade it. A discard cannot lose the round - only the play can - so this
        is strictly free equity (Water's no-discard fail just falls through) */
-    const needMore = discLeft > 0 && pEff < needPer;
+    const needMore0 = discLeft > 0 && pEff < needPer;
+
+    /* ONE-DISCARD DESPERATION CAP (Red stake; 10-29 cohort: a1-big deaths with lvlAct 0 -
+       pred < average need made MULTI-discard spirals: every failed upgrade gamble ate one
+       of the four hands the own budget counted on, doubling needPer each time). Max one
+       upgrade gamble per hand; after that score with what we have. */
+    if (bank.hlMark !== handsLeft) {
+        bank.hlMark = handsLeft;
+        bank.handDisc = 0;
+    }
+
+    const needMore = needMore0 && !((run.stake ?? curStake) === 2 && bank.handDisc >= 1);
 
     if (needMore) {
         const d = chooseDiscard(hand, best, bank.lockFam ?? null);
 
         if (d && d.length) {
+            bank.handDisc += 1;
             const r = await execHighlight(obs, d, 'discard_cards_from_highlighted');
 
             if (r.ok) {
@@ -730,29 +742,13 @@ async function main() {
             jw({ e: 'blind', ante: obs.run?.ante, m: obs.run?.money, name: obs.run?.blind?.name || (obs.run?.blinds || []).map((b) => `${b.name}:${b.state}`).join(','), target: obs.run?.blind?.target, effect: obs.run?.blind?.effect, jokers: ((obs.jokers || []).map((j) => j.name || j.key)), cons: ((obs.consumables || []).map((c) => `${c.name}[${(c.actions || []).join('/')}]`)), boss: boss && { name: boss.name, effect: boss.effect, target: boss.target }, ctrl: (obs.controls || []).map((c) => `${c.kind}${c.enabled ? '' : ':off'}`), rk: Object.keys(obs.run || {}).join(','), tv: JSON.stringify(obs.run?.tags ?? null).slice(0, 200), vv: JSON.stringify(obs.run?.vouchers ?? null).slice(0, 240) });
             runStats.jmax = Math.max(runStats.jmax, (obs.jokers || []).length);
 
-            /* SKIP ECONOMY (probe 1793083050 a2 BB + Red Stake effect user-confirmed 10-29
-               "Small Blind gives no reward money"): activate skip_blind => ok, blind flips
-               to Skipped, boss advances, run.tags stays [] (this build grants NO skip tag) —
-               skip = FREE blind clear, forfeiting only the reward. WHITE-era: small skip
-               forfeited $3 (driver fought, correct). RED STAKE: small reward IS $0 ->
-               skipping costs nothing and skips the fight; skip when money is already
-               above the blind's reward. Boss blinds skip-disabled; big-blind skip stays
-               OFF (reward $4 > $0, only Red's small is money-free) */
-            const skip = (obs.controls || []).find((c) => c.enabled && c.kind === 'skip_blind');
-            const redSmall = (obs.run?.stake ?? curStake) === 2 && skip
-                && /Small Blind:Select/.test((obs.run?.blinds || []).map((b) => `${b.name}:${b.state}`).join(','));
-
-            if (sel && redSmall) {
-                jw({ e: 'redskip', ante: obs.run?.ante, m: obs.run?.money });
-                const rs2 = await act({ epoch: obs.epoch, action: 'activate', target: skip.id });
-
-                if (!rs2.ok) {
-                    say('redskip fail', rs2.error?.code);
-                }
-
-                continue;
-            }
-
+            /* SKIP ECONOMY RETIRED for Red (cohort census 10-29, n=16 true-red runs,
+               avgA ~2.0 vs white 3.10, deaths dominated by ante-1): skip pays $0 here
+               (redskip `m` rows: money unchanged 4->4) and grants no tag, but it ALSO
+               eats the small-blind shop - the only pre-big-blind shop where a $4
+               starter joker can buy the a1-big margin. Playing Red's $0 small blind
+               is strictly better: same money, plus one shop. Big-blind skip stays
+               OFF (real reward $4-$5); boss skip is disabled by the game anyway. */
             if (sel) {
                 const r = await act({ epoch: obs.epoch, action: 'activate', target: sel.id });
 
