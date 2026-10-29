@@ -6,11 +6,11 @@ import path from 'node:path';
 import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, setStakeCtx, saveStakeLock, jokerFactor, jokerSig } from './lib/knowledge.mjs';
 import { observe, act } from './lib/link.mjs';
 import { handleShop, handlePackOpen, resetShopRun } from './lib/shop.mjs';
-import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables } from './lib/strategy.mjs';
 import { setGameSpeed } from './lib/settings.mjs';
 import { buildDigest, resetRunStats } from './lib/digest.mjs';
 import { resetProbe } from './lib/acts.mjs';
 import { handleHand } from './lib/playturn.mjs';
+import { currentBias, handleBlindSelect, resetStrategy } from './lib/blind.mjs';
 
 // ---------- play-phase decision ----------
 
@@ -20,9 +20,6 @@ let bank = { key: '', pred: 0 };
 let turnErrStreak = 0;
 // stake-abort in flight (Options opened, awaiting setup overlay -> new run)
 let abandonPending = false;
-let strat = null;
-let bias = {};
-let lastStratFam = null;
 const suitTally = {};
 // restart-unique: seeded from clock, +1 per run
 let runSeq = Math.floor(Date.now() / 1_000);
@@ -169,9 +166,7 @@ async function handleNewRun(obs) {
     jw({ e: 'runstart', stake: stakeLbl || unwon });
     sawRunStart = true;
     abandonPending = false;
-    strat = null;
-    bias = {};
-    lastStratFam = null;
+    resetStrategy();
     bank = { key: '', pred: 0 };
 
     for (const k of Object.keys(jokerFactor)) {
@@ -225,7 +220,7 @@ const antePlayed = new Set();
 const anteRank = new Map();
 let anteRankAnte = null;
 
-/* live state view for the extracted hand-phase engine; bank/bias are reassigned per blind/run,
+/* live state view for the extracted hand-phase engine; bank is reassigned per blind/run,
    so expose them through getters rather than snapshotting into the module */
 const turnState = {
     antePlayed,
@@ -263,7 +258,7 @@ const turnState = {
      * @returns {object} bias weights
      */
     get bias() {
-        return bias;
+        return currentBias();
     },
 
     /**
@@ -381,64 +376,11 @@ async function main() {
         }
 
         if (ph === 'blind_select') {
-            strat = chooseStrategy(obs);
-            bias = famBiasMap(strat, obs);
+            const br = await handleBlindSelect(obs, runStats);
 
-            if (strat.fam !== lastStratFam) {
-                lastStratFam = strat.fam;
-                say('strategy:', strat.fam, strat.why);
-                jw({ e: 'strategy', fam: strat.fam, why: strat.why, in: (obs.hands || []).map((h) => [h.name, h.level ?? 1, h.played ?? 0]), jk: (obs.jokers || []).map((j) => j.name), pl: (obs.consumables || []).filter((c) => String(c.kind).toLowerCase() === 'planet').map((c) => c.name) });
-            }
+            obs = br.obs;
 
-            const ja = (obs.areas || []).find((a) => a.kind === 'jokers');
-            const order = jokerOrder(obs.jokers);
-
-            if (ja?.reorder && (obs.jokers || []).length > 1 && reorderNeeds(obs.jokers, order)) {
-                const rr = await act({ epoch: obs.epoch, action: 'reorder', target: ja.id, cards: order });
-
-                jw({ e: 'reorder', ok: rr.ok, code: rr.error?.code, order });
-                obs = rr.ok ? rr.result : obs;
-            }
-
-            const cLimit = (obs.areas || []).find((a) => a.kind === 'consumeables')?.limit ?? 2;
-
-            for (const plan of planConsumables(obs, strat, {
-                phase: ph, money: obs.run?.money, slotFreeNumber: cLimit,
-            })) {
-                const o2 = await observe();
-                const item = (o2.consumables || []).find((c) => c.id === plan.target);
-
-                if (item && (item.actions || []).includes('use')) {
-                    const ru = await act({ epoch: o2.epoch, action: 'use', target: item.id });
-
-                    jw({ e: 'consuse', why: plan.why, name: item.name, ok: ru.ok, code: ru.error?.code });
-                    obs = ru.ok ? ru.result : await observe();
-                }
-            }
-
-            const sel = (obs.controls || []).find((c) => c.enabled && c.kind === 'select_blind');
-            const boss = (obs.run?.blinds || []).find((b) => b.slot === 'Boss' && b.state === 'Select');
-
-            /* ctrl: Director's Cut is bought 29x and NEVER used - the boss-reroll affordance
-               at blind select is unprobed; log every control kind (and enabled bit) plus the
-               run-object key union once per blind to find where redeemed vouchers surface */
-            jw({ e: 'blind', ante: obs.run?.ante, m: obs.run?.money, name: obs.run?.blind?.name || (obs.run?.blinds || []).map((b) => `${b.name}:${b.state}`).join(','), target: obs.run?.blind?.target, effect: obs.run?.blind?.effect, jokers: ((obs.jokers || []).map((j) => j.name || j.key)), cons: ((obs.consumables || []).map((c) => `${c.name}[${(c.actions || []).join('/')}]`)), boss: boss && { name: boss.name, effect: boss.effect, target: boss.target }, ctrl: (obs.controls || []).map((c) => `${c.kind}${c.enabled ? '' : ':off'}`), rk: Object.keys(obs.run || {}).join(','), tv: JSON.stringify(obs.run?.tags ?? null).slice(0, 200), vv: JSON.stringify(obs.run?.vouchers ?? null).slice(0, 240) });
-            runStats.jmax = Math.max(runStats.jmax, (obs.jokers || []).length);
-
-            /* SKIP ECONOMY RETIRED for Red (cohort census 10-29, n=16 true-red runs,
-               avgA ~2.0 vs white 3.10, deaths dominated by ante-1): skip pays $0 here
-               (redskip `m` rows: money unchanged 4->4) and grants no tag, but it ALSO
-               eats the small-blind shop - the only pre-big-blind shop where a $4
-               starter joker can buy the a1-big margin. Playing Red's $0 small blind
-               is strictly better: same money, plus one shop. Big-blind skip stays
-               OFF (real reward $4-$5); boss skip is disabled by the game anyway. */
-            if (sel) {
-                const r = await act({ epoch: obs.epoch, action: 'activate', target: sel.id });
-
-                if (!r.ok) {
-                    say('select fail', r.error?.code);
-                }
-
+            if (br.cont) {
                 continue;
             }
         }
@@ -544,9 +486,7 @@ async function main() {
             }
 
             pendingStakeLabel = null;
-            strat = null;
-            bias = {};
-            lastStratFam = null;
+            resetStrategy();
             bank = { key: '', pred: 0 };
 
             for (const k of Object.keys(suitTally)) {
