@@ -268,6 +268,12 @@ async function playTurn(obs) {
     }
 
     const best = ev[0];
+    /* FACE-DOWN HONEST SCALE (corpus calibration 804 runs: actual/pred median The Mark
+       0.62, The Fish 0.56, The House 0.90 - virtual mid ranks overstate ~40%): shrink
+       pred for the discard/fish thresholds only, so we fish faces instead of dumping
+       hands at fantasy scores. Play-now uses real run.chips for rem, unaffected. */
+    const faceDownF = hand.some((c) => c.rank === null || c.rank === undefined);
+    const pEff = faceDownF ? best.pred * 0.6 : best.pred;
 
     /* The Pillar ("Cards played previously this Ante are debuffed" — ef text) debuffs
        ALL FOUR copies of any rank played earlier this ante — copies return from the
@@ -275,7 +281,7 @@ async function playTurn(obs) {
        debuffed FLAG (verified via 27347-era deaths: id-lineage was observation-positional
        and missed every re-drawn copy). Rank counts >=4 => in-hand copies are dead;
        mark them debuffed pre-eval so predictions and family choice avoid them. */
-    if (bname === 'The Pillar' && discLeft > 0 && best.pred < rem) {
+    if (bname === 'The Pillar' && discLeft > 0 && pEff < rem) {
         const inBest = new Set(best.cards.map((c) => c.id));
         const dead = hand.filter((c) => ((anteRank.get(c.rank) ?? 0) >= 4 || c.debuffed) && (c.actions || []).includes('select') && !inBest.has(c.id));
 
@@ -298,7 +304,7 @@ async function playTurn(obs) {
        falls short of the score needed in the hands remaining, spend discards to
        upgrade it. A discard cannot lose the round - only the play can - so this
        is strictly free equity (Water's no-discard fail just falls through) */
-    const needMore = discLeft > 0 && best.pred < needPer;
+    const needMore = discLeft > 0 && pEff < needPer;
 
     if (needMore) {
         const d = chooseDiscard(hand, best, bank.lockFam ?? null);
