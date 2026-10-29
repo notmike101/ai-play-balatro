@@ -467,6 +467,14 @@ async function handleNewRun(obs) {
            = game's stake 1) and the STAKE control's options are NUMBERS [1..8], not
            label strings - the old /stake/i label probe never matched, so the stake
            arrow was never clicked and every claimed stake was fiction */
+        /**
+         * Read an option label, compensating for the 1-based index reported by controls.
+         *
+         * @param {object} c - option_cycle control
+         * @param {number} i - control-reported index
+         * @returns {string} option label
+         */
+        // eslint-disable-next-line unicorn/consistent-function-scoping -- reads o.controls layout fresh per overlay
         const at = (c, i) => c.options[i - 1];
         const deckC = cycles.find((c) => c.options.some((s) => /deck/i.test(String(s))));
         const stakeC = cycles.find((c) => c !== deckC && c.options.length >= 2 && c.options.every((s) => {
@@ -514,7 +522,12 @@ async function handleNewRun(obs) {
         return Number.isInteger(v) && v >= 1 && v <= 8;
     }))));
     const rawStake = stakeCyc ? stakeCyc.options[stakeCyc.index - 1] : null;
-    const stakeLbl = rawStake == null ? null : (/stake/i.test(String(rawStake)) ? String(rawStake) : STAKE_LABELS[Number(rawStake) - 1] || null);
+    let stakeLbl = null;
+
+    if (rawStake !== null && rawStake !== undefined) {
+        stakeLbl = /stake/i.test(String(rawStake)) ? String(rawStake) : STAKE_LABELS[Number(rawStake) - 1] || null;
+    }
+
     const start = (o.controls || []).find((c) => c.enabled && /start_setup_run/.test(c.kind));
 
     if (!start) {
