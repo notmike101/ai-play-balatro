@@ -831,10 +831,29 @@ async function main() {
             jw({ e: 'blind', ante: obs.run?.ante, m: obs.run?.money, name: obs.run?.blind?.name || (obs.run?.blinds || []).map((b) => `${b.name}:${b.state}`).join(','), target: obs.run?.blind?.target, effect: obs.run?.blind?.effect, jokers: ((obs.jokers || []).map((j) => j.name || j.key)), cons: ((obs.consumables || []).map((c) => `${c.name}[${(c.actions || []).join('/')}]`)), boss: boss && { name: boss.name, effect: boss.effect, target: boss.target }, ctrl: (obs.controls || []).map((c) => `${c.kind}${c.enabled ? '' : ':off'}`), rk: Object.keys(obs.run || {}).join(','), tv: JSON.stringify(obs.run?.tags ?? null).slice(0, 200), vv: JSON.stringify(obs.run?.vouchers ?? null).slice(0, 240) });
             runStats.jmax = Math.max(runStats.jmax, (obs.jokers || []).length);
 
-            /* SKIP ECONOMY CLOSED (probe 1793083050 a2 BB: activate skip_blind => ok, blind
-               flips to Skipped, boss advances, BUT run.tags stayed [] and NO new controls -
-               this build pays nothing for skipping, pure reward loss. Boss blinds also
-               skip-disabled. Skip policy and Rocket-revival are both dead ends here.) */
+            /* SKIP ECONOMY (probe 1793083050 a2 BB + Red Stake effect user-confirmed 10-29
+               "Small Blind gives no reward money"): activate skip_blind => ok, blind flips
+               to Skipped, boss advances, run.tags stays [] (this build grants NO skip tag) —
+               skip = FREE blind clear, forfeiting only the reward. WHITE-era: small skip
+               forfeited $3 (driver fought, correct). RED STAKE: small reward IS $0 ->
+               skipping costs nothing and skips the fight; skip when money is already
+               above the blind's reward. Boss blinds skip-disabled; big-blind skip stays
+               OFF (reward $4 > $0, only Red's small is money-free) */
+            const skip = (obs.controls || []).find((c) => c.enabled && c.kind === 'skip_blind');
+            const redSmall = (obs.run?.stake ?? curStake) === 2 && skip
+                && /Small Blind:Select/.test((obs.run?.blinds || []).map((b) => `${b.name}:${b.state}`).join(','));
+
+            if (sel && redSmall) {
+                jw({ e: 'redskip', ante: obs.run?.ante, m: obs.run?.money });
+                const rs2 = await act({ epoch: obs.epoch, action: 'activate', target: skip.id });
+
+                if (!rs2.ok) {
+                    say('redskip fail', rs2.error?.code);
+                }
+
+                continue;
+            }
+
             if (sel) {
                 const r = await act({ epoch: obs.epoch, action: 'activate', target: sel.id });
 
