@@ -639,7 +639,9 @@ async function main() {
 
         // unlock/gameover banners: dismiss via any continue-ish control
         if (ph === 'overlay') {
-            const cu = (obs.controls || []).find((c) => c.enabled && /continue|done|dismiss/i.test(`${c.kind} ${c.label || ''}`));
+            const setupUI = (obs.controls || []).some((c) => /setup_run|start_setup_run/.test(c.kind)
+                || (c.kind === 'option_cycle' && Array.isArray(c.options) && c.options.some((s) => /deck|stake/i.test(String(s)))));
+            const cu = !setupUI && (obs.controls || []).find((c) => c.enabled && /continue|done|dismiss/i.test(`${c.kind} ${c.label || ''}`));
 
             if (cu) {
                 const r = await act({ epoch: obs.epoch, action: 'activate', target: cu.id });
@@ -909,7 +911,7 @@ async function main() {
         }
 
         if (ph === 'menu') {
-            const p = (obs.controls || []).find((c) => c.enabled && /start_run|setup_run/.test(c.kind));
+            const p = (obs.controls || []).find((c) => c.enabled && /start_run|setup_run|\bplay\b/i.test(`${c.kind} ${c.label || ''}`));
 
             if (p) {
                 const r = await act({ epoch: obs.epoch, action: 'activate', target: p.id });
