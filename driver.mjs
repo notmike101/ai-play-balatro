@@ -349,6 +349,18 @@ async function playTurn(obs) {
         (bank.eyeFams = bank.eyeFams || {})[best.fam] = 1;
     }
 
+    /* MIXFLUSH PROBE (10-13 note claims Splash never turns cross-suit hands into a
+       Flush in this build; strategy.mjs scores it as one - one capture of a live
+       cross-suit Flush play with rchips delta settles it; ratios >=1 = note wrong,
+       ~.1 = demote Splash out of STRONG_JOKER/PLANET wildcard) */
+    if (r.ok && best.fam === 'Flush' && (obs.jokers || []).some((j) => j.name === 'Splash')) {
+        const ns = new Set(best.scoring.filter((c) => !c.debuffed && c.suit).map((c) => c.suit)).size;
+
+        if (ns > 1) {
+            jw({ e: 'mixflush', pred: best.pred, nsuits: ns, ante: obs.run?.ante });
+        }
+    }
+
     return { action: 'play', r, fam: best.fam, scoring: best.scoring, cards: best.cards, pred: best.pred, rem, preCtx, boss: bname };
 }
 
