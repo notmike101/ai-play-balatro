@@ -176,6 +176,11 @@ async function playTurn(obs) {
         anteRankAnte = run.ante;
     }
 
+    if (/Pillar|Fish|Mark|House/.test(bname)) {
+        // one-shot evidence: does the game EVER set the raw debuffed flag for these bosses? (before our own marking)
+        jw({ e: 'dcens', b: bname, raw: hand.filter((c) => c.debuffed).length, n: hand.length, led: Object.fromEntries(anteRank) });
+    }
+
     if (bname === 'The Pillar') {
         for (const c of hand) {
             if ((anteRank.get(c.rank) ?? 0) >= 4) {
