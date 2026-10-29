@@ -4,14 +4,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, setStakeCtx, saveStakeLock, jokerFactor, jokerSig } from './lib/knowledge.mjs';
-import { observe, act, nudgeUnpause } from './lib/link.mjs';
-import { allSubsetEvals, calibrate, famBase, ctxOf, resetRoundReps, syncReps } from './lib/play.mjs';
-import { handleShop, handlePackOpen, planetFam, resetShopRun, setPackMetaHands } from './lib/shop.mjs';
-import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables, planTargeted } from './lib/strategy.mjs';
+import { observe, act } from './lib/link.mjs';
+import { handleShop, handlePackOpen, resetShopRun } from './lib/shop.mjs';
+import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables } from './lib/strategy.mjs';
 import { setGameSpeed } from './lib/settings.mjs';
 import { buildDigest, resetRunStats } from './lib/digest.mjs';
-import { deckProbe, resetProbe, syncJokerSig, useTargeted } from './lib/acts.mjs';
-import { playTurn } from './lib/playturn.mjs';
+import { resetProbe } from './lib/acts.mjs';
+import { handleHand } from './lib/playturn.mjs';
 
 // ---------- play-phase decision ----------
 
@@ -33,41 +32,6 @@ let runSeq = Math.floor(Date.now() / 1_000);
    partial (lvlAct/plays undercount) — flag it so watchers reject the fragment */
 let sawRunStart = false;
 // learned joker residual belongs to the lineup that produced it; lineup change invalidates all
-
-/**
- * Which family this hand will actually play (used to pick the matching planet BEFORE playing).
- *
- * @param {object} obs - current observation
- * @returns {(string | null)} family name or null
- */
-function peekPlayFam(obs) {
-    syncJokerSig(obs);
-    syncReps(obs.hands);
-
-    let ev = allSubsetEvals(obs.hand || [], obs.hands, bias, ctxOf(obs));
-
-    if (/Psychic/.test(obs.run?.blind?.name || '')) {
-        ev = ev.filter((o) => o.cards.length === 5);
-    }
-
-    if (bank.lockFam && obs.run?.blind?.name === 'The Mouth') {
-        const f = ev.filter((o) => o.fam === bank.lockFam);
-
-        if (f.length) {
-            ev = f;
-        }
-    }
-
-    if (obs.run?.blind?.name === 'The Eye') {
-        const f = ev.filter((o) => !(bank.eyeFams || {})[o.fam]);
-
-        if (f.length) {
-            ev = f;
-        }
-    }
-
-    return ev.length ? ev[0].fam : null;
-}
 
 // ---------- New Run setup ----------
 /**
@@ -352,138 +316,25 @@ async function main() {
             curStake = obs.run.stake;
             curDeckKey = obs.run.deck?.key;
 
-            const bkey = `${obs.run.round}:${obs.run.blind?.name || ''}`;
+            const hh = await handleHand(obs, {
+                st: turnState,
+                runStats,
+                suitTally,
+                stake: curStake,
+                /**
+                 * Record the live hand-table snapshot for the run digest.
+                 *
+                 * @param {object[]} h - observation hands table
+                 */
+                onHands: (h) => {
+                    handsSnap = h;
+                },
+                turnErrStreak,
+            });
 
-            if (bank.key !== bkey) {
-                bank = { key: bkey, pred: 0, byFam: {}, eyeFams: {}, target: obs.run.blind?.target ?? 0 };
-                resetRoundReps();
-            }
-
-            /* Blind still alive with bank >= target => banked predictions overshot reality (no current_score in this build);
-               true score is < target, so re-anchor to zero instead of believing the phantom "already won". */
-            if (bank.target > 0 && bank.pred >= bank.target) {
-                jw({ e: 'resync', bank: Math.round(bank.pred), target: bank.target });
-                // only bound while blind alive: real score < target; keep zero (no real score field in this build)
-                bank.pred = 0;
-            }
-
-            /* PLANET BANKRUPT FIX (164: Jupiter+Saturn sat [use] all of a3-a5 while the
-               engine grinded L2 and died pred 90 - the peek-match gate meant a held
-               planet only fires if its OWN fam plays this turn, which almost never
-               repeats; levels are permanent, waiting buys nothing). Exception kept:
-               level-decay bosses (The Arm erodes per play) - bank while it is up. */
-            const pf = peekPlayFam(obs);
-            const armUp = /decrease level/i.test((obs.run?.blind?.effect || []).join(' '));
-            const pls = (obs.consumables || []).filter((c) => String(c.kind || '').toLowerCase() === 'planet' && (c.actions || []).includes('use'));
-            const pc = (pf && pls.find((c) => planetFam(c) === pf)) || (!armUp ? pls[0] : null);
-            const pfam = pc ? planetFam(pc) : null;
-
-            if (pc) {
-                const r = await act({ epoch: obs.epoch, action: 'use', target: pc.id });
-
-                if (r.ok) {
-                    obs = r.result;
-                    jw({ e: 'planet', fam: pfam });
-                    runStats.lvl++;
-                }
-            }
-
-            // targeted tarot on hand cards: select then use (Magician/Empress/Tower/Death/Hierophant)
-            const ttPlans = planTargeted(obs, suitTally);
-
-            /* Death-v3 PROVEN LIVE (1793089229 a1 Psychic: 'death leftcopy->best'
-               ok:true on K-D/Q-D descending pair, consumed same blind) - the diag
-               probe that surfaced the rank-ordering root cause is retired. */
-            for (const tp of ttPlans) {
-                obs = await useTargeted(obs, tp, suitTally);
-            }
-
-            const before = obs.run.chips ?? null;
-
-            if ((obs.hands || []).length) {
-                handsSnap = obs.hands;
-                setPackMetaHands(obs.hands);
-            }
-
-            jw({ e: 'turn', hand: (obs.hand || []).map((c) => [c.id, c.rank, c.suit, (c.actions || []).join('/'), c.debuffed ? 'D' : '', (c.enhancements || []).concat(c.key && c.key !== 'c_base' ? [c.key] : [], c.values && c.values.type ? [`t:${c.values.type}`] : [], c.seal ? [`S:${c.seal}`] : [], (c.values && c.values.seal) ? [`S:${c.values.seal}`] : []).join('|')]), chips: obs.run.chips, epoch: obs.epoch, dl: obs.run.discards_left ?? null, hl: obs.run.hands_left ?? null, jk: (obs.jokers || []).map((j) => [j.name, j.value ?? null, j.extra ?? null, j.values ?? null]), rerolls: obs.run.rerolls_left ?? obs.run.rerolls ?? null });
-            const t = await playTurn(obs, turnState);
-
-            t.nullCards = (obs.hand || []).filter((c) => !c.rank).length;
-            jw({ e: 'decide', a: t.action, fam: t.fam, pred: t.pred, rem: t.rem, n: t.n, ante: obs.run?.ante, stk: obs.run?.stake ?? curStake, b: obs.run?.blind?.name, tgt: obs.run?.blind?.target ?? null, rchips: t.r && t.r.ok ? (t.r.result.run?.chips || before) : null, err: t.r && !t.r.ok ? t.r.error?.code : null, ef: Object.keys(bank.eyeFams || {}).join('/'), lk: bank.lockFam || '' });
-
-            if (t.r?.ok && t.action === 'play' && t.fam) {
-                runStats.fams[t.fam] = (runStats.fams[t.fam] || 0) + 1;
-            }
-
-            const dp = deckProbe(obs);
-
-            if (dp) {
-                jw({ e: 'deckprobe', areas: dp });
-            }
-
-            if (t.r && !t.r.ok) {
-                say('turn err', t.r.error?.code);
-
-                /* ZOMBIE-PAUSE ESCAPE (a8 Bell win rescue 10-29): game rejects every
-                   in-hand action while phase/overlay/ready all look clean; only a real
-                   Escape key wakes it. Three consecutive turn failures = stuck, not
-                   an epoch race — nudge over CDP; the overlay handler does Back-next */
-                if (++turnErrStreak >= 3) {
-                    jw({ e: 'unstick', code: t.r.error?.code, streak: turnErrStreak });
-                    await nudgeUnpause();
-                    turnErrStreak = 0;
-                }
-
-                await sleep(1_500);
-                const again = await observe();
-
-                if ((again.phase || '') !== 'hand') {
-                    continue;
-                }
-            } else if (t.r && t.action === 'play') {
-                const afterC = t.r.result.run?.chips ?? null;
-                // real per-hand delta only when both ends observed the same live blind (after < before => blind transitioned)
-                const d = before !== null && afterC !== null && afterC >= before ? afterC - before : null;
-                /* no chips field: fall back to prediction estimate. Exception: Cerulean-Bell all-face-down hands score
-                   nothing and the observed null-rank hand proves the play never scored — don't bank phantoms. */
-                const phantom = d === 0 && t.nullCards > 0;
-                /* HONEST-SCALE BANKING (Mark med .58 / Fish .56 post-pEff: gate scale was
-                   shipped but the bank kept folding raw preds -> 2x phantom overshoot ->
-                   resync->0 every fd blind, needMore fed by fiction): credit face-down
-                   plays at the same 0.6 pEff factor from the SAME evidence (EV medians
-                   .56-.62 of raw pred), so resync fires on reality */
-                let credit = d !== null ? d : t.pred;
-
-                if (d === null && t.nullCards > 0) {
-                    credit = (t.pred ?? 0) * 0.6;
-                }
-
-                // face-down (Fish/Mark) hands score under guessed fams — never fold their deltas into jokerFactor
-                /* The Flint now halved in predict, but rounding of the halved base is
-                   still guessed — keep skipping its calibration until a live Flint run
-                   matches; The Arm debuffs played-hand LEVELS mid-blind (build text),
-                   whose table reflection is unverified: fold neither into jokerFactor */
-                if (d !== null && d > 0 && t.scoring && t.scoring.length && t.nullCards === 0 && !/flint|the arm/i.test(t.boss || '')) {
-                    const b = famBase(obs.hands, t.fam);
-
-                    calibrate(t.fam, t.scoring, b.chips, b.mult, d, { ...(t.preCtx ?? ctxOf(obs)), played: t.cards });
-                }
-
-                if (!phantom) {
-                    bank.pred = afterC !== null ? afterC : bank.pred + credit;
-                    bank.byFam[t.fam] = (bank.byFam[t.fam] || 0) + credit;
-                }
-
-                if (phantom) {
-                    jw({ e: 'phantom', fam: t.fam, pred: t.pred });
-                }
-            }
-
-            if (t.r?.ok) {
-                turnErrStreak = 0;
-            }
-
+            turnErrStreak = hh.turnErrStreak;
             idle = 0;
+
             continue;
         }
 
