@@ -169,6 +169,21 @@ async function playTurn(obs) {
 
     syncReps(obs.hands);
     const preCtx = ctxOf(obs);
+
+    if (anteRankAnte !== run.ante) {
+        anteRank.clear();
+        antePlayed.clear();
+        anteRankAnte = run.ante;
+    }
+
+    if (bname === 'The Pillar') {
+        for (const c of hand) {
+            if ((anteRank.get(c.rank) ?? 0) >= 4) {
+                c.debuffed = true;
+            }
+        }
+    }
+
     let ev = allSubsetEvals(hand, obs.hands, bias, preCtx);
 
     if (forced5) {
@@ -250,13 +265,14 @@ async function playTurn(obs) {
     const best = ev[0];
 
     /* The Pillar ("Cards played previously this Ante are debuffed" — ef text) debuffs
-       only cards already played this ante; fresh draws stay clean. The game never sets
-       the debuffed FLAG in obs (verified 40+ runs), so dead cards are tracked locally
-       by card id; dump ALL dead cards not needed by best play in ONE action —
-       one-per-discard burned the budget (died a1) */
+       ALL FOUR copies of any rank played earlier this ante — copies return from the
+       discard pile into later draws already dead, and the game never sets the
+       debuffed FLAG (verified via 27347-era deaths: id-lineage was observation-positional
+       and missed every re-drawn copy). Rank counts >=4 => in-hand copies are dead;
+       mark them debuffed pre-eval so predictions and family choice avoid them. */
     if (bname === 'The Pillar' && discLeft > 0 && best.pred < rem) {
         const inBest = new Set(best.cards.map((c) => c.id));
-        const dead = hand.filter((c) => (antePlayed.has(c.id) || c.debuffed) && (c.actions || []).includes('select') && !inBest.has(c.id));
+        const dead = hand.filter((c) => ((anteRank.get(c.rank) ?? 0) >= 4 || c.debuffed) && (c.actions || []).includes('select') && !inBest.has(c.id));
 
         if (dead.length) {
             const r0 = await execHighlight(obs, dead.slice(0, 5), 'discard_cards_from_highlighted');
@@ -302,6 +318,10 @@ async function playTurn(obs) {
     if (r.ok) {
         for (const c of best.cards) {
             antePlayed.add(c.id);
+
+            if (c.rank) {
+                anteRank.set(c.rank, (anteRank.get(c.rank) ?? 0) + 1);
+            }
         }
     }
 
@@ -501,9 +521,16 @@ const runStats = { lvl: 0, acts: [], jmax: 0, fams: {} };
    lvlMap '' though the Saturn take had applied); snapshot backfills it */
 let handsSnap = [];
 let curDeckKey = null;
-/* card ids played earlier THIS ANTE (cleared at every shop, which falls right after
-   each boss = clean ante boundary); The Pillar debuffs exactly these during its blind */
+/* card ids + rank counts played earlier THIS ANTE (cleared when run.ante changes;
+   NOTE shops fall after EVERY blind, not only bosses — Pillar's debuff spans Small->Big->Boss) */
 const antePlayed = new Set();
+/* Pillar v2 (27347-era: id lineage fails — bridge ids are observation-positional, and
+   the game debuffs ALL four copies of any rank played earlier this ante (discard pile
+   carries them back into later draws): count rank plays per ante; >=4 => every later
+   copy of that rank is dead; >=1 marks copies suspect when deciding (never spend the
+   grind on a family whose legs are dead copies) */
+const anteRank = new Map();
+let anteRankAnte = null;
 
 /**
  * Main observe-and-act loop covering every game phase until the process exits.
@@ -758,7 +785,6 @@ async function main() {
         }
 
         if (ph === 'shop') {
-            antePlayed.clear();
             const shop = await handleShop(obs);
 
             runStats.acts.push(...(shop.actions || []));
