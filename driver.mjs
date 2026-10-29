@@ -16,6 +16,8 @@ import { setGameSpeed } from './lib/settings.mjs';
 let bank = { key: '', pred: 0 };
 // consecutive playTurn act failures; 3 in a row => zombie-pause, CDP-Escape nudge
 let turnErrStreak = 0;
+// stake-abort in flight (Options opened, awaiting setup overlay -> new run)
+let abandonPending = false;
 let strat = null;
 let bias = {};
 let lastStratFam = null;
@@ -512,6 +514,18 @@ async function handleNewRun(obs) {
     const start = (o.controls || []).find((c) => c.enabled && /start_setup_run/.test(c.kind));
 
     if (!start) {
+        /* PAUSE MENU (opened by the stake-abort guard): its New Run button (kind
+           setup_run) opens the real setup tab with the deck/stake cycles +
+           start_setup_run; the loop re-enters handleNewRun on that overlay */
+        const sr = (o.controls || []).find((c) => c.enabled && c.kind === 'setup_run');
+
+        if (sr) {
+            jw({ e: 'setupopen' });
+            await act({ epoch: o.epoch, action: 'activate', target: sr.id });
+
+            return true;
+        }
+
         jw({ e: 'overlaystuck', controls: (o.controls || []).map((c) => `${c.kind}:${c.label}`) });
 
         return false;
@@ -532,6 +546,7 @@ async function handleNewRun(obs) {
     setRunId(runSeq);
     jw({ e: 'runstart', stake: stakeLbl || unwon });
     sawRunStart = true;
+    abandonPending = false;
     strat = null;
     bias = {};
     lastStratFam = null;
@@ -604,6 +619,24 @@ async function main() {
         const ph = obs.phase;
 
         fs.writeFileSync(path.join(OUT, 'state.json'), JSON.stringify({ t: Date.now(), phase: ph, epoch: obs.epoch, run: obs.run && { money: obs.run.money, ante: obs.run.ante, round: obs.run.round, stake: obs.run.stake, deck: obs.run.deck?.key, score: obs.run.current_score, hands_left: obs.run.hands_left, discards_left: obs.run.discards_left, target: obs.run.blind?.target, name: obs.run.blind?.name }, jokers: (obs.jokers || []).map((j) => j.name), wins: [...wins] }, null, 1));
+
+        /* STAKE GUARD (user directive 10-29; wins-file array bug let the driver
+           replay White through the whole Red era): if the live run's stake differs
+           from the ladder target, abandon via Options -> New Run; setupopen +
+           setupUI then drive the wanted-stake start */
+        const wantSt = STAKE_LABELS.indexOf(STAKE_LABELS.find((l) => !wins.has(l)) || STAKE_LABELS[7]) + 1;
+        const liveSt = obs.run?.stake ?? null;
+
+        if (!abandonPending && liveSt !== null && liveSt !== wantSt && ['blind_select', 'hand', 'play', 'shop', 'cash_out'].includes(ph)) {
+            const opt = (obs.controls || []).find((c) => c.enabled && c.kind === 'options');
+
+            if (opt) {
+                jw({ e: 'stakeabort', got: liveSt, want: wantSt, ph });
+                abandonPending = true;
+                await act({ epoch: obs.epoch, action: 'activate', target: opt.id });
+                continue;
+            }
+        }
 
         if ((ph === 'hand' || ph === 'play') && obs.run) {
             curStake = obs.run.stake;
