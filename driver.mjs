@@ -9,6 +9,7 @@ import { allSubsetEvals, chooseDiscard, calibrate, famBase, ctxOf, resetRoundRep
 import { handleShop, handlePackOpen, planetFam, resetShopRun, setPackMetaHands } from './lib/shop.mjs';
 import { chooseStrategy, famBiasMap, jokerOrder, reorderNeeds, planConsumables, planTargeted } from './lib/strategy.mjs';
 import { setGameSpeed } from './lib/settings.mjs';
+import { buildDigest, resetRunStats } from './lib/digest.mjs';
 
 // ---------- play-phase decision ----------
 
@@ -990,50 +991,13 @@ async function main() {
             jw({ e: 'runend', won, ante: obs.run?.ante, round: obs.run?.round });
             say('RUN END', won ? 'WON' : 'lost', 'ante', obs.run?.ante, 'stake', lbl ?? stakeNum);
 
-            const A = runStats.acts;
-            const PNAME = /^(mercury|venus|earth|mars|jupiter|saturn|uranus|neptune|pluto)/i;
-            const lvlAct = runStats.lvl + A.filter((a) => /^planet:/.test(a)).length + A.filter((a) => /^take:/.test(a) && PNAME.test(a.slice(5))).length;
-            /* focal = the game's OWN most-played-family counters (hands rows played/
-               times_played — same signal Telescope uses); decision-row counting mislabels
-               hands the game scored differently (rid ...180: bot logged TP x4, game rows
-               showed Full House played=5, and the Earth take was in fact correct).
-               runStats.fams only as fallback when the table lacks counters */
-            const H = (obs.hands && obs.hands.length) ? obs.hands : handsSnap;
-            const rowsP = (H || []).map((h) => ({ f: h.name, p: Number(h.played ?? h.times_played) || 0, lvl: Number(h.level) || 1 })).filter((r) => r.f && r.p > 0);
-            const focal = rowsP.slice().sort((a, b) => b.p - a.p || b.lvl - a.lvl)[0] || null;
-            const focalName = focal ? focal.f : (Object.entries(runStats.fams).sort((a, b) => b[1] - a[1])[0] || [null])[0];
-            const focalPlaysN = focal ? focal.p : (focalName ? runStats.fams[focalName] : 0); /* eslint-disable-line no-nested-ternary */
-            const focalLvl = focal ? focal.lvl : null;
-            const lvlMap = (H || []).filter((h) => (Number(h.level) || 1) > 1).map((h) => `${h.name}:${h.level}`).join(',');
-            const dig = {
-                e: 'rundigest',
-                won,
-                ante: obs.run?.ante,
-                focal: focalName,
-                focalPlays: focalPlaysN,
-                focalLvl,
-                lvlMap,
-                lvlAct,
-                uses: runStats.lvl,
-                rerolls: A.filter((a) => a === 'reroll').length,
-                celestial: A.some((a) => a.startsWith('pack:') && /celestial/i.test(a)),
-                jokers: runStats.jmax,
-                alert: !won && focalLvl !== null && focalLvl <= 2 && focalPlaysN >= 8 ? 'LOW_FOCAL_LEVEL' : (!won && (obs.run?.ante ?? 0) >= 5 ? 'CHIP_GAP' : null), /* eslint-disable-line no-nested-ternary */
-                complete: sawRunStart,
-            };
+            const dig = buildDigest({ obs, won, runStats, handsSnap, complete: sawRunStart });
 
             jw(dig);
             fs.appendFileSync(path.join(OUT, 'digests.jsonl'), `${JSON.stringify({ t: Date.now(), rid: runSeq, ...dig })}\n`);
             say('DIGEST', `focal=${dig.focal ?? '-'}L${dig.focalLvl ?? '?'} map=[${dig.lvlMap}] rerolls=${dig.rerolls} celestial=${dig.celestial ? 'y' : 'n'} jokers=${dig.jokers} alert=${dig.alert ?? '-'}`);
             sawRunStart = false;
-
-            for (const k of Object.keys(runStats.fams)) {
-                delete runStats.fams[k];
-            }
-
-            runStats.lvl = 0;
-            runStats.acts.length = 0;
-            runStats.jmax = 0;
+            resetRunStats(runStats);
             handsSnap = [];
             resetShopRun();
 
@@ -1142,6 +1106,7 @@ if (process.argv.includes('--selftest')) {
     const { runSelftest } = await import('./tests/selftest.mjs');
 
     await runSelftest();
+    console.log('SELFTEST OK');
     process.exit(0);
 }
 
