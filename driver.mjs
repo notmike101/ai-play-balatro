@@ -177,7 +177,12 @@ async function playTurn(obs) {
     }
 
     if (/Pillar|Fish|Mark|House/.test(bname)) {
-        // one-shot evidence: does the game EVER set the raw debuffed flag for these bosses? (before our own marking)
+        /* SETTLED (68-obs census): Pillar DOES arrive with game-set debuffed flags -
+           exactly the re-shuffled played copies, 1-6 per hand (0 only on the ante's
+           first hand, correctly, before any plays). Fish/Mark/House raw stays 0:
+           their mechanics are face-down/one-family, not per-card debuff in this
+           bridge. lineage >=4 below is a conservative no-op floor, c.debuffed is
+           the authority; keep dcens cheap to catch regression if the build changes */
         jw({ e: 'dcens', b: bname, raw: hand.filter((c) => c.debuffed).length, n: hand.length, led: Object.fromEntries(anteRank) });
     }
 
@@ -535,11 +540,12 @@ let curDeckKey = null;
 /* card ids + rank counts played earlier THIS ANTE (cleared when run.ante changes;
    NOTE shops fall after EVERY blind, not only bosses — Pillar's debuff spans Small->Big->Boss) */
 const antePlayed = new Set();
-/* Pillar v2 (27347-era: id lineage fails — bridge ids are observation-positional, and
-   the game debuffs ALL four copies of any rank played earlier this ante (discard pile
-   carries them back into later draws): count rank plays per ante; >=4 => every later
-   copy of that rank is dead; >=1 marks copies suspect when deciding (never spend the
-   grind on a family whose legs are dead copies) */
+/* Pillar v2 (27347-era: id lineage fails — bridge ids are observation-positional).
+   dcens census settled the flag question: the game flags the EXACT re-shuffled played
+   copies (raw 1-6/hand), NOT all four copies of a played rank - so >=4-rank lineage is
+   a conservative floor that can only fire on ranks that can no longer legally appear
+   (harmless safety net), while c.debuffed carries the truth the discard/eval paths
+   already honor (never spend the grind on a family whose legs are flagged copies) */
 const anteRank = new Map();
 let anteRankAnte = null;
 
