@@ -156,6 +156,28 @@ async function handleNewRun(obs) {
         o = r.result;
     }
 
+    /* DECK RE-SELECT (10-30 forensics): clicking the stake row's partner also flips
+       the deck row (observed both cycles oscillating @1<->@2 in lockstep) - land the
+       stake LAST and re-assert the wanted deck immediately before PLAY, else every
+       second run starts Blue Deck (137447 rid 1793387361: stake arrows hit, deck lost) */
+    {
+        const deckC2 = (o.controls || []).find((c) => c.enabled && c.kind === 'option_cycle' && Array.isArray(c.options) && c.options.some((s) => /deck/i.test(String(s))));
+
+        if (deckC2 && deckC2.options[deckC2.index - 1] !== wantDeck) {
+            const ti2 = deckC2.options.indexOf(wantDeck);
+            const dir2 = ti2 >= deckC2.index ? 'r' : 'l';
+            const partner = cyclePartner(o.controls, deckC2, dir2);
+
+            if (partner) {
+                const rr = await act({ epoch: o.epoch, action: 'activate', target: partner.id });
+
+                if (rr.ok) {
+                    o = rr.result;
+                }
+            }
+        }
+    }
+
     const stakeCyc = (o.controls || []).find((c) => c.kind === 'option_cycle' && Array.isArray(c.options) && (c.options.some((s) => /stake/i.test(String(s))) || (c.options.length >= 2 && c.options.every((s) => {
         const v = Number(s);
 
