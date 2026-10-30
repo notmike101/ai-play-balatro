@@ -67,6 +67,14 @@ node tmp/watchrun.mjs               # one-shot: exits when the next clean run-di
   service readiness probes never match — verify via ptree/`out/drv-stdout.txt`/state.json.
 - Time: `ts` fields are epoch ms (authoritative); console/proc tails use 12-h local.
 
+## Commit messages (MANDATORY, user directive 10-30)
+
+Use Conventional Commits (https://www.conventionalcommits.org/) for EVERY commit:
+`type(scope): description` — types: `feat`, `fix`, `docs`, `style`, `refactor`,
+`perf`, `test`, `build`, `ci`, `chore` (data/log refreshes use `chore(data): ...`).
+Scope = affected subsystem (`driver`, `shop`, `strategy`, `play`, `link`, ...).
+Breaking change = `!` after type/scope. NO bare "policy:", "data:" or "WIP" prefixes.
+
 ## Keep updated when
 
 adding a stake-conditional rule, a new `out/` file, a recovery path, or a lint/gate change.
