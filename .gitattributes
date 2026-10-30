@@ -1,0 +1,2 @@
+*.jsonl text eol=lf
+out/*.json text eol=lf
