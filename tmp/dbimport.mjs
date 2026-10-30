@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS gamefam(ts INT,rid INT,n TEXT,via TEXT,gamefam TEXT);
 CREATE TABLE IF NOT EXISTS lvljump(ts INT,rid INT,ante INT,sig TEXT);
 CREATE TABLE IF NOT EXISTS blind(ts INT,rid INT,ante INT,name TEXT,target INT,boss TEXT,jokers TEXT,cons TEXT,m INT);
 CREATE TABLE IF NOT EXISTS handstab(ts INT,rid INT,ante INT,rows TEXT);
-CREATE TABLE IF NOT EXISTS planet(ts INT,rid INT,fam TEXT,n TEXT);
+CREATE TABLE IF NOT EXISTS planet(ts INT,rid INT,fam TEXT,n TEXT,gf TEXT);
 CREATE TABLE IF NOT EXISTS runstart(ts INT,rid INT,stake TEXT);
 CREATE TABLE IF NOT EXISTS runend(ts INT,rid INT,won INT,ante INT);
 CREATE TABLE IF NOT EXISTS rundigest(t INT,rid INT,won INT,ante INT,focal TEXT,focalPlays INT,focalLvl INT,lvlMap TEXT,lvlAct INT,uses INT,rerolls INT,celestial INT,jokers INT,alert TEXT,complete INT);
@@ -48,7 +48,7 @@ const ins = {
     lvljump: Q('lvljump', 'ts,rid,ante,sig'),
     blind: Q('blind', 'ts,rid,ante,name,target,boss,jokers,cons,m'),
     handstab: Q('handstab', 'ts,rid,ante,rows'),
-    planet: Q('planet', 'ts,rid,fam,n'),
+    planet: Q('planet', 'ts,rid,fam,n,gf'),
     runstart: Q('runstart', 'ts,rid,stake'),
     runend: Q('runend', 'ts,rid,won,ante'),
     rundigest: Q('rundigest', 't,rid,won,ante,focal,focalPlays,focalLvl,lvlMap,lvlAct,uses,rerolls,celestial,jokers,alert,complete'),
@@ -77,7 +77,7 @@ for (const s of fs.readFileSync(LOG, 'utf8').split('\n')) {
         case 'lvljump': ins.lvljump.run(ts, rid, j.ante ?? null, j.sig ?? ''); break;
         case 'blind': ins.blind.run(ts, rid, j.ante ?? null, j.name ?? '', j.target ?? null, J(j.boss), J(j.jokers), J(j.cons), j.m ?? null); break;
         case 'handstab': ins.handstab.run(ts, rid, j.ante ?? null, J(j.rows)); break;
-        case 'planet': ins.planet.run(ts, rid, j.fam ?? '', j.n ?? ''); break;
+        case 'planet': ins.planet.run(ts, rid, j.fam ?? '', j.n ?? '', J(j.gamefam ?? null)); break;
         case 'runstart': ins.runstart.run(ts, rid, j.stake ?? ''); break;
         case 'runend': ins.runend.run(ts, rid, B(j.won), j.ante ?? null); break;
         case 'rundigest': ins.rundigest.run(j.t ?? ts, rid, B(j.won), j.ante ?? null, j.focal ?? '', j.focalPlays ?? null, j.focalLvl ?? null, j.lvlMap ?? '', j.lvlAct ?? null, j.uses ?? null, j.rerolls ?? null, B(j.celestial), j.jokers ?? null, j.alert ?? '', B(j.complete)); break;
