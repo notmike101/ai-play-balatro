@@ -39,6 +39,10 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   stays zombie; reload with bringToFront is the reset.
 
 ## Log forensics (out/log.jsonl, out/digests.jsonl)
+- `node tmp/dbimport.mjs` rebuilds `out/runs.db` (node:sqlite, derived - delete freely): one
+  table per hot event (decide/shopdump/shopdone/packdump/gamefam/blind/rundigest/..., `other`
+  for the rest). Rebuild after each wake, then census in SQL (joins beat bespoke parsers -
+  a wrong mapping table inside a bespoke join once invented 39 phantom focal misses).
 - Item rows use SHORT keys `k/n/c/a` (kind/name/cost/actions) in packdump; shopdump uses
   kind/name in this build era - ALWAYS print one raw sample row before writing a census
   (`i.kind` on packdump silently matched nothing and inverted a whole analysis once).
