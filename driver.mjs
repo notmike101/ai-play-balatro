@@ -417,7 +417,7 @@ async function main() {
                unlocked. Demoting blindly (19:1x bug) discarded a VALID White win and
                dropped the ladder back to White - 241 real Red attempts say White was
                beaten ~7x before any save loss. */
-            const hasWinAtOrAbove = (JSON.parse(tryLoad0('history.json', '{}')).wins ?? [])
+            const hasWinAtOrAbove = (tryLoad0('history.json', {}).wins ?? [])
                 .some((w) => (w.ante ?? 0) >= 8 && (w.stake ?? liveSt) >= liveSt);
 
             if (liveSt < wantIdx && hasWinAtOrAbove) {
