@@ -20,6 +20,9 @@ let bank = { key: '', pred: 0 };
 let turnErrStreak = 0;
 // stake-abort in flight (Options opened, awaiting setup overlay -> new run)
 let abandonPending = false;
+/* MECHANICS PROBES (user directive 10-30): interest + secret-hand validation, log-only */
+let cashSeen = '';
+let habsSeen = -2;
 const suitTally = {};
 // restart-unique: seeded from clock, +1 per run
 let runSeq = Math.floor(Date.now() / 1_000);
@@ -301,6 +304,31 @@ async function main() {
 
         fs.writeFileSync(path.join(OUT, 'state.json'), JSON.stringify({ t: Date.now(), phase: ph, epoch: obs.epoch, run: obs.run && { money: obs.run.money, ante: obs.run.ante, round: obs.run.round, stake: obs.run.stake, deck: obs.run.deck?.key, score: obs.run.current_score, hands_left: obs.run.hands_left, discards_left: obs.run.discards_left, target: obs.run.blind?.target, name: obs.run.blind?.name }, jokers: (obs.jokers || []).map((j) => j.name), wins: [...wins] }, null, 1));
         setStakeCtx(obs.run?.stake ?? null);
+
+        /* CASH-OUT PANEL PROBE (user: "interest exists by default, there are absolute
+           certainty"): dump the reward breakdown labels the panel shows per blind
+           (Blind reward / Interest / Hands remaining ...) - settles the NO-interest
+           claim in shop.mjs. One row per round, log-only. */
+        if (ph === 'cash_out') {
+            const ck = `${obs.run?.ante}|${obs.run?.round}`;
+
+            if (cashSeen !== ck) {
+                cashSeen = ck;
+                jw({ e: 'cashout', ante: obs.run?.ante, money: obs.run?.money, ctrls: (obs.controls || []).map((c) => `${c.kind}:${String(c.label ?? '').slice(0, 40)}`) });
+            }
+        }
+
+        /* HANDS-TABLE PROBE: full rows incl hidden hands (Five of a Kind / Flush House /
+           Flush Five) with game-reported base chips/mult - settles secret-hand presence.
+           Once per ante; re-arms when a new run reaches a1/r0. */
+        if (obs.run && obs.run.ante === 1 && obs.run.round === 0) {
+            habsSeen = -1;
+        }
+
+        if (Array.isArray(obs.hands) && obs.hands.length && typeof obs.run?.ante === 'number' && obs.run.ante !== habsSeen) {
+            habsSeen = obs.run.ante;
+            jw({ e: 'handstab', ante: obs.run.ante, rows: obs.hands.map((h) => [h.name, h.level ?? null, h.chips ?? null, h.mult ?? null, h.played ?? null]) });
+        }
 
         /* STAKE GUARD (user directive 10-29; wins-file array bug let the driver
            replay White through the whole Red era): if the live run's stake differs
