@@ -23,6 +23,7 @@ let abandonPending = false;
 /* MECHANICS PROBES (user directive 10-30): interest + secret-hand validation, log-only */
 let cashSeen = '';
 let habsSeen = -2;
+let lvlSig = '';
 const suitTally = {};
 // restart-unique: seeded from clock, +1 per run
 let runSeq = Math.floor(Date.now() / 1_000);
@@ -328,6 +329,19 @@ async function main() {
         if (Array.isArray(obs.hands) && obs.hands.length && typeof obs.run?.ante === 'number' && obs.run.ante !== habsSeen) {
             habsSeen = obs.run.ante;
             jw({ e: 'handstab', ante: obs.run.ante, rows: obs.hands.map((h) => [h.name, h.level ?? null, h.chips ?? null, h.mult ?? null, h.played ?? null]) });
+        }
+
+        /* LEVEL-JUMP PROBE (user verify directive): the hands table is the game's own
+           truth - log every level-map change the instant it is observed (planet take/use,
+           Black Hole, The Arm decay). Attribute to the nearest preceding take/use row. */
+        const lvsig = (obs.hands || []).map((h) => `${h.name}:${h.level ?? ''}`).join(',');
+
+        if (lvsig && lvsig !== lvlSig) {
+            if (lvlSig && obs.run) {
+                jw({ e: 'lvljump', ante: obs.run.ante, sig: lvsig });
+            }
+
+            lvlSig = lvsig;
         }
 
         /* STAKE GUARD (user directive 10-29; wins-file array bug let the driver
