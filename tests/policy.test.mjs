@@ -233,4 +233,39 @@ export async function runPolicy() {
     if (noteLv('Mars', 'pack', gfb, null) !== null || flushLv([{ name: 'Pair', level: 1 }, { name: 'Flush', level: 2 }]) !== null) {
         throw new Error('unchanged levels must not attribute anything');
     }
+
+    /* DNA farm target (deck-engine rule) */
+    const { dnaFarmPick } = await import('../lib/play.mjs');
+
+    const fc = (rank, suit, key) => ({ id: 9, rank, suit, actions: ['select'], key });
+
+    const farmHand = [fc('K', 'Hearts', 'c_base'), fc('A', 'Spades', 'm_mult'), fc('4', 'Clubs', 'm_steel')];
+
+    const fp = dnaFarmPick(farmHand, 2, 2.0);
+
+    if (!fp || fp.enh !== 'steel' || fp.card.rank !== '4') {
+        throw new Error(`dnaFarmPick must farm the steel first at any capacity, got ${JSON.stringify(fp && fp.enh)}`);
+    }
+
+    if (dnaFarmPick([fc('Q', 'Hearts', 'm_glass')], 2, 1.1) !== null) {
+        throw new Error('glass farm must demand spare capacity (1.1 < 1.35)');
+    }
+
+    if ((dnaFarmPick([fc('Q', 'Hearts', 'm_glass')], 2, 1.5) || {}).enh !== 'glass') {
+        throw new Error('glass farm must fire with headroom');
+    }
+
+    if (dnaFarmPick(farmHand, 4, 2.0) !== null) {
+        throw new Error('ante>3 must never farm (targets eat the hands)');
+    }
+
+    const fd = dnaFarmPick([fc('5', 'Hearts', 'm_mult'), { id: 8, rank: 'A', suit: 'Diamonds', actions: ['select'], key: 'm_mult', debuffed: true }], 1, 2);
+
+    if (!fd || fd.card.rank !== '5') {
+        throw new Error('debuffed cards must not be farm targets (copy of a dead card)');
+    }
+
+    if (dnaFarmPick([fc('7', 'Hearts', 'c_base'), fc('9', 'Clubs', 'm_bonus')], 1, 2) !== null) {
+        throw new Error('bonus/vanilla cards are not farm targets');
+    }
 }
