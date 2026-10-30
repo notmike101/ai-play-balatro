@@ -22,6 +22,7 @@ let bank = { key: '', pred: 0 };
 let turnErrStreak = 0;
 // stake-abort in flight (Options opened, awaiting setup overlay -> new run)
 let abandonPending = false;
+let abortStreak = 0;
 /* MECHANICS PROBES (user directive 10-30): interest + secret-hand validation, log-only */
 let cashSeen = '';
 let habsSeen = -2;
@@ -70,6 +71,11 @@ async function handleNewRun(obs) {
 
     for (let round = 0; round < 40; round++) {
         const cycles = (o.controls || []).filter((c) => c.enabled && c.kind === 'option_cycle' && Array.isArray(c.options));
+
+        /* STAKE LOOP FORENSICS (10-30: 256 stakeaborts, game starts stake1 while
+           runstart claims Red - fall-through-to-default start path suspected):
+           capture EVERY overlay frame's control kinds + cycle states */
+        jw({ e: 'ovl', round, ks: (o.controls || []).map((c) => `${c.kind}${c.enabled ? '' : '!'}${c.options ? `[${c.options.length}]@${c.index}{${c.options.slice(0, 5).join('/')}}` : `=${c.label ?? ''}`}`).join(';').slice(0, 700), run: Boolean(o.run) });
 
         /* Rows render a tick LATE on this overlay (observed 10-30: the first
            frame had NO option_cycle at all, so the old code broke straight to
@@ -181,7 +187,7 @@ async function handleNewRun(obs) {
 
     runSeq += 1;
     setRunId(runSeq);
-    jw({ e: 'runstart', stake: stakeLbl || unwon });
+    jw({ e: 'runstart', stake: stakeLbl || unwon, hasCyc: Boolean(stakeCyc), hadStart: Boolean(start) });
     sawRunStart = true;
     abandonPending = false;
     resetStrategy();
@@ -353,12 +359,18 @@ async function main() {
         const wantSt = STAKE_LABELS.indexOf(STAKE_LABELS.find((l) => !wins.has(l)) || STAKE_LABELS[7]) + 1;
         const liveSt = obs.run?.stake ?? null;
 
-        if (!abandonPending && liveSt !== null && liveSt !== wantSt && ['blind_select', 'hand', 'play', 'shop', 'cash_out'].includes(ph)) {
+        /* LOOP-BLEED (10-30 incident): the setup tab lost its stake row (now only
+           two DECK cycles + seeded toggle; stake was numeric-1..8 cycle on 10-29)
+           so every PLAY starts stake1 and the guard abort-looped 256x in 25min.
+           After 3 consecutive aborted-without-play runs, tolerate the stake the
+           game gives and keep grinding; a run reaching ante>=2 plays resets it */
+        if (!abandonPending && liveSt !== null && liveSt !== wantSt && abortStreak < 3 && ['blind_select', 'hand', 'play', 'shop', 'cash_out'].includes(ph)) {
             const opt = (obs.controls || []).find((c) => c.enabled && c.kind === 'options');
 
             if (opt) {
                 jw({ e: 'stakeabort', got: liveSt, want: wantSt, ph });
                 abandonPending = true;
+                abortStreak += 1;
                 await act({ epoch: obs.epoch, action: 'activate', target: opt.id });
                 continue;
             }
@@ -366,6 +378,9 @@ async function main() {
 
         if ((ph === 'hand' || ph === 'play') && obs.run) {
             curStake = obs.run.stake;
+            if (curStake === wantSt) {
+                abortStreak = 0;
+            }
             curDeckKey = obs.run.deck?.key;
 
             const hh = await handleHand(obs, {
