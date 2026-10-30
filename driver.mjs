@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, setStakeCtx, saveStakeLock, jokerFactor, jokerSig } from './lib/knowledge.mjs';
-import { observe, act } from './lib/link.mjs';
+import { observe, act, clickPage } from './lib/link.mjs';
 import { handleShop, handlePackOpen, resetShopRun } from './lib/shop.mjs';
 import { setGameSpeed } from './lib/settings.mjs';
 import { buildDigest, resetRunStats } from './lib/digest.mjs';
@@ -211,6 +211,7 @@ let curDeckKey = null;
 /* card ids + rank counts played earlier THIS ANTE (cleared when run.ante changes;
    NOTE shops fall after EVERY blind, not only bosses — Pillar's debuff spans Small->Big->Boss) */
 const antePlayed = new Set();
+let menuClickTs = 0;
 /* Pillar v2 (27347-era: id lineage fails — bridge ids are observation-positional).
    dcens census settled the flag question: the game flags the EXACT re-shuffled played
    copies (raw 1-6/hand), NOT all four copies of a played rank - so >=4-rank lineage is
@@ -540,8 +541,18 @@ async function main() {
                 continue;
             }
 
-            // this build's menu setup_run (Play -> save overlay) crashes on authored WS click; needs a physical/CDP click
-            say('menu idle: needs physical Play click to open run overlay');
+            /* this build's menu setup_run (Play -> save overlay) crashes on the
+               authored WS click; a trusted CDP dispatch opens it (validated
+               2026-10-30; PLAY sits at CSS 452,792 for the 1302x1077 @dpr1.5
+               app window - re-check tmp/vp.mjs + out/page4.png if resized) */
+            if (Date.now() - menuClickTs > 20_000) {
+                menuClickTs = Date.now();
+                const okc = await clickPage(452, 792);
+
+                jw({ e: 'menuclick', ok: okc });
+                say('menu: CDP trusted PLAY click', okc);
+            }
+
             await sleep(3_000);
             continue;
         }
