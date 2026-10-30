@@ -3,7 +3,7 @@
    Monitor: out/state.json (current summary), out/log.jsonl (per-decision), out/results.jsonl (run outcomes). */
 import fs from 'node:fs';
 import path from 'node:path';
-import { tryLoad0, OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, setStakeCtx, saveStakeLock, jokerFactor, jokerSig } from './lib/knowledge.mjs';
+import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, setStakeCtx, saveStakeLock, jokerFactor, jokerSig } from './lib/knowledge.mjs';
 import { observe, act, clickPage } from './lib/link.mjs';
 import { handleShop, resetShopRun } from './lib/shop.mjs';
 import { handlePackOpen } from './lib/packflow.mjs';
@@ -23,7 +23,6 @@ let turnErrStreak = 0;
 // stake-abort in flight (Options opened, awaiting setup overlay -> new run)
 let abandonPending = false;
 let abortStreak = 0;
-let ledgerReconciled = false;
 /* MECHANICS PROBES (user directive 10-30): interest + secret-hand validation, log-only */
 let cashSeen = '';
 let habsSeen = -2;
@@ -401,34 +400,13 @@ async function main() {
         const wantSt = STAKE_LABELS.indexOf(STAKE_LABELS.find((l) => !wins.has(l)) || STAKE_LABELS[7]) + 1;
         const liveSt = obs.run?.stake ?? null;
 
-        /* LEDGER RECONCILE (user 10-30: "every reload loses part of your save"):
-           host restart -> page reload can regress the GAME's progression (default
-           stake back to White). If the game serves a stake BELOW our ledger's next
-           target repeatedly, the game-side unlock is gone: demote wins.json to the
-           game's real state and re-earn it (winledger row keeps the audit trail) */
-        if (!ledgerReconciled && liveSt !== null) {
-            ledgerReconciled = true;
-            const wIdx = STAKE_LABELS.findIndex((l) => !wins.has(l));
-            const wantIdx = wIdx < 0 ? STAKE_LABELS.length : wIdx;
-
-            /* Demote ONLY on regression (a win at >= liveSt exists in our ledger).
-               A plain game-side unlock loss (wins.json wiped/reverted) self-heals in
-               setup: the numeric stake row appears again once the game has >=2 stakes
-               unlocked. Demoting blindly (19:1x bug) discarded a VALID White win and
-               dropped the ladder back to White - 241 real Red attempts say White was
-               beaten ~7x before any save loss. */
-            const hasWinAtOrAbove = (tryLoad0('history.json', {}).wins ?? [])
-                .some((w) => (w.ante ?? 0) >= 8 && (w.stake ?? liveSt) >= liveSt);
-
-            if (liveSt < wantIdx && hasWinAtOrAbove) {
-                for (let i = liveSt; i < STAKE_LABELS.length; i++) {
-                    wins.delete(STAKE_LABELS[i]);
-                }
-
-                saveWins();
-                jw({ e: 'winledger', liveSt, demotedFrom: wantIdx + 1, trigger: 'regression' });
-            }
-        }
+        /* NEVER-FORGET LEDGER (10-30, after three ledger whiplash deploys): a
+           genuine a8 win is permanent in wins.json; a game-side regression
+           (unlock vanished, stake row gone) does NOT demote it - demotion made
+           the driver "forget" a real White win every reload and oscillate the
+           ladder. Target stays the ladder's next unwon stake; the abort guard
+           tolerates the game's actual stake after 3 aborts (loop-bleed below);
+           when the numeric stake row ever reappears, setup clicks the target. */
 
         /* LOOP-BLEED (10-30 incident): the setup tab lost its stake row (now only
            two DECK cycles + seeded toggle; stake was numeric-1..8 cycle on 10-29)
