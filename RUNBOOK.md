@@ -29,6 +29,14 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
 `chrome-profile`, cold start ~100s), `tmp/click.mjs 452 792`, `tmp/startws.mjs` (needs 4180 free),
 `Start-Process loopdrv.sh`. Menu `setup_run` click CRASHES the page; New Run overlay cycling is
 1-BASED index (auto-detected).
+- ALWAYS send `Page.bringToFront` BEFORE `Page.reload` (10-30, three zombie loops): Chromium
+  won't boot WebGPU on a hidden page -> half-booted page connects then answers
+  `action_unavailable` to everything; a second/third plain reload does NOT fix it, foreground does.
+  `reloadPage()` now does this; manual one-liners must too. If already zombied while foreground,
+  `wakeZombie`/Escape-nudge path applies (real input; CDP keys unreliable).
+- Host rotation orphans the page (connects only at load): after killing the driver WITHOUT the
+  service loop, a fresh host gets the auto-reconnecting page - but if the page was mid-zombie it
+  stays zombie; reload with bringToFront is the reset.
 
 ## Log forensics (out/log.jsonl, out/digests.jsonl)
 - Item rows use SHORT keys `k/n/c/a` (kind/name/cost/actions) in packdump; shopdump uses
@@ -40,6 +48,11 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
 - CELESTIAL take = INSTANT level. Cards serialize positionally `[idx,rank,suit,sel,"",""]`;
   enhancements/seals invisible to bridge -> predictions undercount enhanced hands (conservative).
 - Evidence of targeted tarot execution = `tarottarget`/`consuse` rows with `ok:true`.
+- 10-30 probe rows: `cashout` (reward-panel labels per blind -> interest truth), `handstab`
+  (game hands table incl hidden hands, once/ante), decide `cids`/`sids` = SELECTED/scoring card
+  ids (slot ids; join with the same-frame turn row for content) + `enh`/`sla` counts. Historical
+  decide rows have NO played set (`t.n` never set on play returns; slot-id reuse kills
+  multiset joins) - pre-10-30 corpus cannot validate per-play order effects.
 - Tools in `tmp/` (gitignored; lint manually): `watchrun` (wake-on-digest), `bosscal` (per-boss
   pred calibration), `surgeclass` (death classification), `ledcheck`, `plmatch` (take-vs-nf match:
   focal-on-shelf misses are the ONLY real targeting signal; fillers are supply-forced by design),
