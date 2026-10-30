@@ -29,11 +29,27 @@ WebSocket bridge and grinds the stake ladder unattended.
 - `out/log.jsonl` append-only telemetry, every row `{ts, rid, e, ...}`. `RUNBOOK.md` has
   the operational deep dives; `tmp/` holds throwaway probes (gitignored, but linted).
 
+## Evidence standard (user directive 10-29 — MANDATORY for every claim)
+
+A claim is VALID only with empirical support, labeled by confidence level:
+
+- **HYPOTHESIS** — guessed mechanism (vanilla recall, plausibility); may guide a probe, may NOT drive policy.
+- **OBSERVATION** — seen in data once/few times (log rows, screenshot); may still mislead (boards confound, samples small).
+- **VALIDATED** — repeated/controlled in-game evidence (ground-truth joins, census with n, A/B epoch split); required before it enters a scoring formula, model comment, or RUNBOOK entry.
+
+Applies retroactively: existing comments claiming build semantics are re-verification targets, not authority
+(known-liars: `e:planet.fam` pre-3261006 = assumption; Supernova/Stencil stores; handstab once-per-ante staleness;
+`e:planet fam` diffs logged model labels, not game truth — fixed by `gamefam:` probe). Vanilla Balatro recall has
+already burned: Black Hole, Supernova formula, Stencil rule, Baseball rarity, Mime targets, greedy-family rarity,
+interest. When unsure: probe or ask the oracle; never silently encode vanilla.
+
 ## Commands (gates before every commit — use `&&`, not `;`)
 
 ```
-node driver.mjs --selftest          # behavior assertions; must print SELFTEST OK
+node driver.mjs --selftest          # behavior assertions; must print SELFTEST OK; offline-safe with the stack LIVE
+                                    # (arg-less `node driver.mjs selftest` instead = LIVE BOOT smoke, needs :4180 free)
 pnpm run lint > out/lint.txt        # eslint . --max-warnings 0; file must be empty, exit 0
+node node_modules/eslint/bin/eslint.js <files> --quiet   # when pnpm/npx choke (EBADDEVENGINES via npx)
 pnpm exec eslint --fix <files>      # after edits (careful: it rewrites JSDoc on arrows)
 powershell -File killdrv.ps1        # kill driver+host; the loopdrv supervisor restarts driver
 powershell -File tmp/ptree.ps1      # verify EXACTLY ONE chain: service->loopdrv.sh->driver->host
