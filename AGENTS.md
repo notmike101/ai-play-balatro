@@ -83,6 +83,29 @@ node tmp/watchrun.mjs               # one-shot: exits when the next clean run-di
   service readiness probes never match — verify via ptree/`out/drv-stdout.txt`/state.json.
 - Time: `ts` fields are epoch ms (authoritative); console/proc tails use 12-h local.
 
+## Stake ladder: progression vs mastery (STANDING RULE, user directive 10-30)
+
+Progression and mastery are DIFFERENT, tracked independently:
+
+- **Progression**: one verified win unlocks the next stake (win = defeating the Ante 8
+  Boss Blind). This is what `out/wins.json` + the ladder target implement today.
+- **Mastery** of a stake requires at least **9 wins in 30 consecutive autonomous run
+  attempts (30%)** on that SAME stake, with an UNCHANGED gameplay policy and scoring
+  implementation.
+- **Any gameplay-affecting change resets the benchmark** (the 30-attempt window starts
+  over on that stake).
+- Record ALL attempts — losses, crashes, interruptions included; NEVER selectively
+  exclude results from the window.
+- Track per stake: win rate, average ante reached, run duration. Benchmark results are
+  archived BY policy version + git commit, so a window is always reproducible.
+- NEVER claim consistency/mastery from a single victory; NEVER use time-based win
+  quotas ("N wins per day"). A win proves the policy CAN win; 9/30 proves it does
+  repeatably.
+
+Current standing under this rule: White = progressed, NOT mastered (post-win policy
+changed → its benchmark re-based; a clean 30-attempt window on current HEAD is pending).
+Red = unlocked via the White win, 0 wins, grinding.
+
 ## Commit messages (MANDATORY, user directive 10-30)
 
 Use Conventional Commits (https://www.conventionalcommits.org/) for EVERY commit:

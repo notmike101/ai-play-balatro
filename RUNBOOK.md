@@ -78,6 +78,19 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   probe in play path settles it on first capture (ratio >= 1 fine, ~0.1 demote).
 - Flint preds exact; option_cycle 1-based; post-boss phase is 'cash_out'.
 
+## Stake progression vs mastery (standing rule; full text in AGENTS.md)
+
+1 win = PROGRESSION (unlocks next stake). MASTERY = >=9 wins in 30 consecutive
+autonomous attempts on the same stake with UNCHANGED policy+scoring; any gameplay-
+affecting change resets the window. Win = Ante 8 boss defeated. Measurement recipe:
+attempt = any run with a `runstart` row (losses/crashes/interrupts ALL count; a run
+with runstart but no results row counts as a failed attempt — never drop it); per-
+window stats = win rate, avg exit ante, duration (runstart->runend/result ts); tag
+every archived window with policy version + git commit (`git rev-parse HEAD` at window
+start). Never claim consistency from 1 win; no time-based quotas. Mastery is tracked
+independently of progression: current standing = White progressed/not-mastered (policy
+changed post-win, window re-based), Red grinding 0 wins.
+
 ## Strategy state (2026-10-29)
 Leveling policy works end-to-end: deepest losses now a8 CHIP_GAP at Pair-L11 - levels are supply-
 capped (Mercury ~35% of packs, fair per-planet), remaining gap = xmult joker depth at a6+ (100k
