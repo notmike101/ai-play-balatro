@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS handstab(ts INT,rid INT,ante INT,rows TEXT);
 CREATE TABLE IF NOT EXISTS planet(ts INT,rid INT,fam TEXT,n TEXT,gf TEXT);
 CREATE TABLE IF NOT EXISTS runstart(ts INT,rid INT,stake TEXT);
 CREATE TABLE IF NOT EXISTS runend(ts INT,rid INT,won INT,ante INT);
-CREATE TABLE IF NOT EXISTS rundigest(t INT,rid INT,won INT,ante INT,focal TEXT,focalPlays INT,focalLvl INT,lvlMap TEXT,lvlAct INT,uses INT,rerolls INT,celestial INT,jokers INT,alert TEXT,complete INT);
+CREATE TABLE IF NOT EXISTS rundigest(t INT,rid INT,won INT,ante INT,focal TEXT,focalPlays INT,focalLvl INT,lvlMap TEXT,lvlAct INT,uses INT,rerolls INT,celestial INT,jokers INT,alert TEXT,complete INT,gap INT);
 CREATE TABLE IF NOT EXISTS jkpass(ts INT,rid INT,n TEXT,s REAL,cost INT,money INT,floor INT,ante INT,owned INT);
 CREATE TABLE IF NOT EXISTS other(ts INT,rid INT,e TEXT,body TEXT);
 CREATE INDEX IF NOT EXISTS ix_decide ON decide(rid,ts);
@@ -34,6 +34,7 @@ DELETE FROM decide; DELETE FROM turn; DELETE FROM shopdump; DELETE FROM shopdone
 DELETE FROM gamefam; DELETE FROM lvljump; DELETE FROM blind; DELETE FROM handstab; DELETE FROM planet;
 DELETE FROM runstart; DELETE FROM runend; DELETE FROM rundigest; DELETE FROM jkpass; DELETE FROM other;
 `);
+try { db.exec('ALTER TABLE rundigest ADD COLUMN gap INT'); } catch {}
 
 const J = (v) => (v === undefined || v === null ? null : JSON.stringify(v));
 const B = (v) => (v ? 1 : 0);
@@ -51,7 +52,7 @@ const ins = {
     planet: Q('planet', 'ts,rid,fam,n,gf'),
     runstart: Q('runstart', 'ts,rid,stake'),
     runend: Q('runend', 'ts,rid,won,ante'),
-    rundigest: Q('rundigest', 't,rid,won,ante,focal,focalPlays,focalLvl,lvlMap,lvlAct,uses,rerolls,celestial,jokers,alert,complete'),
+    rundigest: Q('rundigest', 't,rid,won,ante,focal,focalPlays,focalLvl,lvlMap,lvlAct,uses,rerolls,celestial,jokers,alert,complete,gap'),
     jkpass: Q('jkpass', 'ts,rid,n,s,cost,money,floor,ante,owned'),
 };
 const insOther = Q('other', 'ts,rid,e,body');
@@ -80,7 +81,7 @@ for (const s of fs.readFileSync(LOG, 'utf8').split('\n')) {
         case 'planet': ins.planet.run(ts, rid, j.fam ?? '', j.n ?? '', J(j.gamefam ?? null)); break;
         case 'runstart': ins.runstart.run(ts, rid, j.stake ?? ''); break;
         case 'runend': ins.runend.run(ts, rid, B(j.won), j.ante ?? null); break;
-        case 'rundigest': ins.rundigest.run(j.t ?? ts, rid, B(j.won), j.ante ?? null, j.focal ?? '', j.focalPlays ?? null, j.focalLvl ?? null, j.lvlMap ?? '', j.lvlAct ?? null, j.uses ?? null, j.rerolls ?? null, B(j.celestial), j.jokers ?? null, j.alert ?? '', B(j.complete)); break;
+        case 'rundigest': ins.rundigest.run(j.t ?? ts, rid, B(j.won), j.ante ?? null, j.focal ?? '', j.focalPlays ?? null, j.focalLvl ?? null, j.lvlMap ?? '', j.lvlAct ?? null, j.uses ?? null, j.rerolls ?? null, B(j.celestial), j.jokers ?? null, j.alert ?? '', B(j.complete), j.gap ?? null); break;
         case 'jkpass': ins.jkpass.run(ts, rid, j.n ?? '', j.s ?? null, j.cost ?? null, j.money ?? null, j.floor ?? null, j.ante ?? null, j.ownedJ ?? null); break;
         default: insOther.run(ts, rid, j.e, s.slice(0, 2000)); break;
     }

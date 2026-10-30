@@ -219,7 +219,7 @@ let curStake = null;
 
 /* per-run accumulator: digested at game end into out/digests.jsonl (report-only;
    policy stays untouched — repeated-window signals get a manual one-lever change) */
-const runStats = { lvl: 0, acts: [], jmax: 0, fams: {} };
+const runStats = { gap: null, lvl: 0, acts: [], jmax: 0, fams: {} };
 
 /* last non-empty hands table seen this run: game_over obs sometimes arrives with
    hands:[] and the digest then lies about levels (run 1793034476: lvlAct 1 with
