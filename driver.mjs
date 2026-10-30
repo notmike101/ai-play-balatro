@@ -108,12 +108,13 @@ async function handleNewRun(obs) {
             const v = Number(s);
 
             return Number.isInteger(v) && v >= 1 && v <= 8;
-        }))
-        /* UI UPDATE 10-30 (oracle: "arrows UNDER the deck selection determine the stake"):
-           the stake row now sits second with DECK-STYLE option labels (host reports the
-           deck list twice) - its 1-based index is the truth (@1 + White starts observed).
-           Treat the second deck-like cycle as the stake row and click its arrows by index */
-        ?? (deckC && cycles.filter((c) => c !== deckC && deckC.options.includes(c.options[0]))[0]);
+        }));
+        /* DECK-STYLED STAKE ROW DISABLED (10-30, oracle-confirmed): the second
+           deck-label cycle IS a deck selector - clicking its arrows cycles DECKS
+           (the 18:4x "oscillating @1<->@2" was our own double-clicking), never the
+           stake. The real stake cycle only exists when the game has >1 stake
+           UNLOCKED; this build's save lost the White win, so setup shows NO stake
+           row and PLAY serves White. Numeric-cycle branch above stays the live path */
         let c = null;
         let ti = -1;
 
@@ -405,15 +406,19 @@ async function main() {
            stake back to White). If the game serves a stake BELOW our ledger's next
            target repeatedly, the game-side unlock is gone: demote wins.json to the
            game's real state and re-earn it (winledger row keeps the audit trail) */
-        if (!ledgerReconciled && abortStreak >= 3 && liveSt !== null && liveSt < wantSt) {
+        if (!ledgerReconciled && liveSt !== null) {
             ledgerReconciled = true;
+            const wIdx = STAKE_LABELS.findIndex((l) => !wins.has(l));
+            const wantIdx = wIdx < 0 ? STAKE_LABELS.length : wIdx;
 
-            for (let i = liveSt; i < STAKE_LABELS.length; i++) {
-                wins.delete(STAKE_LABELS[i]);
+            if (liveSt < wantIdx) {
+                for (let i = liveSt; i < STAKE_LABELS.length; i++) {
+                    wins.delete(STAKE_LABELS[i]);
+                }
+
+                saveWins();
+                jw({ e: 'winledger', liveSt, demotedFrom: wantIdx + 1, trigger: 'first-observe' });
             }
-
-            saveWins();
-            jw({ e: 'winledger', liveSt, demotedFrom: wantSt });
         }
 
         /* LOOP-BLEED (10-30 incident): the setup tab lost its stake row (now only
