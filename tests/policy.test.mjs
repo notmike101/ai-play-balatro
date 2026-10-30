@@ -6,8 +6,10 @@ import { tHand } from './support.mjs';
  */
 export async function runPolicy() {
     const { planetFam, nextPlanetNeed } = await import('../lib/shop.mjs');
-    const { chooseStrategy, famBiasMap, planTargeted, gateAllows, scorePackOffer } = await import('../lib/strategy.mjs');
-    const { JUNK_JOKER } = await import('../lib/knowledge.mjs');
+    const { chooseStrategy, famBiasMap, gateAllows } = await import('../lib/strategy.mjs');
+    const { planTargeted } = await import('../lib/tarot.mjs');
+    const { scorePackOffer } = await import('../lib/pack.mjs');
+    const { JUNK_JOKER } = await import('../lib/jokers.mjs');
 
     /**
      * One tarot consumable fixture for the plan selftest.
