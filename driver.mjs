@@ -64,6 +64,18 @@ async function handleNewRun(obs) {
 
     for (let round = 0; round < 40; round++) {
         const cycles = (o.controls || []).filter((c) => c.enabled && c.kind === 'option_cycle' && Array.isArray(c.options));
+
+        /* Rows render a tick LATE on this overlay (observed 10-30: the first
+           frame had NO option_cycle at all, so the old code broke straight to
+           start and ran the game's DEFAULT stake - every claimed stake was
+           fiction and the stake guard crash-looped on the White runs) */
+        if (!cycles.length && round < 8) {
+            await sleep(600);
+            o = await observe();
+
+            continue;
+        }
+
         /* PROVEN against the live setup overlay (13-start loop 10-29): indices are
            1-based (deck index 1 == "Red Deck" = game default; stake index 1 == stake 1
            = game's stake 1) and the STAKE control's options are NUMBERS [1..8], not
