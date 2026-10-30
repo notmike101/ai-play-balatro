@@ -23,6 +23,7 @@ let turnErrStreak = 0;
 // stake-abort in flight (Options opened, awaiting setup overlay -> new run)
 let abandonPending = false;
 let abortStreak = 0;
+let ledgerReconciled = false;
 /* MECHANICS PROBES (user directive 10-30): interest + secret-hand validation, log-only */
 let cashSeen = '';
 let habsSeen = -2;
@@ -107,16 +108,29 @@ async function handleNewRun(obs) {
             const v = Number(s);
 
             return Number.isInteger(v) && v >= 1 && v <= 8;
-        }));
+        }))
+        /* UI UPDATE 10-30 (oracle: "arrows UNDER the deck selection determine the stake"):
+           the stake row now sits second with DECK-STYLE option labels (host reports the
+           deck list twice) - its 1-based index is the truth (@1 + White starts observed).
+           Treat the second deck-like cycle as the stake row and click its arrows by index */
+        ?? (deckC && cycles.filter((c) => c !== deckC && deckC.options.includes(c.options[0]))[0]);
         let c = null;
         let ti = -1;
 
         if (deckC && at(deckC, deckC.index) !== wantDeck) {
             c = deckC;
             ti = deckC.options.indexOf(wantDeck);
-        } else if (stakeC && Number(at(stakeC, stakeC.index)) !== stakeWant) {
-            c = stakeC;
-            ti = stakeC.options.findIndex((s) => Number(s) === stakeWant);
+        } else if (stakeC) {
+            const first = Number(at(stakeC, stakeC.index));
+            const stakeCur = Number.isInteger(first) ? first : stakeC.index;
+
+            if (stakeCur !== stakeWant) {
+                c = stakeC;
+                ti = stakeC.options.findIndex((s) => Number(s) === stakeWant);
+                if (ti < 0) {
+                    ti = stakeWant - 1;
+                }
+            }
         }
 
         if (!c || ti < 0) {
@@ -152,6 +166,11 @@ async function handleNewRun(obs) {
 
     if (rawStake !== null && rawStake !== undefined) {
         stakeLbl = /stake/i.test(String(rawStake)) ? String(rawStake) : STAKE_LABELS[Number(rawStake) - 1] || null;
+    }
+
+    if (stakeLbl === null && stakeCyc) {
+        /* deck-styled stake row (10-30 UI): options are deck labels, index is the stake */
+        stakeLbl = STAKE_LABELS[stakeCyc.index - 1] ?? null;
     }
 
     const start = (o.controls || []).find((c) => c.enabled && /start_setup_run/.test(c.kind));
@@ -358,6 +377,22 @@ async function main() {
            setupUI then drive the wanted-stake start */
         const wantSt = STAKE_LABELS.indexOf(STAKE_LABELS.find((l) => !wins.has(l)) || STAKE_LABELS[7]) + 1;
         const liveSt = obs.run?.stake ?? null;
+
+        /* LEDGER RECONCILE (user 10-30: "every reload loses part of your save"):
+           host restart -> page reload can regress the GAME's progression (default
+           stake back to White). If the game serves a stake BELOW our ledger's next
+           target repeatedly, the game-side unlock is gone: demote wins.json to the
+           game's real state and re-earn it (winledger row keeps the audit trail) */
+        if (!ledgerReconciled && abortStreak >= 3 && liveSt !== null && liveSt < wantSt) {
+            ledgerReconciled = true;
+
+            for (let i = liveSt; i < STAKE_LABELS.length; i++) {
+                wins.delete(STAKE_LABELS[i]);
+            }
+
+            saveWins();
+            jw({ e: 'winledger', liveSt, demotedFrom: wantSt });
+        }
 
         /* LOOP-BLEED (10-30 incident): the setup tab lost its stake row (now only
            two DECK cycles + seeded toggle; stake was numeric-1..8 cycle on 10-29)
