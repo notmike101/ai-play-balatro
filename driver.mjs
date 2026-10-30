@@ -314,7 +314,7 @@ async function main() {
 
             if (cashSeen !== ck) {
                 cashSeen = ck;
-                jw({ e: 'cashout', ante: obs.run?.ante, money: obs.run?.money, ctrls: (obs.controls || []).map((c) => `${c.kind}:${String(c.label ?? '').slice(0, 40)}`) });
+                jw({ e: 'cashout', ante: obs.run?.ante, round: obs.run?.round, money: obs.run?.money, blind: obs.run?.blind?.name, ctrls: (obs.controls || []).map((c) => `${c.kind}:${String(c.label ?? '').slice(0, 40)}`) });
             }
         }
 
