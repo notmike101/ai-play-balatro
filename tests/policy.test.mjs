@@ -5,7 +5,8 @@ import { tHand } from './support.mjs';
  * Tarot plans, gate, pack scoring, planet targeting assertions; throws on first failure.
  */
 export async function runPolicy() {
-    const { planetFam, nextPlanetNeed } = await import('../lib/shop.mjs');
+    const { planetFam } = await import('../lib/planets.mjs');
+    const { nextPlanetNeed } = await import('../lib/planetneed.mjs');
     const { chooseStrategy, famBiasMap, gateAllows } = await import('../lib/strategy.mjs');
     const { planTargeted } = await import('../lib/tarot.mjs');
     const { scorePackOffer } = await import('../lib/pack.mjs');
@@ -213,7 +214,8 @@ export async function runPolicy() {
 
     /* GAMEFAM attribution probe: direct level diff, pack-phase pending flush,
        and no phantom attribution while the level table is unchanged */
-    const { lvSnap, noteLv, flushLv, resetShopRun } = await import('../lib/shop.mjs');
+    const { lvSnap, noteLv, flushLv } = await import('../lib/planetneed.mjs');
+    const { resetShopRun } = await import('../lib/shop.mjs');
     const gfb = lvSnap({ hands: [{ name: 'Pair', level: 1 }, { name: 'Flush', level: 2 }] });
 
     if ((noteLv('Mercury', 'buy', gfb, [{ name: 'Pair', level: 2 }, { name: 'Flush', level: 2 }]) || []).join() !== 'Pair') {
