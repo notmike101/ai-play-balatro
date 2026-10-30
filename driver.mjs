@@ -10,6 +10,7 @@ import { setGameSpeed } from './lib/settings.mjs';
 import { buildDigest, resetRunStats } from './lib/digest.mjs';
 import { resetProbe } from './lib/acts.mjs';
 import { handleHand } from './lib/playturn.mjs';
+import { resetSeen } from './lib/play.mjs';
 import { currentBias, handleBlindSelect, resetStrategy } from './lib/blind.mjs';
 
 // ---------- play-phase decision ----------
@@ -203,9 +204,9 @@ async function handleNewRun(obs) {
     runStats.jmax = 0;
     handsSnap = [];
     resetShopRun();
-    resetProbe(); /* one probe per RUN: the first Blue snapshot only showed key
-                           shapes (deck(6) object at top level, no deck AREA) — reopen
-                           the question each run until a probe settles Blue's modelability */
+    resetSeen();
+    resetProbe(); /* one probe per RUN (deck manifest shape settled: composition rows
+                           give exact per-combo counts - Blue Joker now modeled on them) */
 
     await sleep(800);
 
@@ -523,6 +524,7 @@ async function main() {
             resetRunStats(runStats);
             handsSnap = [];
             resetShopRun();
+            resetSeen();
 
             if (won && lbl) {
                 wins.add(lbl);

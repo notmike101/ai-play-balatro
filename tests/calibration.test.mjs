@@ -5,7 +5,7 @@ import { C, tabHC } from './support.mjs';
  * Reps, Card Sharp counters, calibration division assertions; throws on first failure.
  */
 export async function runCalibration() {
-    const { predict, calibrate, ctxOf, allSubsetEvals, chooseDiscard, resetRoundReps, syncReps, getRoundReps } = await import('../lib/play.mjs');
+    const { predict, calibrate, ctxOf, allSubsetEvals, chooseDiscard, resetRoundReps, syncReps, getRoundReps, resetSeen, seenN } = await import('../lib/play.mjs');
     const { jokerFactor, jokerSig } = await import('../lib/knowledge.mjs');
 
     /* Card Sharp: X3 only when the game's cumulative counters show the fam already
@@ -208,4 +208,29 @@ export async function runCalibration() {
     if (chooseDiscard(dumpHand, null, null)[0].id !== 91) {
         throw new Error('discard must dump debuffed card before low live junk');
     }
+
+    /* BLUE JOKER (B2): +2 chips per never-drawn copy; unseen counts manifest copies
+       minus copies simultaneously seen - held cards are drawn, so NOT unseen */
+    resetSeen();
+    const blueCtx = ctxOf({
+        jokers: [{ name: 'Blue Joker', values: { extra: 2 } }],
+        run: {},
+        hands: [],
+        deck: { composition: [['K', 'Hearts', 'c_base', '', '', 1], ['Q', 'Spades', 'c_base', '', '', 2], ['7', 'Clubs', 'c_base', '', '', 1]] },
+        hand: [C('K', 'Hearts'), C('Q', 'Spades')],
+    });
+
+    if (blueCtx.unseen !== 2 || seenN() !== 2) {
+        throw new Error(`unseen must subtract drawn copies from manifest counts, got ${blueCtx.unseen}/${seenN()}`);
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], blueCtx).chips - predict(tabHC, 'High Card', [C('K', 'Hearts')], { ...blueCtx, unseen: 0 }).chips !== 4) {
+        throw new Error('Blue Joker must add extra x unseen chips');
+    }
+
+    if (predict(tabHC, 'High Card', [C('K', 'Hearts')], { ...blueCtx, unseen: null }).chips !== predict(tabHC, 'High Card', [C('K', 'Hearts')], { ...blueCtx, unseen: 0 }).chips) {
+        throw new Error('unknown deck must leave Blue unpriced, not guessed');
+    }
+
+    resetSeen();
 }
