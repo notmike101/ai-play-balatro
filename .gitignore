@@ -1,7 +1,14 @@
 node_modules
 out/*
 !out/.gitkeep
+# durable ladder state (user directive 10-30: must be committed, not ignored)
+!out/results.jsonl
+!out/digests.jsonl
+!out/wins.json
+!out/stake_locks.json
+!out/stake_map.json
+!out/policy.json
+# 69MB raw event stream stays out of git (survives checkpoint/rewind anyway)
 *.png
 *.err
-*.jsonlout/
 tmp
