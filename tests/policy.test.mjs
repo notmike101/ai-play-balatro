@@ -208,4 +208,25 @@ export async function runPolicy() {
         && scorePackOffer({ kind: 'Default', name: 'Default Base' }, {}) === 1)) {
         throw new Error('enhanced card offers must score Steel5>Glass4.3>Mult4.2>Lucky4>Stone1');
     }
+
+    /* GAMEFAM attribution probe: direct level diff, pack-phase pending flush,
+       and no phantom attribution while the level table is unchanged */
+    const { lvSnap, noteLv, flushLv, resetShopRun } = await import('../lib/shop.mjs');
+    const gfb = lvSnap({ hands: [{ name: 'Pair', level: 1 }, { name: 'Flush', level: 2 }] });
+
+    if ((noteLv('Mercury', 'buy', gfb, [{ name: 'Pair', level: 2 }, { name: 'Flush', level: 2 }]) || []).join() !== 'Pair') {
+        throw new Error('gamefam probe must attribute the bought level to the family that bumped');
+    }
+
+    resetShopRun();
+
+    if (noteLv('Venus', 'pack', gfb, []) !== null || (flushLv([{ name: 'Pair', level: 1 }, { name: 'Flush', level: 3 }]) || []).join() !== 'Flush') {
+        throw new Error('pack pending must defer then attribute the flush-observed bump');
+    }
+
+    resetShopRun();
+
+    if (noteLv('Mars', 'pack', gfb, null) !== null || flushLv([{ name: 'Pair', level: 1 }, { name: 'Flush', level: 2 }]) !== null) {
+        throw new Error('unchanged levels must not attribute anything');
+    }
 }
