@@ -3,7 +3,7 @@
    Monitor: out/state.json (current summary), out/log.jsonl (per-decision), out/results.jsonl (run outcomes). */
 import fs from 'node:fs';
 import path from 'node:path';
-import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, setStakeCtx, saveStakeLock, jokerFactor, jokerSig } from './lib/knowledge.mjs';
+import { tryLoad0, OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, setStakeCtx, saveStakeLock, jokerFactor, jokerSig } from './lib/knowledge.mjs';
 import { observe, act, clickPage } from './lib/link.mjs';
 import { handleShop, resetShopRun } from './lib/shop.mjs';
 import { handlePackOpen } from './lib/packflow.mjs';
@@ -411,13 +411,22 @@ async function main() {
             const wIdx = STAKE_LABELS.findIndex((l) => !wins.has(l));
             const wantIdx = wIdx < 0 ? STAKE_LABELS.length : wIdx;
 
-            if (liveSt < wantIdx) {
+            /* Demote ONLY on regression (a win at >= liveSt exists in our ledger).
+               A plain game-side unlock loss (wins.json wiped/reverted) self-heals in
+               setup: the numeric stake row appears again once the game has >=2 stakes
+               unlocked. Demoting blindly (19:1x bug) discarded a VALID White win and
+               dropped the ladder back to White - 241 real Red attempts say White was
+               beaten ~7x before any save loss. */
+            const hasWinAtOrAbove = (JSON.parse(tryLoad0('history.json', '{}')).wins ?? [])
+                .some((w) => (w.ante ?? 0) >= 8 && (w.stake ?? liveSt) >= liveSt);
+
+            if (liveSt < wantIdx && hasWinAtOrAbove) {
                 for (let i = liveSt; i < STAKE_LABELS.length; i++) {
                     wins.delete(STAKE_LABELS[i]);
                 }
 
                 saveWins();
-                jw({ e: 'winledger', liveSt, demotedFrom: wantIdx + 1, trigger: 'first-observe' });
+                jw({ e: 'winledger', liveSt, demotedFrom: wantIdx + 1, trigger: 'regression' });
             }
         }
 
