@@ -24,6 +24,17 @@ let turnErrStreak = 0;
 // stake-abort in flight (Options opened, awaiting setup overlay -> new run)
 let abandonPending = false;
 let abortStreak = 0;
+/* game-side unlocked stake count, learned from setup overlay rows and cached
+   across restarts (10-31: wins.json said want Green but the game exposes {1/2};
+   the ladder must ride the game's ladder, not our ledger's) */
+const STAKE_CAP = path.join(OUT, 'game-stake-cap.txt');
+let gameMaxStake = null;
+
+try {
+    gameMaxStake = Number(fs.readFileSync(STAKE_CAP, 'utf8')) || null;
+} catch {
+    gameMaxStake = null;
+}
 /* MECHANICS PROBES (user directive 10-30): interest + secret-hand validation, log-only */
 let cashSeen = '';
 let habsSeen = -2;
@@ -124,12 +135,30 @@ async function handleNewRun(obs) {
         } else if (stakeC) {
             const first = Number(at(stakeC, stakeC.index));
             const stakeCur = Number.isInteger(first) ? first : stakeC.index;
+            /* GAME-RANGE CLAMP (10-31: after our wins.json grew Red, wantSt=3 but the
+               setup row exposes only {1/2} - game save never recorded the Red win, so
+               Green is LOCKED; findIndex(-1) fallback ti=stakeWant-1 then wrapped mod 2
+               back onto index 0 = WHITE, silently downgrading every run while the guard
+               abort-looped. Ladder may never exceed the game's unlocked options: take
+               the highest unlocked instead of wrapping to White. */
+            gameMaxStake = Math.max(gameMaxStake ?? 0, stakeC.options.length);
 
-            if (stakeCur !== stakeWant) {
+            if (fs.existsSync(STAKE_CAP)) {
+                try {
+                    if (Number(fs.readFileSync(STAKE_CAP, 'utf8')) !== gameMaxStake) {
+                        fs.writeFileSync(STAKE_CAP, String(gameMaxStake));
+                    }
+                } catch { /* best-effort cache */ }
+            } else {
+                fs.writeFileSync(STAKE_CAP, String(gameMaxStake));
+            }
+            const stakeCapNow = Math.min(stakeWant, stakeC.options.length);
+
+            if (stakeCur !== stakeCapNow) {
                 c = stakeC;
-                ti = stakeC.options.findIndex((s) => Number(s) === stakeWant);
+                ti = stakeC.options.findIndex((s) => Number(s) === stakeCapNow);
                 if (ti < 0) {
-                    ti = stakeWant - 1;
+                    ti = stakeCapNow - 1;
                 }
             }
         }
@@ -398,7 +427,7 @@ async function main() {
            replay White through the whole Red era): if the live run's stake differs
            from the ladder target, abandon via Options -> New Run; setupopen +
            setupUI then drive the wanted-stake start */
-        const wantSt = STAKE_LABELS.indexOf(STAKE_LABELS.find((l) => !wins.has(l)) || STAKE_LABELS[7]) + 1;
+        const wantSt = Math.min(STAKE_LABELS.indexOf(STAKE_LABELS.find((l) => !wins.has(l)) || STAKE_LABELS[7]) + 1, gameMaxStake ?? 8);
         const liveSt = obs.run?.stake ?? null;
 
         /* NEVER-FORGET LEDGER (10-30, after three ledger whiplash deploys): a
