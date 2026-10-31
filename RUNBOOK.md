@@ -9,11 +9,16 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   needFam flip (global-led within-one), sunk-cost pack preference (`pickPack`).
 - `lib/play.mjs` - hand selection, `normalizeHand` (face-down nulls -> virtual middling ranks).
 - `lib/strategy.mjs` - family/focal logic, `PLANET_GRIND`, joker-name -> family map.
-- `lib/knowledge.mjs` - `JUNK_JOKER`, `STRONG_JOKER`, `jokerTier`, policy constants.
+- `lib/jokers.mjs` - `JUNK_JOKER`, `STRONG_JOKER`, `jokerTier`, `classifyJoker`, `jokerOrder`.
+- `lib/knowledge.mjs` - append-only `jw()` event log (ts+rid stamped centrally), run/policy state files
+  (wins/stake maps, `policy.json` knobs editable without restart), `buildFamilies`, joker learned-factor store.
+- `lib/reps.mjs` - blind-repeat counters (Card Sharp X3) + run-seen tracker (Blue unseen pricing) state island.
 - `lib/link.mjs` - host spawn + reaps `automation-host.mjs` on exit (orphan host holds port 4180
   and request-id receipts -> `request_conflict` FATAL loop without reaping).
-- Supervisor: `loopdrv.sh` restarts `driver.mjs`; `killdrv.ps1` kills driver+host+loop.
-  Exactly ONE supervisor loop and ONE watcher may exist at a time.
+- Supervisor: `loopdrv.sh` runs as a persistent proc SERVICE (`proc://loopdrv`, survives driver
+  kills and restarts `driver.mjs` with fresh code); `killdrv.ps1` kills driver+automation-host
+  ONLY - the bash loop survives by design. Exactly ONE supervisor loop and ONE watcher may exist
+  at a time; `tmp/psloopkill.ps1` is the escalation if the bash loop itself must die.
 
 ## Deploy
 1. `node driver.mjs --selftest` must print `SELFTEST OK`.
