@@ -6,6 +6,7 @@ import path from 'node:path';
 import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, setStakeCtx, saveStakeLock, jokerFactor, jokerSig } from './lib/knowledge.mjs';
 import { observe, act, clickPage } from './lib/link.mjs';
 import { handleShop, resetShopRun } from './lib/shop.mjs';
+import { resetNeed } from './lib/need.mjs';
 import { handlePackOpen } from './lib/packflow.mjs';
 import { setGameSpeed } from './lib/settings.mjs';
 import { buildDigest, resetRunStats } from './lib/digest.mjs';
@@ -589,6 +590,7 @@ async function main() {
             resetRunStats(runStats);
             handsSnap = [];
             resetShopRun();
+            resetNeed();
             resetSeen();
 
             if (won && lbl) {
