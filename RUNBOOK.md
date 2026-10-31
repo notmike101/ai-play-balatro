@@ -76,7 +76,8 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   decide rows have NO played set (`t.n` never set on play returns; slot-id reuse kills
   multiset joins) - pre-10-30 corpus cannot validate per-play order effects.
 - Analysis tools live in `tools/` (COMMITTED, linted): `watchrun` (wake-on-digest, incremental),
-  `dbimport`+`cohort` (db + epoch readout), `bosscal` (per-boss pred calibration), `votes`
+  `dbimport`+`cohort` (db + epoch readout; `cohort --verdict <sha> [--base <sha>]` = the standing
+  pre-registered verdict table for a deploy window), `bosscal` (per-boss pred calibration), `votes`
   (gamefam focal audit), `surgeclass` (death classification), `ledcheck`, `plmatch`+`avail`+`focvis`
   (take-vs-nf: focal-on-shelf misses are the ONLY real targeting signal; fillers are supply-forced
   by design), `planleak`, `depthan`, `enhcens`, `intcensus2`, `jkgap`, `bosscal`, `vp` (click-px

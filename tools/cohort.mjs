@@ -9,10 +9,82 @@ import fs from 'node:fs';
 
 const DIR = path.dirname(path.dirname(fs.realpathSync(process.argv[1])));
 const db = new DatabaseSync(path.join(DIR, 'out', 'runs.db'), { readOnly: true });
-const N = Number(process.argv[2] ?? 6);
+
+/* VERDICT MODE: tools/cohort.mjs --verdict <headSha> [--base <baseSha>]
+   Prints the standing pre-registered table for the window starting at <headSha>'s deploy
+   (or its ts if it is not in the deploy table) vs the window that started at <baseSha>
+   (default: the deploy before head). Replaces the per-wake one-liner censuses. */
+const argv = process.argv.slice(2);
+
+if (argv[0] === '--verdict') {
+    const dep = db.prepare('SELECT sha, ts FROM deploy ORDER BY ts').all();
+    /**
+     *
+     * @param s
+     */
+    const find = (s) => dep.find((d) => d.sha === s || d.sha.startsWith(s));
+    const head = find(argv[1]);
+
+    if (!head) {
+        console.error('head sha not in deploy table');
+        process.exit(1);
+    }
+
+    const hi = dep.find((d) => d.ts > head.ts);
+    let base = argv.includes('--base') ? find(argv[argv.indexOf('--base') + 1]) : dep[dep.indexOf(head) - 1];
+
+    if (base) {
+        const nb = dep.find((d) => d.ts > base.ts && d !== head && d.ts < head.ts);
+
+        base = { sha: base.sha, lo: base.ts, hi: nb ? nb.ts : head.ts };
+    }
+
+    const rows = db.prepare(`SELECT ante a,lvlMap lm,lvlAct la,celestial c,jokers j,gap g,focal f,focalLvl fl FROM rundigest WHERE t>=? AND complete=1${hi ? ' AND t<?' : ''}`).all(head.ts, ...(hi ? [hi.ts] : []));
+
+    /**
+     *
+     * @param rs
+     */
+    function stat(rs) {
+        const n = rs.length;
+
+        if (!n) {
+            return 'n=0';
+        }
+
+        const sup = rs.filter((r) => r.la > 0);
+        /**
+         *
+         * @param k
+         * @param m
+         */
+        const pct = (k, m) => `${(m ? (100 * k / m) : Number.NaN).toFixed(0)}%`;
+
+        return `n=${n} avgA=${(rs.reduce((s, r) => s + r.a, 0) / n).toFixed(2)}`
+            + ` a12=${pct(rs.filter((r) => r.a <= 2).length, n)}(${pct(sup.filter((r) => r.a <= 2).length, sup.length)} supplied)`
+            + ` spread=${pct(rs.filter((r) => ((r.lm || '').match(/:/g) || []).length >= 3).length, n)}`
+            + ` j5=${pct(rs.filter((r) => r.j >= 5).length, n)} a5+=${pct(rs.filter((r) => r.a >= 5).length, n)}`
+            + ` starved=${pct(rs.filter((r) => !r.c && !r.la).length, n)}`
+            + ` near=[${rs.filter((r) => r.g < 1_000).map((r) => r.g).sort((x, y) => x - y).slice(0, 10).join(',')}]`;
+    }
+
+    console.log(`HEAD ${head.sha.slice(0, 7)}: ${stat(rows)}`);
+
+    if (base) {
+        const brows = db.prepare('SELECT ante a,lvlMap lm,lvlAct la,celestial c,jokers j,gap g FROM rundigest WHERE t>=? AND t<? AND complete=1').all(base.lo, base.hi);
+
+        console.log(`BASE ${base.sha.slice(0, 7)}: ${stat(brows)}`);
+    }
+
+    process.exit(0);
+}
+
+const N = Number(argv[0] ?? 6);
 
 const dep = db.prepare('SELECT sha, ts FROM deploy ORDER BY ts DESC LIMIT ?').all(N).reverse();
+
 console.log('epochs (commit time; runs counted = digest t in [epoch, next epoch)):');
+
 for (let i = 0; i < dep.length; i++) {
     const lo = dep[i].ts;
     const hi = i + 1 < dep.length ? dep[i + 1].ts : 9e15;
@@ -21,15 +93,20 @@ for (let i = 0; i < dep.length; i++) {
     const avgA = n ? (rs.reduce((a, r) => a + r.m, 0) / n).toFixed(2) : '-';
     const wins = rs.reduce((a, r) => a + r.w, 0);
     const hist = {};
-    for (const r of rs) hist[r.m] = (hist[r.m] || 0) + 1;
+
+    for (const r of rs) {
+        hist[r.m] = (hist[r.m] || 0) + 1;
+    }
+
     const dd = db.prepare('SELECT focalLvl fl, ante a, jokers j, celestial c, gap g, t FROM rundigest WHERE t>=? AND t<?').all(lo, hi);
     const a2p = dd.filter((r) => r.a > 2);
     const l1 = a2p.filter((r) => r.fl === 1).length;
     const full = dd.filter((r) => r.j >= 5).length;
     const cel = dd.filter((r) => r.c === 1).length;
-    const near = dd.filter((r) => r.g !== null && r.g < 1500).length;
+    const near = dd.filter((r) => r.g !== null && r.g < 1_500).length;
     const gated = db.prepare('SELECT COUNT(*) c FROM other WHERE e=\'shopflip\' AND body LIKE \'%"gated":1%\' AND ts>=? AND ts<?').get(lo, hi).c;
     const fm = db.prepare('SELECT COUNT(*) c FROM other WHERE e=\'shopflip\' AND body LIKE \'%"shelfHasWant":1%\' AND ts>=? AND ts<?').get(lo, hi).c;
+
     console.log(
         `${dep[i].sha.slice(0, 7)} n=${String(n).padStart(3)} avgA=${String(avgA).padStart(4)} w=${wins}`
         + ` hist=${JSON.stringify(hist)}`
