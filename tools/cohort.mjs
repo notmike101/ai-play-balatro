@@ -30,16 +30,22 @@ if (argv[0] === '--verdict') {
         process.exit(1);
     }
 
-    const hi = dep.find((d) => d.ts > head.ts);
-    let base = argv.includes('--base') ? find(argv[argv.indexOf('--base') + 1]) : dep[dep.indexOf(head) - 1];
+    /* window end: the next --until ts if given, else NOW. loopdrv restarts stamp deploy
+       rows at the then-current working-tree sha (zero-delta refactors included), so a
+       later deploy ts is NOT proof of a policy change - pass --until at the real
+       policy-deploy boundary instead. */
+    const hi = argv.includes('--until') ? Number(argv[argv.indexOf('--until') + 1]) : undefined;
+    const same = (d, e) => d.sha.slice(0, 7) === e.sha.slice(0, 7);
+    let base = argv.includes('--base') ? find(argv[argv.indexOf('--base') + 1])
+        : dep.slice(0, dep.indexOf(head)).reverse().find((d) => !same(d, head));
 
     if (base) {
-        const nb = dep.find((d) => d.ts > base.ts && d !== head && d.ts < head.ts);
+        const nb = dep.find((d) => d.ts > base.ts && !same(d, base) && d.ts < head.ts);
 
-        base = { sha: base.sha, lo: base.ts, hi: nb ? nb.ts : head.ts };
+        base = { sha: base.sha, lo: base.ts, hi: nb ? Math.min(nb.ts, head.ts) : head.ts };
     }
 
-    const rows = db.prepare(`SELECT ante a,lvlMap lm,lvlAct la,celestial c,jokers j,gap g,focal f,focalLvl fl FROM rundigest WHERE t>=? AND complete=1${hi ? ' AND t<?' : ''}`).all(head.ts, ...(hi ? [hi.ts] : []));
+    const rows = db.prepare(`SELECT ante a,lvlMap lm,lvlAct la,celestial c,jokers j,gap g,focal f,focalLvl fl FROM rundigest WHERE t>=? AND complete=1${hi ? ' AND t<?' : ''}`).all(head.ts, ...(hi ? [hi] : []));
 
     /**
      *
