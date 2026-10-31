@@ -46,8 +46,11 @@ export async function runHandFamilies() {
 
     const fd = allSubsetEvals([{ rank: null, suit: null, actions: ['select'] }, { rank: null, suit: null, actions: ['select'] }, C('K', 'Hearts'), C('K', 'Spades'), C('2', 'Diamonds')], [{ name: 'Pair', chips: 10, mult: 2, level: 1 }]);
 
-    // null-rank cards must not beat the real Kings
-    if (fd[0].fam !== 'Pair' || fd[0].pred !== 60) {
+    /* null-rank cards are priced as guarded 13-rank EV now (old phantom pin pred=60
+       was a stand-in artifact): real Kings stay in the table at honest value, and no
+       unknown-including entry may claim more than 0.5x the phantom-era overbid (200) */
+    const realK = fd.filter((e) => !e.cards.some((c) => c.faceDown) && e.fam === 'Pair');
+    if (realK[0]?.pred !== 60 || fd.some((e) => e.cards.some((c) => c.faceDown) && e.pred > 100)) {
         throw new Error(`facedown eval: ${fd[0].fam}/${fd[0].pred}`);
     }
 
