@@ -35,8 +35,14 @@ if (argv[0] === '--verdict') {
        later deploy ts is NOT proof of a policy change - pass --until at the real
        policy-deploy boundary instead. */
     const hi = argv.includes('--until') ? Number(argv[argv.indexOf('--until') + 1]) : undefined;
+    /**
+     *
+     * @param d
+     * @param e
+     */
     const same = (d, e) => d.sha.slice(0, 7) === e.sha.slice(0, 7);
-    let base = argv.includes('--base') ? find(argv[argv.indexOf('--base') + 1])
+    let base = argv.includes('--base')
+        ? find(argv[argv.indexOf('--base') + 1])
         : dep.slice(0, dep.indexOf(head)).reverse().find((d) => !same(d, head));
 
     if (base) {
