@@ -21,7 +21,7 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
    BEFORE commit (a bare `echo` after `;` never gates - burned twice).
 3. `powershell -File killdrv.ps1` (mid-run is fine; supervisor restarts). Watchers are bash jobs -
    kill the old one before arming a replacement (double-fired once).
-4. `node tmp/watchrun.mjs <T0>` as its OWN async bash job, timeout 3500 (chaining inherits a short
+4. `node tools/watchrun.mjs <T0>` as its OWN async bash job, timeout 3500 (chaining inherits a short
    timeout and dies silently). Dedup by T0.
 
 ## Stack recovery (crash at menu / game_unavailable)
@@ -39,15 +39,17 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   stays zombie; reload with bringToFront is the reset.
 
 ## Log forensics (out/log.jsonl, out/digests.jsonl)
-- `node tmp/dbimport.mjs` rebuilds `out/runs.db` (node:sqlite, derived - delete freely): one
-  table per hot event (decide/shopdump/shopdone/packdump/gamefam/blind/rundigest/..., `other`
-  for the rest). Rebuild after each wake, then census in SQL (joins beat bespoke parsers -
+- `node tools/dbimport.mjs` maintains `out/runs.db` (node:sqlite, derived - delete freely): INCREMENTAL
+  (byte-offset in meta table; full rebuild if the log truncates) and stamps `deploy` rows = per-commit
+  cohort epochs; `node tools/cohort.mjs [N]` prints the last N epochs' n/avgA/hist/L1-at-death/flip rows.
+  One table per hot event (decide/shopdump/shopdone/packdump/gamefam/blind/rundigest/..., `other`
+  for the rest; view `runmax` = per-rid depth). Census in SQL (joins beat bespoke parsers -
   a wrong mapping table inside a bespoke join once invented 39 phantom focal misses).
 - Item rows use SHORT keys `k/n/c/a` (kind/name/cost/actions) in packdump; shopdump uses
   kind/name in this build era - ALWAYS print one raw sample row before writing a census
   (`i.kind` on packdump silently matched nothing and inverted a whole analysis once).
 - `decide` rows: pred/rchips logged BEFORE the play; actual = rchips delta between consecutive
-  same-blind rows (`tmp/bosscal.mjs` join). rchips deltas across bank resync are contaminated.
+  same-blind rows (`tools/bosscal.mjs` join). rchips deltas across bank resync are contaminated.
 - `rundigest` focalLvl/LOW_FOCAL LIE on The Arm endings (post-play level decrement; add +1).
 - CELESTIAL take = INSTANT level. Cards serialize positionally `[idx,rank,suit,sel,"",""]`;
   enhancements/seals invisible to bridge -> predictions undercount enhanced hands (conservative).
@@ -57,10 +59,13 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   ids (slot ids; join with the same-frame turn row for content) + `enh`/`sla` counts. Historical
   decide rows have NO played set (`t.n` never set on play returns; slot-id reuse kills
   multiset joins) - pre-10-30 corpus cannot validate per-play order effects.
-- Tools in `tmp/` (gitignored; lint manually): `watchrun` (wake-on-digest), `bosscal` (per-boss
-  pred calibration), `surgeclass` (death classification), `ledcheck`, `plmatch` (take-vs-nf match:
-  focal-on-shelf misses are the ONLY real targeting signal; fillers are supply-forced by design),
-  `planleak`, `depthan`, `deepshop <rid>`, `click`, `startws`, `psloopkill`.
+- Analysis tools live in `tools/` (COMMITTED, linted): `watchrun` (wake-on-digest, incremental),
+  `dbimport`+`cohort` (db + epoch readout), `bosscal` (per-boss pred calibration), `votes`
+  (gamefam focal audit), `surgeclass` (death classification), `ledcheck`, `plmatch`+`avail`+`focvis`
+  (take-vs-nf: focal-on-shelf misses are the ONLY real targeting signal; fillers are supply-forced
+  by design), `planleak`, `depthan`, `enhcens`, `intcensus2`, `jkgap`, `bosscal`, `vp` (click-px
+  mapper), `ordplay` (order replay harness). `tmp/` (gitignored) keeps ONLY ops scaffolding:
+  `loopdrv.sh`, `pslist.ps1`, `psloopkill.ps1`, `click`, `startws`.
 
 ## Settled build facts (verified; do not re-litigate)
 - Face-down bosses (Mark/Fish/House/Pillar...) show `rank:null` - normalize before scoring. The

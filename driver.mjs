@@ -665,7 +665,7 @@ async function main() {
             /* this build's menu setup_run (Play -> save overlay) crashes on the
                authored WS click; a trusted CDP dispatch opens it (validated
                2026-10-30; PLAY sits at CSS 452,792 for the 1302x1077 @dpr1.5
-               app window - re-check tmp/vp.mjs + out/page4.png if resized) */
+               app window - re-check tools/vp.mjs + out/page4.png if resized) */
             if (Date.now() - menuClickTs > 20_000) {
                 menuClickTs = Date.now();
                 const okc = await clickPage(452, 792);
