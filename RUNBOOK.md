@@ -37,6 +37,17 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
 - Host rotation orphans the page (connects only at load): after killing the driver WITHOUT the
   service loop, a fresh host gets the auto-reconnecting page - but if the page was mid-zombie it
   stays zombie; reload with bringToFront is the reset.
+- USER KEEPS THE MONITOR (10-31, THE FINALS exclusive-fullscreen): an occluded windowed Chrome can
+  NEVER show the tab (bringToFront/ShowWindow/TOPMOST all lose to exclusive fullscreen) and the game
+  shell refuses to boot hidden ("waiting for visible tab"). Doctrine = run Chrome HEADLESS:
+  `Stop-Process` the `--app=` chrome main PID, then Start-Process chrome.exe with
+  `--headless=new --app=https://poker.gl.ax/ --remote-debugging-port=9222
+  --user-data-dir=D:\balatro-ai\chrome-profile --no-first-run --no-default-browser-check
+  --window-size=1953,1616 --force-device-scale-factor=1.5 --enable-unsafe-swiftshader`
+  (verified boot: visibilityState=visible, 20/20 GPU pipelines, game mounts; keep window-size/dpr
+  so the css-px click mapping in the RUNBOOK notes stays valid; audio stays silent - no gesture -
+  automation doesn't care). observe() patient-waits hidden pages since e3c1cd9; with headless the
+  patient path should be RARE - if it re-cycles >2x, the page died, relaunch per above.
 
 ## Log forensics (out/log.jsonl, out/digests.jsonl)
 - `node tools/dbimport.mjs` maintains `out/runs.db` (node:sqlite, derived - delete freely): INCREMENTAL
