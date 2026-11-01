@@ -268,4 +268,51 @@ export async function runPolicy() {
     if (dnaFarmPick([fc('7', 'Hearts', 'c_base'), fc('9', 'Clubs', 'm_bonus')], 1, 2) !== null) {
         throw new Error('bonus/vanilla cards are not farm targets');
     }
+
+    /* COHORT-14 draw-EV discards (user 11-01): a 4-flush whose suit still lives in the
+       remaining deck must beat a made Pair's static value when discards remain */
+    const { chooseDiscard, drawEV } = await import('../lib/play.mjs');
+
+    const dc = (id, rank, suit) => ({ id, rank, suit, actions: ['select'] });
+
+    const dHand = [dc(1, '9', 'Spades'), dc(2, '8', 'Spades'), dc(3, '5', 'Spades'), dc(4, '3', 'Spades'), dc(5, 'King', 'Clubs'), dc(6, 'King', 'Diamonds'), dc(7, '7', 'Hearts')];
+    const rich = {
+        9: 3, 8: 3, 5: 3, 3: 3, 13: 2, 7: 3,
+    };
+    const uidx = {
+        suit: {
+            Spades: 11, Clubs: 8, Diamonds: 8, Hearts: 9,
+        }, rank: rich, total: 41,
+    };
+    const oldD = chooseDiscard(dHand, null, null, { hl: 2 });
+
+    if (!oldD.some((c) => c.id === 4)) {
+        throw new Error('no-deck-data path must keep the old made-pair behavior (3S discarded)');
+    }
+
+    const evD = chooseDiscard(dHand, null, null, {
+        hl: 2, disc: 2, uidx, fam: 'Flush', lvl: 5,
+    });
+
+    if (evD.some((c) => c.suit === 'Spades') || !evD.some((c) => c.rank === '7')) {
+        throw new Error(`4-flush with live outs must be kept when discards remain (discards: ${evD.map((c) => c.id).join(',')})`);
+    }
+
+    if (drawEV([dc(1, 'King', 'Clubs'), dc(2, 'King', 'Diamonds')], {
+        disc: 2, uidx, fam: 'Three of a Kind', lvl: 3,
+    }) <= 0) {
+        throw new Error('pair->trips EV must count unseen rank copies');
+    }
+
+    if (drawEV([dc(1, '5', 'Spades'), dc(2, '6', 'Clubs'), dc(3, '7', 'Diamonds'), dc(4, '8', 'Hearts'), dc(5, '2', 'Clubs')], {
+        disc: 2, uidx, fam: 'Straight', lvl: 1,
+    }) <= 0) {
+        throw new Error('open-ended 4-straight EV must count unseen window ranks');
+    }
+
+    if (drawEV([dc(1, '9', 'Spades'), dc(2, '8', 'Spades'), dc(3, '5', 'Spades'), dc(4, '3', 'Spades'), dc(5, 'King', 'Clubs')], {
+        disc: 0, uidx, fam: 'Flush', lvl: 5,
+    }) !== 0) {
+        throw new Error('no discards left => zero draw EV (nothing can come up)');
+    }
 }
