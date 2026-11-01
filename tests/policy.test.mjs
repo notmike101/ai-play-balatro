@@ -316,6 +316,35 @@ export async function runPolicy() {
         throw new Error('no discards left => zero draw EV (nothing can come up)');
     }
 
+    /* unseenIndex rank/suit KEY MAPPING (silent-breakage spot: drawEV looks up
+       numeric rv() keys; a mapping bug here zeroes straight/pair EV with no error) */
+    const { unseenIndex, markSeen, resetSeen } = await import('../lib/reps.mjs');
+
+    resetSeen();
+    markSeen([{ rank: 'Ace', suit: 'Spades' }]);
+
+    const ix2 = unseenIndex([
+        ['King', 'Hearts', null, null, null, 4],
+        ['Ace', 'Spades', null, null, null, 4],
+        ['5', 'Clubs', null, null, null, 4],
+    ]);
+
+    if (!ix2 || ix2.suit.Spades !== 3 || ix2.total !== 11 || ix2.rank[14] !== 3 || ix2.rank[13] !== 4 || ix2.rank[5] !== 4) {
+        throw new Error(`unseenIndex mapping broken: ${JSON.stringify(ix2)}`);
+    }
+
+    if (drawEV([dc(1, 'King', 'Clubs'), dc(2, 'King', 'Hearts')], {
+        disc: 2, uidx: ix2, fam: 'Three of a Kind', lvl: 3,
+    }) <= 0) {
+        throw new Error('drawEV rank keys must match unseenIndex rv-numerics (pair->trips dead)');
+    }
+
+    if (unseenIndex(undefined) !== null || unseenIndex([]) !== null) {
+        throw new Error('unknown manifest must stay null (never guess the deck)');
+    }
+
+    resetSeen();
+
     /* COHORT-15b: held planets must be use-planned (era census: 11 buys, 0 uses) */
     const { planConsumables } = await import('../lib/strategy.mjs');
 
