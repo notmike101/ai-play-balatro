@@ -91,7 +91,7 @@ if (argv[0] === '--verdict') {
     process.exit(0);
 }
 
-const N = Number(argv[0] ?? 6);
+const N = Number(argv[0] ?? 6) || 6;
 
 const dep = db.prepare('SELECT sha, ts FROM deploy ORDER BY ts DESC LIMIT ?').all(N).reverse();
 
