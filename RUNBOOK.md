@@ -96,9 +96,27 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
 - Voucher `use` action appears ONLY when money == cost. The Needle = 1 hand/1.5x money; Amber
   Acorn (a8 final, 100k) flips/shuffles Jokers.
 - Booster packs may open as TOP-LEVEL phase 'pack'; Jumbo packs allow ONE pick despite "pick 2".
-- Loyalty Card x5 never fires (junk). Splash: cross-suit flush claim UNVERIFIED - `mixflush`
-  probe in play path settles it on first capture (ratio >= 1 fine, ~0.1 demote).
+- Loyalty Card x4 every 6th hand and DOES fire (oracle 10-29; old "never fires" line wrong).
+  Splash = every played card scores (seals/enhancements/jokers trigger); NOT a cross-suit
+  flush wildcard (oracle 10-29). Obelisk = X0.2 per hand that is NOT the most-played family,
+  resets to X1 when the most-played family is played -> permanently X1 (junk) for our
+  single-family grinds.
 - Flint preds exact; option_cycle 1-based; post-boss phase is 'cash_out'.
+- CELESTIAL PACK pool contains Black Hole (spectral): `take:Black Hole` from a celestial
+  pack applies INSTANTLY (+1 level EVERY family - the "every-family-L2" lvlMap signature).
+  scorePackOffer ranks it 32 > focal planet 30 -> correct pick (focal gets its +1 + 8 free).
+- Planets were NEVER consumed in engine history until 11-01 (6c58e03): shop `buy_and_use`
+  applies instantly, but bare-`buy` and Priestess/Emperor-created planets rotted in slots -
+  the use-allowlist had no planet rule and the doc claiming "driver plays planets per-hand"
+  was fiction. Now use-on-sight (PASS @n20: starved 39->20%). Money/utility tarots without
+  rules (The Moon, Strength, Hierophant, Hanged Man) STILL rot pending oracle texts.
+- Game save may silently FAIL to record a won stake (Red won 10-31, wins.json has it, setup
+  rows stayed 2-unlocked): `out/game-stake-cap.txt` mirrors game truth; a stake win must be
+  REPEATED game-side before the ladder advances. Never conclude Green-locked is a bug from
+  wins.json alone.
+- pickRule matches `"key name"` strings - anchored ^ regexes can never match consumable
+  names; consumable rules live in strategy.mjs TAROT_RULES (allowlist semantics: unknown
+  names never used).
 
 ## Stake progression vs mastery (standing rule; full text in AGENTS.md)
 
@@ -113,9 +131,13 @@ start). Never claim consistency from 1 win; no time-based quotas. Mastery is tra
 independently of progression: current standing = White progressed/not-mastered (policy
 changed post-win, window re-based), Red grinding 0 wins.
 
-## Strategy state (2026-10-31, policy HEAD see reports/status-2026-10-31.md)
-Three wins recorded (2 game-side: White a8-era + Red economy-proven; ladder clamps to setup-row
-unlocked count). Current era runs RED stake; death taxonomy (all measured, cohort chain in the
+## Strategy state (2026-10-31 baseline; 11-01 chain in status-2026-11-01.md at repo root)
+11-01 update: cohort chain 14 draw-EV discards (PASS, avgA 3.20) + 15b planet use-on-sight
+(PASS, starved 39->20%, avgA 3.40) live; a5+ deaths now dominated by CHIP_GAP depth at
+focalLvl ~2 (levels ceiling; supply drought ~20%). Status files live at REPO ROOT
+(`status-YYYY-MM-DD.md`) - the old "reports/" path never existed.
+Three wins recorded (2 game-side: White a8-era + Red economy-proven BUT game-save
+unregistered - see Settled facts; ladder clamps to setup-row unlocked count). Current era runs RED stake; death taxonomy (all measured, cohort chain in the
 report): (1) STARVED a1-3 ~30-50% of runs — zero levels bought: planet/pack supply drought.
 Reroll lottery is DEAD (25 reroll shops, 0 shelf-planet hits) — do not re-add hunt priority.
 The stock supply counter (Planet Merchant/Telescope) sat UNBOUGHT due to a keepFloor deadlock,
