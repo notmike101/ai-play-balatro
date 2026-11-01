@@ -129,6 +129,8 @@ const hard = Date.now() + 3_300_000;
    unmet 5min before the hard deadline, fire anyway so a slow window still reports. */
 const MIN = Number(process.env.WATCH_N || 1) || 1;
 
+const pending = new Map(); /* rid -> digest; re-checked per tick (lifecycle rows may land later) */
+
 for (;;) {
     lOff = tailLines(L, lOff, (s) => {
         if (!s.includes('"runstart"') && !s.includes('"runend"') && !s.includes('"sessionstart"')) {
@@ -138,31 +140,32 @@ for (;;) {
             fold(JSON.parse(s));
         } catch { /* skip */ }
     });
-    const fresh = [];
     dOff = tailLines(P, dOff, (s) => {
         try {
             const d = JSON.parse(s);
-            if (d.t > t0) fresh.push(d);
+
+            if (d.t > t0) {
+                pending.set(d.rid, d);
+            }
         } catch { /* skip */ }
     });
-    if (fresh.length) {
-        const clean = fresh.filter(isClean);
-        const dirty = fresh.length - clean.length;
-        if (dirty) {
-            appendFileSync(P.replace('digests.jsonl', 'watchrun.log'), `fragment-skip ${new Date().toISOString()} n=${dirty}\n`);
-        }
-        if (clean.length && (clean.length >= MIN || (Date.now() > hard - 300_000 && clean.length))) {
-            console.log(`NEW_RUNS ${clean.length}${dirty ? ` (+${dirty} FRAGMENT digests skipped)` : ''}`);
-            console.log(clean.map((d) => JSON.stringify(d)).join('\n'));
-            try {
-                ladder(clean.map((d) => d.rid));
-            } catch { /* ladder scan never blocks the wake */ }
-            appendFileSync(P.replace('digests.jsonl', 'watchrun.log'), `fired ${new Date().toISOString()} n=${clean.length}\n`);
-            process.exit(0);
-        }
+    const clean = [...pending.values()].filter(isClean);
+
+    if (clean.length && (clean.length >= MIN || (Date.now() > hard - 300_000 && clean.length))) {
+        console.log(`NEW_RUNS ${clean.length}${pending.size > clean.length ? ` (${pending.size - clean.length} still-fragment digests withheld)` : ''}`);
+        console.log(clean.map((d) => JSON.stringify(d)).join('\n'));
+        try {
+            ladder(clean.map((d) => d.rid));
+        } catch { /* ladder scan never blocks the wake */ }
+        appendFileSync(P.replace('digests.jsonl', 'watchrun.log'), `fired ${new Date().toISOString()} n=${clean.length}\n`);
+        process.exit(0);
     }
     if (Date.now() > hard) {
-        console.log('TIMEOUT 55min no new digest');
+        console.log(clean.length ? `TIMEOUT 55min, firing ${clean.length} late-clean` : 'TIMEOUT 55min no new digest');
+        if (clean.length) {
+            console.log(clean.map((d) => JSON.stringify(d)).join('\n'));
+            process.exit(0);
+        }
         process.exit(1);
     }
     await new Promise((r) => {
