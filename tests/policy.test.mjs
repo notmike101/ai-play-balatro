@@ -315,4 +315,20 @@ export async function runPolicy() {
     }) !== 0) {
         throw new Error('no discards left => zero draw EV (nothing can come up)');
     }
+
+    /* COHORT-15b: held planets must be use-planned (era census: 11 buys, 0 uses) */
+    const { planConsumables } = await import('../lib/strategy.mjs');
+
+    const pObs = {
+        consumables: [
+            { id: 11, name: 'Uranus', kind: 'Planet', actions: ['use', 'sell', 'inspect'] },
+            { id: 12, name: 'The Hermit', kind: 'Tarot', actions: ['use', 'sell'] },
+        ],
+        area: { consumable_slots: 2 },
+    };
+    const plan = planConsumables(pObs, { fam: 'Two Pair' }, { phase: 'blind_select', money: 4, ante: 3 });
+
+    if (!plan.some((p) => p.target === 11)) {
+        throw new Error('held planet must be use-planned on sight (rotting in slot = dead at death)');
+    }
 }
