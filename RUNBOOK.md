@@ -113,9 +113,18 @@ start). Never claim consistency from 1 win; no time-based quotas. Mastery is tra
 independently of progression: current standing = White progressed/not-mastered (policy
 changed post-win, window re-based), Red grinding 0 wins.
 
-## Strategy state (2026-10-29)
-Leveling policy works end-to-end: deepest losses now a8 CHIP_GAP at Pair-L11 - levels are supply-
-capped (Mercury ~35% of packs, fair per-planet), remaining gap = xmult joker depth at a6+ (100k
-needs ~25k/hand). Do NOT tighten FOCAL-FIRST ordering (0/11 focal-on-shelf misses); filler takes
-are supply-forced. Band/meta tunes (want thinning, a5 floor, fp bar) are gated until the FIRST
-win to avoid fitting noise on all-dead distributions.
+## Strategy state (2026-10-31, policy HEAD see reports/status-2026-10-31.md)
+Three wins recorded (2 game-side: White a8-era + Red economy-proven; ladder clamps to setup-row
+unlocked count). Current era runs RED stake; death taxonomy (all measured, cohort chain in the
+report): (1) STARVED a1-3 ~30-50% of runs — zero levels bought: planet/pack supply drought.
+Reroll lottery is DEAD (25 reroll shops, 0 shelf-planet hits) — do not re-add hunt priority.
+The stock supply counter (Planet Merchant/Telescope) sat UNBOUGHT due to a keepFloor deadlock,
+fixed 29ed298 (hold floor must be exempt from its own item's buy floor — reusable pattern).
+(2) NF-CHURN spread — levels scattered 3+ ways at focalLvl<=1; cohort-11 stickiness (>=6 plays
+& >=2 lvl holds, challenger needs +2) is the live counter. (3) a5+ CHIP_GAP = xmult joker depth
+(Brainstorm/Blueprint never bought yet; corpus wins all ran single-focal L7-11 boards).
+Still settled from 10-29: do NOT tighten FOCAL-FIRST ordering (0/11 focal-on-shelf misses,
+filler takes supply-forced); Mercury fair (~35% of packs, uniform per-planet); digest snapshots
+post-effect can lie (Arm decrements AFTER scoring); a low action-vs-target match rate is only
+actionable after an availability join. Band/meta noise-tunes stay gated until cohort verdicts,
+one lever per window, telemetry-or-revert on every new gate.
