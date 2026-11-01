@@ -125,6 +125,9 @@ let lOff = tailLines(L, 0, (s) => {
 });
 let dOff = existsSync(P) ? statSync(P).size : 0;
 const hard = Date.now() + 3_300_000;
+/* WATCH_N=5 batches wakes: fire only once N clean digests accrued; if >=1 pending but N
+   unmet 5min before the hard deadline, fire anyway so a slow window still reports. */
+const MIN = Number(process.env.WATCH_N || 1) || 1;
 
 for (;;) {
     lOff = tailLines(L, lOff, (s) => {
@@ -148,7 +151,7 @@ for (;;) {
         if (dirty) {
             appendFileSync(P.replace('digests.jsonl', 'watchrun.log'), `fragment-skip ${new Date().toISOString()} n=${dirty}\n`);
         }
-        if (clean.length) {
+        if (clean.length && (clean.length >= MIN || (Date.now() > hard - 300_000 && clean.length))) {
             console.log(`NEW_RUNS ${clean.length}${dirty ? ` (+${dirty} FRAGMENT digests skipped)` : ''}`);
             console.log(clean.map((d) => JSON.stringify(d)).join('\n'));
             try {
