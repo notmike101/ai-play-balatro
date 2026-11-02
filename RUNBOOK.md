@@ -100,6 +100,9 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   `loopdrv.sh`, `pslist.ps1`, `psloopkill.ps1`, `click`, `startws`.
 
 ## Settled build facts (verified; do not re-litigate)
+- Effect texts: `blind` rows carry the boss effect verbatim (all 26 bosses seen in log = match
+  doctrine); pack/shop ITEM rows carry `effect:""` ALWAYS (bridge strips it) - joker/tarot text
+  is oracle-only, never re-mine the log for it (11-01 census: 0/7262 item rows had text).
 - Face-down bosses (Mark/Fish/House/Pillar...) show `rank:null` - normalize before scoring. The
   Pillar debuffs exact copies of ranks 1-6 played this ante without setting `c.debuffed`.
 - `run.current_score` never updates; progress = self-banked predictions; while phase=='hand' the
