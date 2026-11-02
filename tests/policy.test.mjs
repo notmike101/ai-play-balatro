@@ -360,4 +360,28 @@ export async function runPolicy() {
     if (!plan.some((p) => p.target === 11)) {
         throw new Error('held planet must be use-planned on sight (rotting in slot = dead at death)');
     }
+
+    /* pickRule HAY = "key name" (RUNBOOK pitfall: an ^-anchored rule regex can NEVER
+       match a consumable name because the key prefixes the hay) + allowlist semantics */
+    const bhObs = {
+        consumables: [{
+            id: 21, key: 'c_spectral_7', name: 'Black Hole', kind: 'Spectral', actions: ['use'],
+        }],
+        area: { consumable_slots: 2 },
+    };
+
+    if (!planConsumables(bhObs, { fam: 'Pair' }, { phase: 'blind_select', money: 4, ante: 3 }).some((p) => p.target === 21)) {
+        throw new Error('Black Hole must match by NAME through the key-prefixed hay (anchored regex regression)');
+    }
+
+    const moonObs = {
+        consumables: [{
+            id: 22, key: 'c_tarot_9', name: 'The Moon', kind: 'Tarot', actions: ['use', 'sell'],
+        }],
+        area: { consumable_slots: 2 },
+    };
+
+    if (planConsumables(moonObs, { fam: 'Pair' }, { phase: 'blind_select', money: 4, ante: 3 }).length !== 0) {
+        throw new Error('rule-less tarot (The Moon, oracle pending) must NEVER be used - allowlist, not denylist');
+    }
 }
