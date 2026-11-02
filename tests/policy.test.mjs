@@ -384,4 +384,25 @@ export async function runPolicy() {
     if (planConsumables(moonObs, { fam: 'Pair' }, { phase: 'blind_select', money: 4, ante: 3 }).length !== 0) {
         throw new Error('rule-less tarot (The Moon, oracle pending) must NEVER be used - allowlist, not denylist');
     }
+
+    /* SKIP band (b4ae68d, flipped twice - pinned boundaries): a1 never, a4 Red-only */
+    const { skipAllowed } = await import('../lib/blind.mjs');
+
+    const sk = (stake, ante) => skipAllowed(stake, ante, true);
+
+    if (sk(1, 1) || sk(2, 1)) {
+        throw new Error('a1 must NEVER be skipped (seed-shop forfeit, SKIP-v2 evidence)');
+    }
+
+    if (!sk(1, 2) || !sk(1, 3) || !sk(2, 2) || !sk(2, 4)) {
+        throw new Error('a2-3 all stakes + a4 on Red must skip');
+    }
+
+    if (sk(1, 4) || sk(1, 5) || sk(2, 5) || sk(2, 8)) {
+        throw new Error('a4 must stay White-off; a5+ never skips');
+    }
+
+    if (skipAllowed(2, 3, false)) {
+        throw new Error('only the SELECTED-small blind may be skipped (big/boss never)');
+    }
 }
