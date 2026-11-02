@@ -15,10 +15,38 @@ execFileSync(process.execPath, [path.join(DIR, 'tools', 'dbimport.mjs')], { cwd:
 
 const db = new DatabaseSync(path.join(DIR, 'out', 'runs.db'), { readOnly: true });
 
+const LOG_LINES = fs.readFileSync(path.join(DIR, 'out', 'log.jsonl'), 'utf8').trim().split('\n');
+const SESSIONS = [];
+
+for (const l of LOG_LINES) {
+    if (l.includes('"sessionstart"')) {
+        try {
+            SESSIONS.push(JSON.parse(l).ts);
+        } catch { /* skip malformed */ }
+    }
+}
+SESSIONS.sort((a, b) => a - b);
+
 /**
- * Deploy rows filtered to POLICY-CODE changes: a push touching no lib//driver.mjs still
- * restarts the driver (loopdrv design) but does NOT start a new measurement era - without
- * this filter docs commits shatter every cohort window into fragments.
+ * Code-LIVE time for a commit ts: the driver boots from the working tree, so the first
+ * sessionstart at-or-after (commit - 90s) - a boot seconds BEFORE the commit already has
+ * the change (commit-lag), and a restart still mid-page-reconnect lands later. Era tallies
+ * anchored here stop counting old-code runs from the boundary window.
+ *
+ * @param {number} ts - commit ts of the code-change boundary
+ * @returns {number} live ts
+ */
+function liveAt(ts) {
+    const s = SESSIONS.find((t) => t >= ts - 90000);
+
+    return s && s > ts ? s : ts;
+}
+
+/**
+ * Deploy rows filtered to POLICY-CODE changes: deploy rows are SYNTHESIZED by dbimport from
+ * every git commit, so without this filter docs/tools commits shatter every cohort window
+ * into fragments (a non-code commit neither changes behavior nor, by itself, restarts the
+ * driver - the working tree is the deploy; restarts happen when the driver exits).
  *
  * @returns {Array<{sha: string, ts: number}>} code-change boundaries, newest first
  */
@@ -53,12 +81,13 @@ function eras(k) {
     const dep = codeEras().slice(0, k);
 
     for (const [i, d] of dep.entries()) {
-        const hi = i > 0 ? dep[i - 1].ts : null;
+        const hi = i > 0 ? liveAt(dep[i - 1].ts) : null;
+        const lo = liveAt(d.ts);
         const q = db.prepare(`SELECT COUNT(*) n, ROUND(AVG(ante),2) a, SUM(CASE WHEN gap<2500 THEN 1 ELSE 0 END) nm, SUM(ante>=5) d5, SUM(won) w, SUM(CASE WHEN celestial=0 THEN 1 ELSE 0 END) dry FROM rundigest WHERE complete=1 AND t>=?${hi ? ' AND t<?' : ''}`);
-        const r = (hi ? q.all(d.ts, hi) : q.all(d.ts))[0];
-        const hc = (db.prepare(`SELECT COUNT(*) c FROM rundigest WHERE complete=1 AND focal='High Card' AND focalLvl<=2 AND ante>=3 AND t>=?${hi ? ' AND t<?' : ''}`).all(...(hi ? [d.ts, hi] : [d.ts]))[0]).c;
+        const r = (hi ? q.all(lo, hi) : q.all(lo))[0];
+        const hc = (db.prepare(`SELECT COUNT(*) c FROM rundigest WHERE complete=1 AND focal='High Card' AND focalLvl<=2 AND ante>=3 AND t>=?${hi ? ' AND t<?' : ''}`).all(...(hi ? [lo, hi] : [lo]))[0]).c;
 
-        console.log(`${d.sha.slice(0, 7)} @${d.ts} n=${r.n} avgA=${r.a} near-miss=${r.nm} a5+=${r.d5} WINS=${r.w} dry=${r.dry} HCstrike=${hc}/3`);
+        console.log(`${d.sha.slice(0, 7)} @${lo} n=${r.n} avgA=${r.a} near-miss=${r.nm} a5+=${r.d5} WINS=${r.w} dry=${r.dry} HCstrike=${hc}/3`);
     }
 }
 
@@ -68,12 +97,11 @@ function eras(k) {
  * @returns {void} prints the count
  */
 function planetProof() {
-    const ts = (codeEras()[0] || {}).ts || 0;
+    const ts = liveAt((codeEras()[0] || {}).ts || 0);
     const PN = /^(mercury|venus|earth|mars|jupiter|saturn|uranus|neptune|pluto)$/i;
-    const lines = fs.readFileSync(path.join(DIR, 'out', 'log.jsonl'), 'utf8').trim().split('\n');
     let u = 0;
 
-    for (const l of lines) {
+    for (const l of LOG_LINES) {
         if (!l.includes('"consuse"')) {
             continue;
         }

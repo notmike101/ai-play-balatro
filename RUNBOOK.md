@@ -24,10 +24,20 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
 1. `node driver.mjs --selftest` must print `SELFTEST OK`.
 2. `pnpm exec eslint --fix <files>` then `pnpm run lint > out/lint.txt`; verify `echo $?` prints 0
    BEFORE commit (a bare `echo` after `;` never gates - burned twice).
-3. `powershell -File killdrv.ps1` (mid-run is fine; supervisor restarts). Watchers are bash jobs -
-   kill the old one before arming a replacement (double-fired once).
-4. `node tools/watchrun.mjs <T0>` as its OWN async bash job, timeout 3500 (chaining inherits a short
-   timeout and dies silently). Dedup by T0.
+3. `git push` commits the code; the WORKING TREE IS THE DEPLOY (same checkout, no git pull
+   anywhere - verified: no hooks, loopdrv has no fetch). The running driver keeps its loaded
+   code until it exits; loopdrv then restarts it with fresh code. Pushed changes are live ONLY
+   after a restart: they usually appear within minutes because the page reconnect cycle can
+   kill the driver, but NEVER assume it - after a lib/ change, force it via CIM Stop-Process of
+   the driver/host PIDs (NOT the bash loop), sleep 18, verify tmp/pslist.ps1. Verify a new
+   `deploy` row at/after your push ts - BUT KNOW WHAT IT IS: dbimport SYNTHESIZES deploy rows
+   from git commit times, so deploy.ts ~= commit ts ALWAYS, restart or not. Actual code-live
+   proof = a `sessionstart` log row at ts >= your commit (driver boots from the working tree;
+   a driver mid-exit can take minutes - the page reconnect cycle), and remember an early boot
+   from the same tree already runs your code (15b proof: sessionstart 14s BEFORE the commit).
+   wake.mjs era rows show code-change boundaries only; a docs-commit deploy row is not an era.
+4. Watchers are bash jobs chained INSIDE the wake call (`wake.mjs | tail -1` pattern above);
+   kill the previous watcher job before arming a replacement (double-fired once).
 
 ## Stack recovery (crash at menu / game_unavailable)
 `tmp/psloopkill.ps1` -> `killdrv.ps1`; reload the game page (Chrome app-mode, CDP 9222, profile
@@ -76,6 +86,11 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   decide rows have NO played set (`t.n` never set on play returns; slot-id reuse kills
   multiset joins) - pre-10-30 corpus cannot validate per-play order effects.
 - Analysis tools live in `tools/` (COMMITTED, linted): `watchrun` (wake-on-digest, incremental),
+  `wake.mjs` (one-shot wake: dbimport + era tallies where era boundaries are CODE changes only -
+  every push incl docs restarts the driver and writes a deploy row that is NOT a measurement
+  boundary - plus watch counters; last stdout line = newest digest ts so a wake is
+  `T=$(node tools/wake.mjs | tail -1) && WATCH_N=4 node tools/watchrun.mjs "$T"`; the watcher
+  dies with its parent chain after firing - ALWAYS rearm inside the wake call),
   `dbimport`+`cohort` (db + epoch readout; `cohort --verdict <sha> [--base <sha>]` = the standing
   pre-registered verdict table for a deploy window), `bosscal` (per-boss pred calibration), `votes`
   (gamefam focal audit), `surgeclass` (death classification), `ledcheck`, `plmatch`+`avail`+`focvis`
