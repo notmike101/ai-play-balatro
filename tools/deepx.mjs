@@ -6,10 +6,11 @@
    lines for runs WITHOUT xmult plus the summary. Zero behavior; derived data. */
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const DIR = path.dirname(path.dirname(fs.realpathSync(process.argv[1])));
 const SINCE = Number(process.argv[2] || 0);
-const { classifyJoker } = await import(path.join(DIR, 'lib', 'jokers.mjs'));
+const { classifyJoker } = await import(pathToFileURL(path.join(DIR, 'lib', 'jokers.mjs')).href);
 
 const runs = new Map();
 
