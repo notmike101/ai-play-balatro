@@ -154,7 +154,11 @@ focalLvl ~2 (levels ceiling; supply drought ~20%). Status files live at REPO ROO
 Three wins recorded (2 game-side: White a8-era + Red economy-proven BUT game-save
 unregistered - see Settled facts; ladder clamps to setup-row unlocked count). Current era runs RED stake; death taxonomy (all measured, cohort chain in the
 report): (1) STARVED a1-3 ~30-50% of runs — zero levels bought: planet/pack supply drought.
-Reroll lottery is DEAD (25 reroll shops, 0 shelf-planet hits) — do not re-add hunt priority.
+Reroll lottery is dead for PLANETS (0/25 shelf-planet hits, 10-31) — do not re-add planet hunt
+priority. Do NOT extend that to jokers/vouchers: 11-01 census n=37 reroll-shops, 62% bought a
+joker/voucher/pack right after the last reroll ($310 era spend). Causation UNPROVEN (buy-after
+!= buy-because-of-refresh; needs shelf-content diff) - keep reroll policy as-is, don't kill or
+boost it off either note.
 The stock supply counter (Planet Merchant/Telescope) sat UNBOUGHT due to a keepFloor deadlock,
 fixed 29ed298 (hold floor must be exempt from its own item's buy floor — reusable pattern).
 (2) NF-CHURN spread — levels scattered 3+ ways at focalLvl<=1; cohort-11 stickiness (>=6 plays
