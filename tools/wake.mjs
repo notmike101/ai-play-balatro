@@ -118,8 +118,39 @@ function planetProof() {
     console.log(`planet-uses since newest deploy: ${u}`);
 }
 
+/**
+ * Catch-up mechanism proof: e='curve' rows since the newest code-live boot -
+ * behind-selects (a3+, R<1.1) vs catchup=true share (the gate's own fire-rate).
+ *
+ * @returns {void} prints the counts
+ */
+function curveProof() {
+    const ts = liveAt((codeEras()[0] || {}).ts || 0);
+    let behind = 0, fired = 0;
+
+    for (const l of LOG_LINES) {
+        if (!l.includes('"curve"')) {
+            continue;
+        }
+
+        try {
+            const r = JSON.parse(l);
+
+            if (r.ts >= ts && r.ante >= 3 && r.r !== null && r.r < 1.1) {
+                behind++;
+                if (r.catchup === true) {
+                    fired++;
+                }
+            }
+        } catch { /* skip malformed */ }
+    }
+
+    console.log(`catchup: behind=${behind} fired=${fired}`);
+}
+
 eras(3);
 planetProof();
+curveProof();
 const lines = fs.readFileSync(path.join(DIR, 'out', 'digests.jsonl'), 'utf8').trim().split('\n');
 
 console.log(lines[lines.length - 1] ? JSON.parse(lines[lines.length - 1]).t : Date.now());
