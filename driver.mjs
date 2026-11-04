@@ -587,16 +587,41 @@ async function main() {
                                 }
                             }
 
-                            let toggled = null;
+                            const toggled = [];
 
                             if (rm) {
-                                toggled = (await act({ epoch: o2.epoch, action: 'activate', target: rm.id })).ok ?? false;
+                                toggled.push((await act({ epoch: o2.epoch, action: 'activate', target: rm.id })).ok ?? false);
 
                                 const o3 = await observe();
                                 const backs = (o3.controls || []).filter((x) => /^(back|close|exit|leave)/i.test(String(x.label ?? '').trim()) || x.kind === 'back' || x.kind === 'exit_overlay_menu');
 
                                 for (let b = 0; b < 2 && b < backs.length; b++) {
                                     await act({ epoch: (b ? await observe() : o3).epoch, action: 'activate', target: backs[b].id });
+                                }
+                            } else if ((o2.controls || []).some((x) => x.kind === 'change_tab')) {
+                                /* Settings Game tab: option ROWS have no labels through the
+                                   bridge (arrows are '<'/'>'), so the boolean rows are blind
+                                   toggle_buttons. Reduced Motion + Screen Shake live on the
+                                   GAME tab in this build family; the other toggles sit under
+                                   Audio/Renderer (unreachable = we never switch tabs). Flip
+                                   both game-tab booleans ONCE: RM-on is the speed win; a
+                                   High-Contrast misfire is cosmetic-only. Cadence check on
+                                   decide gaps decides keep-vs-revert (flip back next boot). */
+                                for (const t of (o2.controls || []).filter((x) => x.kind === 'toggle_button').slice(0, 2)) {
+                                    toggled.push((await act({ epoch: o2.epoch, action: 'activate', target: t.id })).ok ?? false);
+                                }
+
+                                const o4 = await observe();
+                                const bk = (o4.controls || []).find((x) => x.kind === 'options' || /^back/i.test(String(x.label ?? '')));
+
+                                if (bk) {
+                                    await act({ epoch: o4.epoch, action: 'activate', target: bk.id });
+                                    const o5 = await observe();
+                                    const bk2 = (o5.controls || []).find((x) => x.kind === 'exit_overlay_menu' || /^back/i.test(String(x.label ?? '')));
+
+                                    if (bk2) {
+                                        await act({ epoch: o5.epoch, action: 'activate', target: bk2.id });
+                                    }
                                 }
                             }
 
