@@ -38,6 +38,11 @@ try {
 
 /* MECHANICS PROBES (user directive 10-30): interest + secret-hand validation, log-only */
 let cashSeen = '';
+/* ONE-SHOT Options-menu probe (speed directive 11-05): game Lua honors
+   G.SETTINGS.reduced_motion (blob scan) - if the Options overlay exposes it,
+   toggling it cuts the wasm animation clock = 2-3x run throughput. Probe runs
+   once at the FIRST cash_out screen, logs every control, then continues. */
+let optDone = false;
 let habsSeen = -2;
 let lvlSig = '';
 const suitTally = {};
@@ -552,6 +557,46 @@ async function main() {
             }
 
             const c = (obs.controls || []).find((c) => c.enabled && c.kind === 'cash_out');
+
+            if (c && !optDone) {
+                optDone = true;
+
+                try {
+                    const oc = (obs.controls || []).find((x) => x.kind === 'options' && x.enabled);
+
+                    if (oc) {
+                        const ra = await act({ epoch: obs.epoch, action: 'activate', target: oc.id });
+
+                        if (ra.ok) {
+                            const o2 = await observe();
+                            const rows = (o2.controls || []).map((x) => `${x.kind}:${x.id}:${String(x.label ?? '').slice(0, 34)}`);
+                            const rm = (o2.controls || []).find((x) => /reduced|motion|animation/i.test(String(x.label ?? '')));
+                            let toggled = null;
+
+                            if (rm) {
+                                toggled = (await act({ epoch: o2.epoch, action: 'activate', target: rm.id })).ok ?? false;
+
+                                const o3 = await observe();
+                                const back = (o3.controls || []).find((x) => /^(back|close|exit|leave)/i.test(String(x.label ?? '').trim()) || x.kind === 'back');
+
+                                if (back) {
+                                    await act({ epoch: o3.epoch, action: 'activate', target: back.id });
+                                }
+                            }
+
+                            jw({ e: 'optprobe', ctrls: rows, rmFound: rm === undefined ? 'no' : String(rm.label).slice(0, 40), toggled });
+                        } else {
+                            jw({ e: 'optprobe', actFail: ra.error?.code });
+                        }
+                    } else {
+                        jw({ e: 'optprobe', noCtrl: true });
+                    }
+                } catch (e) {
+                    jw({ e: 'optprobe', err: String(e?.message ?? e).slice(0, 140) });
+                }
+
+                continue; /* fresh obs next pass; cash_out act must use a post-probe epoch */
+            }
 
             if (c) {
                 const r = await act({ epoch: obs.epoch, action: 'activate', target: c.id });
