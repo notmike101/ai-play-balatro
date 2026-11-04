@@ -279,6 +279,15 @@ export async function runCalibration() {
         throw new Error('MC path must keep the 4-flush engine and dump only off-suit junk');
     }
 
+    /* MC v2 hand==5: single discard IS draw EV - with a 4-flush engine + rich deck the
+       rv junk-sort would dump the 2-of-hearts and break it; MC dumps the off-suit King */
+    const h5 = [MC(2, 'Hearts', 71), MC(7, 'Hearts', 72), MC(9, 'Hearts', 73), MC(11, 'Hearts', 76), MC(13, 'Diamonds', 75)];
+    const d5 = chooseDiscard(h5, null, null, { udeck: heartDeck, fam: 'Flush', lvl: 3, hl: 3, disc: 2 });
+
+    if (d5.length !== 1 || d5[0].id !== 75) {
+        throw new Error(`hand-5 MC discard must dump the off-suit King (id75) to keep the 4-flush, got ${JSON.stringify(d5.map((c) => c.id))}`);
+    }
+
     resetSeen();
 
     const ud = unseenDeck([[14, 'Hearts', '', '', '', 1], ['Ace', 'Spades', 'm_mult', '', '', 2], [2, 'Clubs', '', '', '', 1]]);
