@@ -199,7 +199,7 @@ export async function runHandFamilies() {
 
     const bloodK = knownLayer('Pair', [C('3', 'Hearts'), C('4', 'Hearts')], ctxOf({ jokers: [{ name: 'Bloodstone' }], run: { discards_left: 1 }, hands: [] }));
 
-    if (Math.abs(bloodK.xm - 1.5625) > 1e-9 || bloodK.unc !== true) {
+    if (Math.abs(bloodK.xm - 1.562_5) > 1e-9 || bloodK.unc !== true) {
         throw new Error(`bloodstone must EV 1.25^hearts and flag the lottery, got ${bloodK.xm}/${bloodK.unc}`);
     }
 
