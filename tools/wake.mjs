@@ -92,32 +92,40 @@ function eras(k) {
 }
 
 /**
- * Planet use-on-sight proof since the newest code-live boot: e:'planet' rows
- * (blind-prep consumption = the real use). Shop `planet:X` actions are BUY, not
- * use (a4 runs with planet: buys show uses:0), and legacy log rows carry NO ts -
- * `undefined < since` is false, so ALWAYS filter with `!(ts >= since)`.
+ * Planet-use proof since the newest code-live boot, two real application
+ * channels: shop `planet:X` actions = buy_and_use (applies at purchase - these
+ * do NOT bump digest uses, which only counts consuse paths) and blind-prep
+ * use-on-sight = e:'planet' rows. Held-at-death planets surface in blind cons[]
+ * rows, not here. LEGACY TRAP: old log rows carry NO ts - `undefined < since`
+ * is false, so era scans MUST test `r.ts >= ts` (positive) or pre-era rows flood in.
  *
- * @returns {void} prints the count
+ * @returns {void} prints the counts
  */
 function planetProof() {
     const ts = liveAt((codeEras()[0] || {}).ts || 0);
-    let u = 0;
+    let prep = 0, shop = 0;
 
     for (const l of LOG_LINES) {
-        if (!l.includes('"planet"')) {
+        if (!l.includes('planet')) {
             continue;
         }
 
         try {
             const r = JSON.parse(l);
 
-            if (r.e === 'planet' && r.ts >= ts) {
-                u++;
+            if (!(r.ts >= ts)) {
+                continue;
+            }
+
+            if (r.e === 'planet') {
+                prep++;
+            } else if (r.e === 'shopdone' && Array.isArray(r.actions)) {
+                shop += r.actions.filter((a) => /^planet:/.test(a)).length;
             }
         } catch { /* skip malformed */ }
     }
 
-    console.log(`planet-uses since newest deploy: ${u}`);
+    console.log(`planet-uses since newest deploy: prep=${prep} shop-inline=${shop}`);
 }
 
 /**

@@ -71,6 +71,10 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   patient path should be RARE - if it re-cycles >2x, the page died, relaunch per above.
 
 ## Log forensics (out/log.jsonl, out/digests.jsonl)
+- LEGACY ROW TRAP (found 11-04 via 234 phantom planet-uses): old log.jsonl rows carry NO `ts`
+  field - `undefined < since` is FALSE, so raw scans MUST use the positive test `r.ts >= eraTs`
+  (or go through runs.db where NULL ts fails SQL comparisons). Any `r.ts < since -> continue`
+  silently mixes the whole month-old corpus into era censuses.
 - `node tools/dbimport.mjs` maintains `out/runs.db` (node:sqlite, derived - delete freely): INCREMENTAL
   SCHEMA GOTCHA: rundigest's clock column is `t` (digest rows carry `t`); every other table uses `ts`.
   Unknown event types (incl `curve`) land in `other(ts,rid,e,body)` with the row JSON in body.
