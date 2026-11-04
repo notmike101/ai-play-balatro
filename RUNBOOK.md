@@ -8,6 +8,12 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
 - `lib/shop.mjs` - shop policy: joker scoring + buy bar, planet/pack/joker/voucher stage order,
   needFam flip (global-led within-one), sunk-cost pack preference (`pickPack`).
 - `lib/play.mjs` - hand selection, `normalizeHand` (face-down nulls -> virtual middling ranks).
+- `lib/jmodel.mjs` - stateful-joker effect modeling (`knownLayer` flat/xmult/cflat layers,
+  Crimson-Heart disable-lottery variants) feeding `predict()` (moved out of play.mjs 11-04).
+- `lib/routes.mjs` - SHADOW multi-hand clear-P solver: Monte-Carlo play-now vs discard-now over
+  unseen-deck draws; logs `route` rows, decisions untouched until the contra census justifies it.
+- `lib/curve.mjs` - power-vs-required tracking: best live hand / boss target per ante (R),
+  catch-up flag (R<1.1 from a3) gating surplus-money spending, `r4` snapshot on every digest.
 - `lib/strategy.mjs` - family/focal logic, `PLANET_GRIND`, joker-name -> family map.
 - `lib/jokers.mjs` - `JUNK_JOKER`, `STRONG_JOKER`, `jokerTier`, `classifyJoker`, `jokerOrder`.
 - `lib/knowledge.mjs` - append-only `jw()` event log (ts+rid stamped centrally), run/policy state files
@@ -85,6 +91,11 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   ids (slot ids; join with the same-frame turn row for content) + `enh`/`sla` counts. Historical
   decide rows have NO played set (`t.n` never set on play returns; slot-id reuse kills
   multiset joins) - pre-10-30 corpus cannot validate per-play order effects.
+- 11-04 rows/columns: `route` shadow rows {a, ante, boss?, pNow, pDisc, rem, hl, dl} (tools/route.mjs
+  = disagreement census; switch the decision only when contra rows cluster at a4+/boss with real
+  ΔP); `rundigest.r4` = power ratio at the a4 boss-select (era KPI: corpus baseline ~36% of
+  a4-reached runs arrive with R>=1); turn `dl` = DISCARDS left (was a hands_left copy-paste
+  before 11-04 - pre-11-04 dl rows are not discard data).
 - Analysis tools live in `tools/` (COMMITTED, linted): `watchrun` (wake-on-digest, incremental),
   `wake.mjs` (one-shot wake: dbimport + era tallies where era boundaries are CODE changes only -
   every push incl docs restarts the driver and writes a deploy row that is NOT a measurement
@@ -96,7 +107,8 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   (gamefam focal audit), `surgeclass` (death classification), `ledcheck`, `plmatch`+`avail`+`focvis`
   (take-vs-nf: focal-on-shelf misses are the ONLY real targeting signal; fillers are supply-forced
   by design), `planleak`, `depthan`, `enhcens`, `intcensus2`, `jkgap`, `bosscal`, `vp` (click-px
-  mapper), `ordplay` (order replay harness). `tmp/` (gitignored) keeps ONLY ops scaffolding:
+  mapper), `ordplay` (order replay harness), `route` (shadow clear-P contra census:
+  `node tools/route.mjs <since-ts>` prints per-band disagreement/tie rates). `tmp/` (gitignored) keeps ONLY ops scaffolding:
   `loopdrv.sh`, `pslist.ps1`, `psloopkill.ps1`, `click`, `startws`.
 
 ## Settled build facts (verified; do not re-litigate)
@@ -126,8 +138,18 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
 - Planets were NEVER consumed in engine history until 11-01 (6c58e03): shop `buy_and_use`
   applies instantly, but bare-`buy` and Priestess/Emperor-created planets rotted in slots -
   the use-allowlist had no planet rule and the doc claiming "driver plays planets per-hand"
-  was fiction. Now use-on-sight (PASS @n20: starved 39->20%). Money/utility tarots without
-  rules (The Moon, Strength, Hierophant, Hanged Man) STILL rot pending oracle texts.
+  was fiction. Now use-on-sight (PASS @n20: starved 39->20%).
+- TAROT CLASS FACT (11-04 buy-vs-use census, whole db): only High Priestess/Emperor/Judgement/
+  Hermit/Wheel ever fire (90%+ use rates); the ENTIRE card-target class (Magician/Chariot/Justice/
+  Strength/Devil/Tower/Hanged/Death/Empress/Hierophant) plus select-gated planet suits (Moon/Sun/
+  Star/World) plus Fool/Temperance/Ankh/Lovers sit at 0 uses across ~1,400 purchases - Lovers even
+  logged action_unavailable x31. Shop+pack buys are WHITELISTED to the five live names (COHORT-18);
+  target-class rules in tarot.mjs/strategy.mjs idle harmlessly until oracle texts unlock them.
+- SCALING LAW (11-04, n=6915 ante-rows): boss targets scale a FIXED curve 2.50x/ante through a4,
+  then 2.20/1.82/1.75/1.43 - purchases are priced against THAT. Power ratio R=best-hand/boss-target
+  predicts failure only from a4 (R<1 -> 31% reach a5 vs R>=1 -> 91%; R>=2 -> 7.7% win); at a2-a3
+  every observable bucket lands P(a5+) 16-31% = noise -> NO mid-run abandonment (study closed
+  11-04; wins/hr is ticket-volume-bound, next-run auto-start ~5s).
 - Game save may silently FAIL to record a won stake (Red won 10-31, wins.json has it, setup
   rows stayed 2-unlocked): `out/game-stake-cap.txt` mirrors game truth; a stake win must be
   REPEATED game-side before the ladder advances. Never conclude Green-locked is a bug from
