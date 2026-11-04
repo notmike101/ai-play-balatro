@@ -80,7 +80,26 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   automation doesn't care). observe() patient-waits hidden pages since e3c1cd9; with headless the
   patient path should be RARE - if it re-cycles >2x, the page died, relaunch per above.
 
+## Fully-unlocked profile (11-04 USER did Unlock All - DO NOT LOSE)
+- Collection = Jokers 150/150, Decks 15/15, Vouchers 32/32, Planets 12/12, Blinds 30/30,
+  Tarots/Spectrals/Tags/Booster/Editions complete. Unlocks live in the GAME PROFILE
+  (profile.jkr via batched love-fs -> IndexedDB leveldb WAL); the button is Main Menu ->
+  COLLECTION -> Unlock All (mid-run options-overlay Collection LACKS it; cost = profile
+  achievements disabled, irrelevant).
+- BACKUP (post clean Browser.close, chrome stopped): D:\balatro-ai\chrome-profile-backups\
+  unlocked-20261104T2038\ {IndexedDB, Local Storage, Session Storage}. RESTORE with driver+
+  chrome stopped: `powershell -File tmp/restore-unlocked.ps1` (aborts if our profile instance
+  runs; match it with tmp/killprof.ps1 - NEVER taskkill through bash //PID (silent no-op)).
+- VERIFY any save-changing op: CDP freeze (setWebLifecycleState frozen 3s -> active) then
+  ~35s checkpoint wait, then Browser.close (CLEAN - service kill loses pending batch).
+  Persistence test after reopen: menu -> COLLECTION -> counts (tmp/verifyunlocked.mjs-ish;
+  menu row kind your_collection; overlay hub has NO collection row at menu level).
+- HEADED windows for user interaction: launch same RUNBOOK flags MINUS --headless=new;
+  a SECOND instance with the same --user-data-dir forwards + exits 0 (no port!). Sequence:
+  killprof.ps1 -> REMAIN 0 -> launch. After user work, restore headless flags.
+
 ## Log forensics (out/log.jsonl, out/digests.jsonl)
+
 - LEGACY ROW TRAP (found 11-04 via 234 phantom planet-uses): old log.jsonl rows carry NO `ts`
   field - `undefined < since` is FALSE, so raw scans MUST use the positive test `r.ts >= eraTs`
   (or go through runs.db where NULL ts fails SQL comparisons). Any `r.ts < since -> continue`
