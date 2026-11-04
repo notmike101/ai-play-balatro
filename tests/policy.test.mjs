@@ -394,6 +394,37 @@ export async function runPolicy() {
         throw new Error('rule-less tarot (The Moon, oracle pending) must NEVER be used - allowlist, not denylist');
     }
 
+    /* build-truth instant tarots (11-04 blob extraction): Temperance money + Fool repeat */
+    const tpObs = {
+        consumables: [
+            { id: 31, key: 'c_temperance', name: 'Temperance', kind: 'Tarot', actions: ['use', 'sell'] },
+            { id: 32, key: 'c_fool', name: 'The Fool', kind: 'Tarot', actions: ['use', 'sell'] },
+            { id: 33, key: 'c_judgement', name: 'Judgement', kind: 'Tarot', actions: ['use', 'sell'] },
+        ],
+        area: { consumable_slots: 4 },
+    };
+
+    const tpPlan = planConsumables(tpObs, { fam: 'Pair' }, { phase: 'blind_select', money: 40, ante: 3, jkCount: 3 });
+
+    /* two-uses-per-step cap keeps pri-1 Fool out here - money pri-0 pair must plan */
+    if (!tpPlan.some((p) => p.target === 31) || !tpPlan.some((p) => p.target === 33)) {
+        throw new Error('Temperance/Judgement must plan through the truth gates (jkCount 3, money 40, space free)');
+    }
+
+    const foolObs = { consumables: [{ id: 32, key: 'c_fool', name: 'The Fool', kind: 'Tarot', actions: ['use', 'sell'] }], area: { consumable_slots: 2 } };
+
+    if (!planConsumables(foolObs, null, { phase: 'blind_select', money: 40, jkCount: 3 }).some((p) => p.target === 32)) {
+        throw new Error('Fool (repeat last Tarot/Planet) must plan when consumable space is free');
+    }
+
+    if (planConsumables(tpObs, null, { phase: 'blind_select', money: 40, jkCount: 5 }).some((p) => p.target === 33)) {
+        throw new Error('Judgement must NOT plan when joker area is full (Must have room - build truth)');
+    }
+
+    if (planConsumables(tpObs, null, { phase: 'blind_select', money: 40, jkCount: 0 }).some((p) => p.target === 31)) {
+        throw new Error('Temperance must not fire on a 0-joker lineup (payout would be $0)');
+    }
+
     /* SKIP band (b4ae68d, flipped twice - pinned boundaries): a1 never, a4 Red-only */
     const { skipAllowed } = await import('../lib/blind.mjs');
 
