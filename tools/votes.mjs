@@ -37,7 +37,9 @@ for (const r of rows) {
         if (p) {
             try {
                 off = (JSON.parse(p.items) || []).some((i) => i.n === want);
-            } catch { /* skip */ }
+            } catch {
+                /* skip */
+            }
         }
     } else {
         const sh = db.prepare('SELECT items FROM shopdump WHERE rid=? AND pre=1 AND ts<=? ORDER BY ts DESC LIMIT 1').get(r.rid, r.ts);
@@ -45,7 +47,9 @@ for (const r of rows) {
         if (sh) {
             try {
                 off = (JSON.parse(sh.items) || []).some((i) => i.n === want && String(i.k).toLowerCase() === 'planet');
-            } catch { /* skip */ }
+            } catch {
+                /* skip */
+            }
         }
     }
 

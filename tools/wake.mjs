@@ -22,7 +22,9 @@ for (const l of LOG_LINES) {
     if (l.includes('"sessionstart"')) {
         try {
             SESSIONS.push(JSON.parse(l).ts);
-        } catch { /* skip malformed */ }
+        } catch {
+            /* skip malformed */
+        }
     }
 }
 
@@ -104,7 +106,8 @@ function eras(k) {
  */
 function planetProof() {
     const ts = liveAt((codeEras()[0] || {}).ts || 0);
-    let prep = 0; let shop = 0;
+    let prep = 0;
+    let shop = 0;
 
     for (const l of LOG_LINES) {
         if (!l.includes('planet')) {
@@ -123,7 +126,9 @@ function planetProof() {
             } else if (r.e === 'shopdone' && Array.isArray(r.actions)) {
                 shop += r.actions.filter((a) => /^planet:/.test(a)).length;
             }
-        } catch { /* skip malformed */ }
+        } catch {
+            /* skip malformed */
+        }
     }
 
     console.log(`planet-uses since newest deploy: prep=${prep} shop-inline=${shop}`);
@@ -137,7 +142,8 @@ function planetProof() {
  */
 function curveProof() {
     const ts = liveAt((codeEras()[0] || {}).ts || 0);
-    let behind = 0; let fired = 0;
+    let behind = 0;
+    let fired = 0;
 
     for (const l of LOG_LINES) {
         if (!l.includes('"curve"')) {
@@ -154,7 +160,9 @@ function curveProof() {
                     fired++;
                 }
             }
-        } catch { /* skip malformed */ }
+        } catch {
+            /* skip malformed */
+        }
     }
 
     console.log(`catchup: behind=${behind} fired=${fired}`);

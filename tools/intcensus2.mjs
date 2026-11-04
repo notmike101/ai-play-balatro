@@ -15,7 +15,9 @@ for (const s of L) {
         if (j && j.ts) {
             rows.push(j);
         }
-    } catch { /* skip */ }
+    } catch {
+    /* skip */
+    }
 }
 
 rows.sort((a, b) => a.ts - b.ts);

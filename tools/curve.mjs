@@ -16,9 +16,12 @@ if (!Number.isFinite(since)) {
 const db = new DatabaseSync('out/runs.db', { readOnly: true });
 const hi = until === Number.MAX_SAFE_INTEGER ? 1e18 : until;
 /**
+ * Query runs.db (read-only) with the [since, hi] window params appended.
  *
- * @param sql
- * @param args
+ * @param {string} sql - SQL expecting two trailing ts bounds
+ * @param {unknown[]} [args] - leading bind parameters
+ *
+ * @returns {object[]} result rows
  */
 const q = (sql, args = []) => db.prepare(sql).all(...args, since, hi);
 const RANGE = 'ts >= ? AND ts <= ?';
@@ -50,12 +53,17 @@ const dig = new Map(q(`SELECT rid, ante FROM rundigest WHERE ${DRANGE}`).map((x)
 const bossSel = new Set(q(`SELECT DISTINCT rid FROM blind WHERE ante=4 AND boss IS NOT NULL AND ${RANGE}`).map((x) => x.rid));
 const reached = new Set(q(`SELECT DISTINCT rid FROM blind WHERE ante=4 AND ${RANGE}`).map((x) => x.rid));
 const seen = new Set(rids);
-let preBoss = 0; let atBoss = 0; let passed = 0; let n = 0;
+let preBoss = 0;
+let atBoss = 0;
+let passed = 0;
+let n = 0;
 
 for (const rid of reached) {
     if (!seen.has(rid)) {
         continue;
-    } // run started before window: partial life, exclude
+    }
+
+    /* run started before window: partial life, excluded above */
 
     n++;
     const top = dig.get(rid) ?? 0;
@@ -70,8 +78,11 @@ for (const rid of reached) {
 }
 
 /**
+ * Percent of window-started a4-reaching runs; '-' when the cohort is empty.
  *
- * @param x
+ * @param {number} x - subset count
+ *
+ * @returns {string} rounded percent text
  */
 const p = (x) => `${n ? (100 * x / n).toFixed(0) : '-'}%`;
 

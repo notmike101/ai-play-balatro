@@ -153,7 +153,9 @@ let lOff = tailLines(L, 0, (s) => {
 
     try {
         fold(JSON.parse(s));
-    } catch { /* skip */ }
+    } catch {
+    /* skip */
+    }
 });
 let dOff = existsSync(P) ? statSync(P).size : 0;
 const hard = Date.now() + 3_300_000;
@@ -171,7 +173,9 @@ for (;;) {
 
         try {
             fold(JSON.parse(s));
-        } catch { /* skip */ }
+        } catch {
+            /* skip */
+        }
     });
     dOff = tailLines(P, dOff, (s) => {
         try {
@@ -180,7 +184,9 @@ for (;;) {
             if (d.t > t0) {
                 pending.set(d.rid, d);
             }
-        } catch { /* skip */ }
+        } catch {
+            /* skip */
+        }
     });
     const clean = [...pending.values()].filter(isClean);
 
@@ -190,7 +196,9 @@ for (;;) {
 
         try {
             ladder(clean.map((d) => d.rid));
-        } catch { /* ladder scan never blocks the wake */ }
+        } catch {
+            /* ladder scan never blocks the wake */
+        }
 
         appendFileSync(P.replace('digests.jsonl', 'watchrun.log'), `fired ${new Date().toISOString()} n=${clean.length}\n`);
         process.exit(0);

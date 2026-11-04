@@ -15,7 +15,9 @@ for (const s of fs.readFileSync('out/log.jsonl', 'utf8').split('\n')) {
         if (j && j.ts) {
             rows.push(j);
         }
-    } catch { /* not JSON */ }
+    } catch {
+    /* not JSON */
+    }
 }
 
 rows.sort((a, b) => a.ts - b.ts);
@@ -59,7 +61,7 @@ for (let i = 1; i < rows.length - 1; i++) {
 const bucket = {};
 
 for (const [e, pred, g] of gain) {
-    if (!pred || g == null || g <= 0) {
+    if (!pred || g === undefined || g === null || g <= 0) {
         continue;
     }
 

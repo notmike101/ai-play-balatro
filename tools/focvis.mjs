@@ -11,7 +11,9 @@ for (const s of fs.readFileSync('out/log.jsonl', 'utf8').split('\n')) {
         if (j && j.ts && (j.e === 'shopdump' || j.e === 'shopdone')) {
             rows.push(j);
         }
-    } catch { /* not JSON */ }
+    } catch {
+    /* not JSON */
+    }
 }
 
 rows.sort((a, b) => a.ts - b.ts);
@@ -43,7 +45,12 @@ for (let i = 0; i < rows.length; i++) {
 
     onShelf++;
     const a = d.ante ?? '?';
-    const b = (anteCnt[a] ??= [0, 0]);
+    let b = anteCnt[a];
+
+    if (!b) {
+        b = [0, 0];
+        anteCnt[a] = b;
+    }
 
     b[0]++;
     // next shopdone same rid

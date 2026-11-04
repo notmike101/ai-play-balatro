@@ -149,16 +149,7 @@ async function handleNewRun(obs) {
                abort-looped. Ladder may never exceed the game's unlocked options: take
                the highest unlocked instead of wrapping to White. */
             gameMaxStake = Math.max(gameMaxStake ?? 0, stakeC.options.length);
-
-            if (fs.existsSync(STAKE_CAP)) {
-                try {
-                    if (Number(fs.readFileSync(STAKE_CAP, 'utf8')) !== gameMaxStake) {
-                        fs.writeFileSync(STAKE_CAP, String(gameMaxStake));
-                    }
-                } catch { /* best-effort cache */ }
-            } else {
-                fs.writeFileSync(STAKE_CAP, String(gameMaxStake));
-            }
+            writeStakeCap(gameMaxStake);
 
             const stakeCapNow = Math.min(stakeWant, stakeC.options.length);
 
@@ -377,6 +368,105 @@ const turnState = {
 };
 
 /**
+ * Persist the stake-cap cache file (best-effort warm cache for the next boot);
+ * the ladder may never exceed it.
+ *
+ * @param {number} v - highest stake the game save actually unlocked
+ */
+function writeStakeCap(v) {
+    try {
+        if (!fs.existsSync(STAKE_CAP) || Number(fs.readFileSync(STAKE_CAP, 'utf8')) !== v) {
+            fs.writeFileSync(STAKE_CAP, String(v));
+        }
+    } catch {
+        /* best-effort cache */
+    }
+}
+
+/**
+ * Reduced-motion options probe, once per boot at the first cash_out screen.
+ * The cash_out Options control lands on the nav overlay; real option rows live
+ * one level deeper under Settings. Flips the motion toggle when the row is
+ * readable, then backs out; when rows arrive label-less through the bridge it
+ * only backs out - blind per-boot toggling would OSCILLATE the persisted save.
+ *
+ * @param {object} obs - cash_out-phase observation
+ */
+async function optionsProbe(obs) {
+    const oc = (obs.controls || []).find((x) => x.kind === 'options' && x.enabled);
+
+    if (!oc) {
+        jw({ e: 'optprobe', noCtrl: true });
+
+        return;
+    }
+
+    const ra = await act({ epoch: obs.epoch, action: 'activate', target: oc.id });
+
+    if (!ra.ok) {
+        jw({ e: 'optprobe', actFail: ra.error?.code });
+
+        return;
+    }
+
+    try {
+        let o2 = await observe();
+        let rows = (o2.controls || []).map((x) => `${x.kind}:${x.id}:${String(x.label ?? '').slice(0, 34)}`);
+        let rm = (o2.controls || []).find((x) => /reduced|motion|animation/i.test(String(x.label ?? '')));
+
+        /* first probe hit MENU-style overlays (the cash_out Options ctrl
+           lands on the nav overlay: settings:1:Settings...) - chain one
+           level into Settings where the actual option rows live */
+        if (!rm) {
+            const st = (o2.controls || []).find((x) => x.kind === 'settings' || /^settings/i.test(String(x.label ?? '')));
+
+            if (st && (await act({ epoch: o2.epoch, action: 'activate', target: st.id })).ok) {
+                o2 = await observe();
+                rows = (o2.controls || []).map((x) => `${x.kind}:${x.id}:${String(x.label ?? '').slice(0, 34)}`);
+                rm = (o2.controls || []).find((x) => /reduced|motion|animation/i.test(String(x.label ?? '')));
+            }
+        }
+
+        const toggled = [];
+
+        if (rm) {
+            toggled.push((await act({ epoch: o2.epoch, action: 'activate', target: rm.id })).ok ?? false);
+
+            const o3 = await observe();
+            const backs = (o3.controls || []).filter((x) => /^(back|close|exit|leave)/i.test(String(x.label ?? '').trim()) || x.kind === 'back' || x.kind === 'exit_overlay_menu');
+
+            for (let b = 0; b < 2 && b < backs.length; b++) {
+                await act({ epoch: (b ? await observe() : o3).epoch, action: 'activate', target: backs[b].id });
+            }
+        } else if ((o2.controls || []).some((x) => x.kind === 'change_tab')) {
+            /* probe FROZEN log-only 11-05: Game-tab option rows are LABEL-LESS
+               through the bridge (cycles show '<'/'>', booleans just
+               'toggle_button'). One blind flip was made (button:9 ok; :10 missed
+               on a stale epoch) and run cadence did NOT change (the 13/h dip was
+               ops-restart churn, driver verified healthy mid-shop) - no more
+               flips: per-boot toggling would OSCILLATE the persisted save. */
+            const o4 = await observe();
+            const bk = (o4.controls || []).find((x) => x.kind === 'options' || /^back/i.test(String(x.label ?? '')));
+
+            if (bk) {
+                await act({ epoch: o4.epoch, action: 'activate', target: bk.id });
+
+                const o5 = await observe();
+                const bk2 = (o5.controls || []).find((x) => x.kind === 'exit_overlay_menu' || /^back/i.test(String(x.label ?? '')));
+
+                if (bk2) {
+                    await act({ epoch: o5.epoch, action: 'activate', target: bk2.id });
+                }
+            }
+        }
+
+        jw({ e: 'optprobe', ctrls: rows, rmFound: rm === undefined ? 'no' : String(rm.label).slice(0, 40), toggled });
+    } catch (e) {
+        jw({ e: 'optprobe', err: String(e?.message ?? e).slice(0, 140) });
+    }
+}
+
+/**
  * Main observe-and-act loop covering every game phase until the process exits.
  */
 async function main() {
@@ -560,75 +650,7 @@ async function main() {
 
             if (c && !optDone) {
                 optDone = true;
-
-                try {
-                    const oc = (obs.controls || []).find((x) => x.kind === 'options' && x.enabled);
-
-                    if (oc) {
-                        const ra = await act({ epoch: obs.epoch, action: 'activate', target: oc.id });
-
-                        if (ra.ok) {
-                            let o2 = await observe();
-                            let rows = (o2.controls || []).map((x) => `${x.kind}:${x.id}:${String(x.label ?? '').slice(0, 34)}`);
-                            let rm = (o2.controls || []).find((x) => /reduced|motion|animation/i.test(String(x.label ?? '')));
-
-                            /* first probe hit MENU-style overlays (the cash_out Options ctrl
-                               lands on the nav overlay: settings:1:Settings...) - chain one
-                               level into Settings where the actual option rows live */
-                            if (!rm) {
-                                const st = (o2.controls || []).find((x) => x.kind === 'settings' || /^settings/i.test(String(x.label ?? '')));
-
-                                if (st) {
-                                    if ((await act({ epoch: o2.epoch, action: 'activate', target: st.id })).ok) {
-                                        o2 = await observe();
-                                        rows = (o2.controls || []).map((x) => `${x.kind}:${x.id}:${String(x.label ?? '').slice(0, 34)}`);
-                                        rm = (o2.controls || []).find((x) => /reduced|motion|animation/i.test(String(x.label ?? '')));
-                                    }
-                                }
-                            }
-
-                            const toggled = [];
-
-                            if (rm) {
-                                toggled.push((await act({ epoch: o2.epoch, action: 'activate', target: rm.id })).ok ?? false);
-
-                                const o3 = await observe();
-                                const backs = (o3.controls || []).filter((x) => /^(back|close|exit|leave)/i.test(String(x.label ?? '').trim()) || x.kind === 'back' || x.kind === 'exit_overlay_menu');
-
-                                for (let b = 0; b < 2 && b < backs.length; b++) {
-                                    await act({ epoch: (b ? await observe() : o3).epoch, action: 'activate', target: backs[b].id });
-                                }
-                            } else if ((o2.controls || []).some((x) => x.kind === 'change_tab')) {
-                                /* probe FROZEN log-only 11-05: Game-tab option rows are LABEL-LESS
-                                   through the bridge (cycles show '<'/'>', booleans just
-                                   'toggle_button'). One blind flip was made (button:9 ok; :10 missed
-                                   on a stale epoch) and run cadence did NOT change (the 13/h dip was
-                                   ops-restart churn, driver verified healthy mid-shop) - no more
-                                   flips: per-boot toggling would OSCILLATE the persisted save. */
-                                const o4 = await observe();
-                                const bk = (o4.controls || []).find((x) => x.kind === 'options' || /^back/i.test(String(x.label ?? '')));
-
-                                if (bk) {
-                                    await act({ epoch: o4.epoch, action: 'activate', target: bk.id });
-                                    const o5 = await observe();
-                                    const bk2 = (o5.controls || []).find((x) => x.kind === 'exit_overlay_menu' || /^back/i.test(String(x.label ?? '')));
-
-                                    if (bk2) {
-                                        await act({ epoch: o5.epoch, action: 'activate', target: bk2.id });
-                                    }
-                                }
-                            }
-
-                            jw({ e: 'optprobe', ctrls: rows, rmFound: rm === undefined ? 'no' : String(rm.label).slice(0, 40), toggled });
-                        } else {
-                            jw({ e: 'optprobe', actFail: ra.error?.code });
-                        }
-                    } else {
-                        jw({ e: 'optprobe', noCtrl: true });
-                    }
-                } catch (e) {
-                    jw({ e: 'optprobe', err: String(e?.message ?? e).slice(0, 140) });
-                }
+                await optionsProbe(obs);
 
                 continue; /* fresh obs next pass; cash_out act must use a post-probe epoch */
             }

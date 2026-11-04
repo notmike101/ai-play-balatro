@@ -182,7 +182,7 @@ function enhOf(cs) {
  *
  * @param {Array[]} jk - turn-row jokers array (slot order)
  * @param {object[]} sc - scoring cards (for face conditions)
- * @param fam
+ * @param {string} fam - hand family being simulated (family-condition jokers)
  * @returns {object[]} ops with kind c|m|x|unk
  */
 function jokerOps(jk, sc, fam) {
@@ -248,8 +248,8 @@ function jokerOps(jk, sc, fam) {
  * @param {number[]} base - [chips, mult] family base
  * @param {object[]} sc - scoring cards
  * @param {Array[]} jk - slot-ordered joker list from the turn row
- * @param re
- * @param fam
+ * @param {number} [re] - chip retrigger multiplier per scoring card (Mime-style, default 1)
+ * @param {string} [fam] - hand family for conditional jokers
  * @returns {number} simulated score
  */
 function simOrdered(base, sc, jk, re = 1, fam = '') {
@@ -300,8 +300,8 @@ function simOrdered(base, sc, jk, re = 1, fam = '') {
  * @param {number[]} base - [chips, mult] family base
  * @param {object[]} sc - scoring cards
  * @param {Array[]} jk - joker list
- * @param re
- * @param fam
+ * @param {number} [re] - chip retrigger multiplier per scoring card (default 1)
+ * @param {string} [fam] - hand family for conditional jokers
  * @returns {number} simulated score
  */
 function simAgg(base, sc, jk, re = 1, fam = '') {

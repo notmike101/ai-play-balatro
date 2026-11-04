@@ -13,8 +13,11 @@ const db = new DatabaseSync(path.join(ROOT, 'out', 'runs.db'), { readOnly: true 
 const argv = process.argv.slice(2);
 
 /**
+ * Reads a CLI flag value: the token immediately after the given flag.
  *
- * @param k
+ * @param {string} k - flag token (e.g. '--rid')
+ *
+ * @returns {string|null} flag value or null when absent
  */
 function arg(k) {
     const i = argv.indexOf(k);

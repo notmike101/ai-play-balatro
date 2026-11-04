@@ -31,7 +31,12 @@ for (const l of fs.readFileSync('D:/balatro-ai/poker-agent/out/log.jsonl', 'utf8
         continue;
     }
 
-    const r = tl[j.rid] ??= { nf: null, shelf: [], packs: [] };
+    let r = tl[j.rid];
+
+    if (!r) {
+        r = { nf: null, shelf: [], packs: [] };
+        tl[j.rid] = r;
+    }
 
     if (j.e === 'shopdump' && j.pre === 1) {
         r.nf = j.nf; r.shelf = (j.items || []).map((x) => x.n);

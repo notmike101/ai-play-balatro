@@ -81,7 +81,7 @@ for (const row of rows) {
 const byAnte = new Map();
 
 for (const v of [...perRun.values()]) {
-    if (v.ante == null || !Number.isInteger(v.ante)) {
+    if (v.ante === undefined || v.ante === null || !Number.isInteger(v.ante)) {
         continue;
     }
 
