@@ -12,7 +12,9 @@ import globals from 'globals';
 
 export default [
     {
-        ignores: ['vendor/**', 'node_modules/**'],
+        /* tmp/bundle.js + worker chunks = vendored site/runtime JS pulled for truth
+           forensics 11-04 (856KB minified); harness .mjs scripts in tmp/ stay linted */
+        ignores: ['vendor/**', 'node_modules/**', 'tmp/bundle.js', 'tmp/import-worker-*.js', 'tmp/source-love-command-worker-*.js', 'tmp/importer_worker.js'],
     },
     ...jsConfig,
     ...jsdocConfig,
