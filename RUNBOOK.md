@@ -44,6 +44,11 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
    wake.mjs era rows show code-change boundaries only; a docs-commit deploy row is not an era.
 4. Watchers are bash jobs chained INSIDE the wake call (`wake.mjs | tail -1` pattern above);
    kill the previous watcher job before arming a replacement (double-fired once).
+5. After EVERY code commit, `git show --stat` and read the FILE NAMES against what you edited -
+   a matching insertion COUNT is not proof (COHORT-19b incident: shop.mjs hunk of a 3-file edit
+   silently stayed out of the commit; the working tree still ran it so cohorts measured code that
+   git never recorded, and a later rebase dropped it wholesale). Commit message naming a behavior
+   it does not contain is the failure mode; grep the tag string (`git log -S`) to settle existence.
 
 ## Stack recovery (crash at menu / game_unavailable)
 `tmp/psloopkill.ps1` -> `killdrv.ps1`; reload the game page (Chrome app-mode, CDP 9222, profile
