@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
 CREATE TABLE IF NOT EXISTS deploy(sha TEXT PRIMARY KEY, ts INT, imported_ts INT);
 CREATE TABLE IF NOT EXISTS decide(ts INT,rid INT,a TEXT,fam TEXT,pred INT,rem INT,ante INT,stk INT,b TEXT,tgt INT,rchips INT,err TEXT,ef TEXT,lk TEXT,enh INT,sla TEXT,cids TEXT,sids TEXT);
 CREATE TABLE IF NOT EXISTS turn(ts INT,rid INT,chips INT,dl INT,hl INT,rerolls INT);
-CREATE TABLE IF NOT EXISTS shopdump(ts INT,rid INT,pre INT,money INT,ante INT,nf TEXT,items TEXT);
+CREATE TABLE IF NOT EXISTS shopdump(ts INT,rid INT,pre INT,money INT,ante INT,nf TEXT,items TEXT,hb TEXT);
 CREATE TABLE IF NOT EXISTS shopdone(ts INT,rid INT,money INT,actions TEXT);
 CREATE TABLE IF NOT EXISTS packdump(ts INT,rid INT,items TEXT);
 CREATE TABLE IF NOT EXISTS gamefam(ts INT,rid INT,n TEXT,via TEXT,gamefam TEXT);
@@ -44,6 +44,7 @@ CREATE VIEW IF NOT EXISTS runmax AS SELECT rid, MAX(ante) m, MAX(CASE WHEN won=1
 `);
 try { db.exec('ALTER TABLE rundigest ADD COLUMN gap INT'); } catch { /* present */ }
 try { db.exec('ALTER TABLE rundigest ADD COLUMN r4 REAL'); } catch { /* present */ }
+try { db.exec('ALTER TABLE shopdump ADD COLUMN hb TEXT'); } catch { /* present */ }
 
 const getOff = () => Number(db.prepare('SELECT v FROM meta WHERE k=\'last_off\'').get()?.v ?? 0);
 const setOff = (v) => db.prepare('INSERT INTO meta(k,v) VALUES(\'last_off\',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v').run(String(v));
@@ -74,7 +75,7 @@ const Q = (k, cols) => db.prepare(`INSERT INTO ${k} (${cols}) VALUES (${Array.fr
 const ins = {
     decide: Q('decide', 'ts,rid,a,fam,pred,rem,ante,stk,b,tgt,rchips,err,ef,lk,enh,sla,cids,sids'),
     turn: Q('turn', 'ts,rid,chips,dl,hl,rerolls'),
-    shopdump: Q('shopdump', 'ts,rid,pre,money,ante,nf,items'),
+    shopdump: Q('shopdump', 'ts,rid,pre,money,ante,nf,items,hb'),
     shopdone: Q('shopdone', 'ts,rid,money,actions'),
     packdump: Q('packdump', 'ts,rid,items'),
     gamefam: Q('gamefam', 'ts,rid,n,via,gamefam'),
@@ -117,7 +118,7 @@ if (start < size) {
             switch (j.e) {
                 case 'decide': ins.decide.run(ts, rid, j.a ?? '', j.fam ?? '', j.pred ?? null, j.rem ?? null, j.ante ?? null, j.stk ?? null, j.b ?? '', j.tgt ?? null, j.rchips ?? null, j.err ?? '', j.ef ?? '', j.lk ?? '', j.enh ?? null, j.sla ?? '', j.cids ?? '', j.sids ?? ''); break;
                 case 'turn': ins.turn.run(ts, rid, j.chips ?? null, j.dl ?? null, j.hl ?? null, j.rerolls ?? null); break;
-                case 'shopdump': ins.shopdump.run(ts, rid, j.pre ? 1 : 0, j.money ?? null, j.ante ?? null, j.nf ?? null, J(j.items)); break;
+                case 'shopdump': ins.shopdump.run(ts, rid, j.pre ? 1 : 0, j.money ?? null, j.ante ?? null, j.nf ?? null, J(j.items), J(j.hb)); break;
                 case 'shopdone': ins.shopdone.run(ts, rid, j.money ?? null, J(j.actions)); break;
                 case 'packdump': ins.packdump.run(ts, rid, J(j.items)); break;
                 case 'gamefam': ins.gamefam.run(ts, rid, j.n ?? '', j.via ?? '', j.gamefam ?? ''); break;
