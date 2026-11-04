@@ -133,6 +133,11 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
 - Effect texts: `blind` rows carry the boss effect verbatim (all 26 bosses seen in log = match
   doctrine); pack/shop ITEM rows carry `effect:""` ALWAYS (bridge strips it) - joker/tarot text
   is oracle-only, never re-mine the log for it (11-01 census: 0/7262 item rows had text).
+- Focal scatter is STRUCTURAL, not a targeting bug (11-04, n=110 deaths + 9/9 late-flip audit):
+  61% of banked levels sit off-focal at death and the last a4+ needFam flip lands on the final
+  play-max family EVERY time - a flipped run arrives new-family L1 because a visit buys one
+  planet and flip costs bank the old family. Do not "fix" targeting to chase lvlMap scatter;
+  the deep wall is multiplier/pricing (jokers), bounded by this: no targeting change closes it.
 - Face-down bosses (Mark/Fish/House/Pillar...) show `rank:null` - normalize before scoring. The
   Pillar debuffs exact copies of ranks 1-6 played this ante without setting `c.debuffed`.
 - `run.current_score` never updates; progress = self-banked predictions; while phase=='hand' the
