@@ -272,6 +272,52 @@ export async function runCalibration() {
         throw new Error('tiny/deckless multiset must return null (heuristic fallback, never guess)');
     }
 
+    /* MC REAL SCORE (11-05 user correction: "still optimizes a heuristic, not actual
+       scoring"): with the hands table the sampled value IS the printed score -
+       (table chips + scoring chips) x table mult, levels truth from table rows */
+    const { simVal } = await import('../lib/mc.mjs');
+    const tabReal = [
+        { name: 'Two Pair', chips: 240, mult: 2, level: 7 },
+        { name: 'Flush', chips: 90, mult: 4, level: 1 },
+        { name: 'High Card', chips: 5, mult: 1, level: 1 },
+    ];
+    const tp5 = [MC(13, 'Spades', 31), MC(13, 'Hearts', 32), MC(7, 'Spades', 33), MC(7, 'Hearts', 34), MC(2, 'Clubs', 35)];
+    const f5 = [MC(14, 'Hearts', 36), MC(13, 'Hearts', 37), MC(12, 'Hearts', 38), MC(7, 'Hearts', 39), MC(2, 'Hearts', 40)];
+
+    if (simVal(tp5, { ht: tabReal }) !== (240 + 34) * 2) {
+        throw new Error(`real-score Two Pair must be (240+34)x2, got ${simVal(tp5, { ht: tabReal })}`);
+    }
+
+    if (simVal(tp5, { ht: tabReal }) <= simVal(f5, { ht: tabReal })) {
+        throw new Error('TP L7 (480 base) must beat Flush L1 (360 base) on REAL score');
+    }
+
+    if (simVal(f5, { fam: 'Flush', lvl: 1 }) <= simVal(tp5, { fam: 'Flush', lvl: 1 })) {
+        throw new Error('legacy FAMS fallback must keep the old scale (flush above TP) when tableless');
+    }
+
+    const tpSteel = tp5.map((c, i) => (i === 0 ? { ...c, enh: 'm_steel' } : c));
+
+    if (simVal(tpSteel, { ht: tabReal }) !== (240 + 34) * 2 * 1.5) {
+        throw new Error('scored Steel Card must multiply the real score by 1.5');
+    }
+
+    const tpStone = [...tp5, {
+        rank: 9, suit: 'Diamonds', enh: 'm_stone', id: 41,
+    }];
+
+    if (simVal(tpStone, { ht: tabReal }) !== (240 + 34 + 50) * 2) {
+        throw new Error('Stone Card must fill the 5th scoring slot for +50 chips (TRUTH semantics)');
+    }
+
+    const stFlush4 = [MC(13, 'Diamonds', 42), MC(12, 'Diamonds', 43), MC(11, 'Diamonds', 44), MC(7, 'Diamonds', 45), {
+        rank: 2, suit: 'Diamonds', enh: 'm_stone', id: 46,
+    }];
+
+    if (simVal(stFlush4, { ht: tabReal }) !== (5 + 10 + 50)) {
+        throw new Error('Stone Diamond must NOT complete a flush (no rank or suit truth), only add its chips');
+    }
+
     const mcHand = [MC(14, 'Hearts', 61), MC(13, 'Hearts', 62), MC(12, 'Hearts', 63), MC(7, 'Hearts', 64), MC(2, 'Clubs', 65), MC(3, 'Diamonds', 66), MC(4, 'Spades', 67), MC(5, 'Clubs', 68)];
     const disc = chooseDiscard(mcHand, null, null, { udeck: heartDeck, fam: 'Flush', lvl: 3, hl: 3, disc: 3 });
 
