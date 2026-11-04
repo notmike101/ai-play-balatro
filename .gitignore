@@ -8,6 +8,7 @@ out/*
 !out/stake_locks.json
 !out/stake_map.json
 !out/policy.json
+!out/joker_truth.json
 # 69MB raw event stream stays out of git (survives checkpoint/rewind anyway)
 *.png
 *.err

@@ -1,0 +1,1202 @@
+[
+ {
+  "key": "j_8_ball",
+  "name": "8 Ball",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra=4",
+  "text": "\"#1# in #2# chance for each played 8 to create a Tarot card when scored (Must have room)\","
+ },
+ {
+  "key": "j_abstract",
+  "name": "Abstract Joker",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = 3",
+  "text": "\"+#1# Mult for each Joker card (Currently +#2# Mult)\","
+ },
+ {
+  "key": "j_banner",
+  "name": "Banner",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = 30",
+  "text": "\"+#1# Chips for each remaining discard\","
+ },
+ {
+  "key": "j_blue_joker",
+  "name": "Blue Joker",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = 2",
+  "text": "\"+#1# Chips for each remaining card in deck (Currently +#2# Chips)\","
+ },
+ {
+  "key": "j_business",
+  "name": "Business Card",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = 2",
+  "text": "\"Played face cards have a #1# in #2# chance to give $2 when scored\","
+ },
+ {
+  "key": "j_cavendish",
+  "name": "Cavendish",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = {odds = 1000, Xmult = 3",
+  "text": "\" X#1# Mult #2# in #3# chance this card is destroyed at end of round\","
+ },
+ {
+  "key": "j_chaos",
+  "name": "Chaos the Clown",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = 1",
+  "text": "\"#1# free Reroll per shop\","
+ },
+ {
+  "key": "j_clever",
+  "name": "Clever Joker",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "t_chips = 80, type = 'Two Pair'",
+  "text": "\"+#1# Chips if played hand contains a #2#\","
+ },
+ {
+  "key": "j_crafty",
+  "name": "Crafty Joker",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "t_chips = 80, type = 'Flush'",
+  "text": "\"+#1# Chips if played hand contains a #2#\","
+ },
+ {
+  "key": "j_crazy",
+  "name": "Crazy Joker",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "t_mult = 12, type = 'Straight'",
+  "text": "\"+#1# Mult if played hand contains a #2#\","
+ },
+ {
+  "key": "j_credit_card",
+  "name": "Credit Card",
+  "rarity": 1,
+  "cost": 1,
+  "cfg": "extra = 20",
+  "text": "\"Go up to -$#1# in debt\","
+ },
+ {
+  "key": "j_delayed_grat",
+  "name": "Delayed Gratification",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = 2",
+  "text": "\"Earn $#1# per discard if no discards are used by end of the round\","
+ },
+ {
+  "key": "j_devious",
+  "name": "Devious Joker",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "t_chips = 100, type = 'Straight'",
+  "text": "\"+#1# Chips if played hand contains a #2#\","
+ },
+ {
+  "key": "j_droll",
+  "name": "Droll Joker",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "t_mult = 10, type = 'Flush'",
+  "text": "\"+#1# Mult if played hand contains a #2#\","
+ },
+ {
+  "key": "j_drunkard",
+  "name": "Drunkard",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "d_size = 1",
+  "text": "\"+#1# discard each round\","
+ },
+ {
+  "key": "j_egg",
+  "name": "Egg",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = 3",
+  "text": "\"Gains $#1# of sell value at end of round\","
+ },
+ {
+  "key": "j_even_steven",
+  "name": "Even Steven",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = 4",
+  "text": "\"Played cards with even rank give +#1# Mult when scored (10, 8, 6, 4, 2)\","
+ },
+ {
+  "key": "j_faceless",
+  "name": "Faceless Joker",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = {dollars = 5, faces = 3",
+  "text": "\"Earn $#1# if #2# or more face cards are discarded at the same time\","
+ },
+ {
+  "key": "j_fortune_teller",
+  "name": "Fortune Teller",
+  "rarity": 1,
+  "cost": 6,
+  "cfg": "extra = 1",
+  "text": "\"+#1# Mult per Tarot card used this run (Currently +#2#)\","
+ },
+ {
+  "key": "j_gluttenous_joker",
+  "name": "Gluttonous Joker",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = {s_mult = 3, suit = 'Clubs'",
+  "text": "\"Played cards with #2# suit give +#1# Mult when scored\","
+ },
+ {
+  "key": "j_golden",
+  "name": "Golden Joker",
+  "rarity": 1,
+  "cost": 6,
+  "cfg": "extra = 4",
+  "text": "\"Earn $#1# at end of round\","
+ },
+ {
+  "key": "j_ticket",
+  "name": "Golden Ticket",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = 4",
+  "text": "\"Played Gold cards earn $#1# when scored\","
+ },
+ {
+  "key": "j_greedy_joker",
+  "name": "Greedy Joker",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = {s_mult = 3, suit = 'Diamonds'",
+  "text": "\"Played cards with #2# suit give +#1# Mult when scored\","
+ },
+ {
+  "key": "j_green_joker",
+  "name": "Green Joker",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = {hand_add = 1, discard_sub = 1",
+  "text": "\"+#1# Mult per hand played -#2# Mult per discard (Currently +#3# Mult)\","
+ },
+ {
+  "key": "j_gros_michel",
+  "name": "Gros Michel",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = {odds = 6, mult = 15",
+  "text": "\"+#1# Mult #2# in #3# chance this card is destroyed at end of round\","
+ },
+ {
+  "key": "j_half",
+  "name": "Half Joker",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = {mult = 20, size = 3",
+  "text": "\"+#1# Mult if played hand contains #2# or fewer cards\","
+ },
+ {
+  "key": "j_hallucination",
+  "name": "Hallucination",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = 2",
+  "text": "\"#1# in #2# chance to create a Tarot card when any Booster Pack is opened (Must have room)\","
+ },
+ {
+  "key": "j_hanging_chad",
+  "name": "Hanging Chad",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = 2",
+  "text": "\"Retrigger first played card used in scoring #1# additional times\","
+ },
+ {
+  "key": "j_ice_cream",
+  "name": "Ice Cream",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = {chips = 100, chip_mod = 5",
+  "text": "\"+#1# Chips -#2# Chips for every hand played\","
+ },
+ {
+  "key": "j_joker",
+  "name": "Joker",
+  "rarity": 1,
+  "cost": 2,
+  "cfg": "mult = 4",
+  "text": "\"+#1# Mult\","
+ },
+ {
+  "key": "j_jolly",
+  "name": "Jolly Joker",
+  "rarity": 1,
+  "cost": 3,
+  "cfg": "t_mult = 8, type = 'Pair'",
+  "text": "\"+#1# Mult if played hand contains a #2#\","
+ },
+ {
+  "key": "j_juggler",
+  "name": "Juggler",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "h_size = 1",
+  "text": "\"+#1# hand size\","
+ },
+ {
+  "key": "j_lusty_joker",
+  "name": "Lusty Joker",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = {s_mult = 3, suit = 'Hearts'",
+  "text": "\"Played cards with #2# suit give +#1# Mult when scored\","
+ },
+ {
+  "key": "j_mad",
+  "name": "Mad Joker",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "t_mult = 10, type = 'Two Pair'",
+  "text": "\"+#1# Mult if played hand contains a #2#\","
+ },
+ {
+  "key": "j_mail",
+  "name": "Mail-In Rebate",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = 5",
+  "text": "\"Earn $#1# for each discarded #2#{"
+ },
+ {
+  "key": "j_misprint",
+  "name": "Misprint",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = {max = 23, min = 0",
+  "text": "\"\","
+ },
+ {
+  "key": "j_mystic_summit",
+  "name": "Mystic Summit",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = {mult = 15, d_remaining = 0",
+  "text": "\"+#1# Mult when #2# discards remaining\","
+ },
+ {
+  "key": "j_odd_todd",
+  "name": "Odd Todd",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = 31",
+  "text": "\"Played cards with odd rank give +#1# Chips when scored (A, 9, 7, 5, 3)\","
+ },
+ {
+  "key": "j_photograph",
+  "name": "Photograph",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = 2",
+  "text": "\"First played face card gives X#1# Mult when scored\","
+ },
+ {
+  "key": "j_popcorn",
+  "name": "Popcorn",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "mult = 20, extra = 4",
+  "text": "\"+#1# Mult -#2# Mult per round played\","
+ },
+ {
+  "key": "j_raised_fist",
+  "name": "Raised Fist",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "",
+  "text": "\"Adds double the rank of lowest ranked card held in hand to Mult\","
+ },
+ {
+  "key": "j_red_card",
+  "name": "Red Card",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = 3",
+  "text": "\"This Joker gains +#1# Mult when any Booster Pack is skipped (Currently +#2# Mult)\","
+ },
+ {
+  "key": "j_reserved_parking",
+  "name": "Reserved Parking",
+  "rarity": 1,
+  "cost": 6,
+  "cfg": "extra = {odds = 2, dollars = 1",
+  "text": "\"Each face card held in hand has a #2# in #3# chance to give $#1#\","
+ },
+ {
+  "key": "j_ride_the_bus",
+  "name": "Ride the Bus",
+  "rarity": 1,
+  "cost": 6,
+  "cfg": "extra = 1",
+  "text": "\"This Joker gains +#1# Mult per consecutive hand played without a scoring face card (Currently +#2# Mult)\","
+ },
+ {
+  "key": "j_riff_raff",
+  "name": "Riff-raff",
+  "rarity": 1,
+  "cost": 6,
+  "cfg": "extra = 2",
+  "text": "\"When Blind is selected, create #1# Common Jokers (Must have room)\","
+ },
+ {
+  "key": "j_runner",
+  "name": "Runner",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = {chips = 0, chip_mod = 15",
+  "text": "\"Gains +#2# Chips if played hand contains a Straight (Currently +#1# Chips)\","
+ },
+ {
+  "key": "j_scary_face",
+  "name": "Scary Face",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = 30",
+  "text": "\"Played face cards give +#1# Chips when scored\","
+ },
+ {
+  "key": "j_scholar",
+  "name": "Scholar",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = {mult = 4, chips = 20",
+  "text": "\"Played Aces give +#2# Chips and +#1# Mult when scored\","
+ },
+ {
+  "key": "j_shoot_the_moon",
+  "name": "Shoot the Moon",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = 13",
+  "text": "\"Each Queen held in hand gives +#1# Mult\","
+ },
+ {
+  "key": "j_sly",
+  "name": "Sly Joker",
+  "rarity": 1,
+  "cost": 3,
+  "cfg": "t_chips = 50, type = 'Pair'",
+  "text": "\"+#1# Chips if played hand contains a #2#\","
+ },
+ {
+  "key": "j_smiley",
+  "name": "Smiley Face",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = 5",
+  "text": "\"Played face cards give +#1# Mult when scored\","
+ },
+ {
+  "key": "j_splash",
+  "name": "Splash",
+  "rarity": 1,
+  "cost": 3,
+  "cfg": "",
+  "text": "\"Every played card counts in scoring\","
+ },
+ {
+  "key": "j_square",
+  "name": "Square Joker",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = {chips = 0, chip_mod = 4",
+  "text": "\"This Joker gains +#2# Chips if played hand has exactly 4 cards (Currently #1# Chips)\","
+ },
+ {
+  "key": "j_supernova",
+  "name": "Supernova",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = 1",
+  "text": "\"Adds the number of times poker hand has been played this run to Mult\","
+ },
+ {
+  "key": "j_superposition",
+  "name": "Superposition",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "",
+  "text": "\"Create a Tarot card if poker hand contains an Ace and a Straight (Must have room)\","
+ },
+ {
+  "key": "j_swashbuckler",
+  "name": "Swashbuckler",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "mult = 1",
+  "text": "\"Adds the sell value of all other owned Jokers to Mult (Currently +#1# Mult)\","
+ },
+ {
+  "key": "j_todo_list",
+  "name": "To Do List",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = {dollars = 4, poker_hand = 'High Card'",
+  "text": "\"Earn $#1# if poker hand is a #2#{"
+ },
+ {
+  "key": "j_walkie_talkie",
+  "name": "Walkie Talkie",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "extra = {chips = 10, mult = 4",
+  "text": "\"Each played 10 or 4 gives +#1# Chips and +#2# Mult when scored\","
+ },
+ {
+  "key": "j_wily",
+  "name": "Wily Joker",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "t_chips = 100, type = 'Three of a Kind'",
+  "text": "\"+#1# Chips if played hand contains a #2#\","
+ },
+ {
+  "key": "j_wrathful_joker",
+  "name": "Wrathful Joker",
+  "rarity": 1,
+  "cost": 5,
+  "cfg": "extra = {s_mult = 3, suit = 'Spades'",
+  "text": "\"Played cards with #2# suit give +#1# Mult when scored\","
+ },
+ {
+  "key": "j_zany",
+  "name": "Zany Joker",
+  "rarity": 1,
+  "cost": 4,
+  "cfg": "t_mult = 12, type = 'Three of a Kind'",
+  "text": "\"+#1# Mult if played hand contains a #2#\","
+ },
+ {
+  "key": "j_acrobat",
+  "name": "Acrobat",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 3",
+  "text": "\" X#1# Mult on final hand of round\","
+ },
+ {
+  "key": "j_arrowhead",
+  "name": "Arrowhead",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "extra = 50",
+  "text": "\"Played cards with Spade suit give +#1# Chips when scored\","
+ },
+ {
+  "key": "j_astronomer",
+  "name": "Astronomer",
+  "rarity": 2,
+  "cost": 8,
+  "cfg": "",
+  "text": "\"All Planet cards and Celestial Packs in the shop are free\","
+ },
+ {
+  "key": "j_blackboard",
+  "name": "Blackboard",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 3",
+  "text": "\" X#1# Mult if all cards held in hand are #2# or #3#\","
+ },
+ {
+  "key": "j_bloodstone",
+  "name": "Bloodstone",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "extra = {odds = 2, Xmult = 1.5",
+  "text": "\"#1# in #2# chance for played cards with Heart suit to give X#3# Mult when scored\","
+ },
+ {
+  "key": "j_bootstraps",
+  "name": "Bootstraps",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "extra = {mult = 2, dollars = 5",
+  "text": "\"+#1# Mult for every $#2# you have (Currently +#3# Mult)\","
+ },
+ {
+  "key": "j_bull",
+  "name": "Bull",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 2",
+  "text": "\"+#1# Chips for each $1 you have (Currently +#2# Chips)\","
+ },
+ {
+  "key": "j_burglar",
+  "name": "Burglar",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 3",
+  "text": "\"When Blind is selected, gain +#1# Hands and lose all discards\","
+ },
+ {
+  "key": "j_card_sharp",
+  "name": "Card Sharp",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = {Xmult = 3",
+  "text": "\" X#1# Mult if played poker hand has already been played this round\","
+ },
+ {
+  "key": "j_cartomancer",
+  "name": "Cartomancer",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "",
+  "text": "\"Create a Tarot card when Blind is selected (Must have room)\","
+ },
+ {
+  "key": "j_castle",
+  "name": "Castle",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = {chips = 0, chip_mod = 3",
+  "text": "\"This Joker gains +#1# Chips per discarded #2# card, suit changes every round (Currently +#3# Chips)\","
+ },
+ {
+  "key": "j_ceremonial",
+  "name": "Ceremonial Dagger",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "mult = 0",
+  "text": "\"When Blind is selected, destroy Joker to the right and permanently add double its sell value to this Mult (Currently +#1# Mult)\","
+ },
+ {
+  "key": "j_certificate",
+  "name": "Certificate",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "",
+  "text": "\"When round begins, add a random playing card with a random seal to your hand\","
+ },
+ {
+  "key": "j_cloud_9",
+  "name": "Cloud 9",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "extra = 1",
+  "text": "\"Earn $#1# for each 9 in your full deck at end of round (Currently $#2#)\","
+ },
+ {
+  "key": "j_constellation",
+  "name": "Constellation",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 0.1, Xmult = 1",
+  "text": "\"This Joker gains X#1# Mult every time a Planet card is used (Currently X#2# Mult)\","
+ },
+ {
+  "key": "j_diet_cola",
+  "name": "Diet Cola",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "",
+  "text": "\"Sell this card to create a free #1#\","
+ },
+ {
+  "key": "j_dusk",
+  "name": "Dusk",
+  "rarity": 2,
+  "cost": 5,
+  "cfg": "extra = 1",
+  "text": "\"Retrigger all played cards in final hand of round\","
+ },
+ {
+  "key": "j_erosion",
+  "name": "Erosion",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 4",
+  "text": "\"+#1# Mult for each card below #3# in your full deck (Currently +#2# Mult)\","
+ },
+ {
+  "key": "j_fibonacci",
+  "name": "Fibonacci",
+  "rarity": 2,
+  "cost": 8,
+  "cfg": "extra = 8",
+  "text": "\"Each played Ace{"
+ },
+ {
+  "key": "j_flash",
+  "name": "Flash Card",
+  "rarity": 2,
+  "cost": 5,
+  "cfg": "extra = 2, mult = 0",
+  "text": "\"This Joker gains +#1# Mult per reroll in the shop (Currently +#2# Mult)\","
+ },
+ {
+  "key": "j_flower_pot",
+  "name": "Flower Pot",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 3",
+  "text": "\" X#1# Mult if poker hand contains a Diamond card, Club card, Heart card, and Spade card\","
+ },
+ {
+  "key": "j_four_fingers",
+  "name": "Four Fingers",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "",
+  "text": "\"All Flushes and Straights can be made with 4 cards\","
+ },
+ {
+  "key": "j_gift",
+  "name": "Gift Card",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 1",
+  "text": "\"Add $#1# of sell value to every Joker and Consumable card at end of round\","
+ },
+ {
+  "key": "j_glass",
+  "name": "Glass Joker",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 0.75, Xmult = 1",
+  "text": "\"This Joker gains X#1# Mult for every Glass Card that is destroyed (Currently X#2# Mult)\","
+ },
+ {
+  "key": "j_hack",
+  "name": "Hack",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 1",
+  "text": "\"Retrigger each played 2{"
+ },
+ {
+  "key": "j_hiker",
+  "name": "Hiker",
+  "rarity": 2,
+  "cost": 5,
+  "cfg": "extra = 5",
+  "text": "\"Every played card permanently gains +#1# Chips when scored\","
+ },
+ {
+  "key": "j_hologram",
+  "name": "Hologram",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "extra = 0.25, Xmult = 1",
+  "text": "\"This Joker gains X#1# Mult every time a playing card is added to your deck (Currently X#2# Mult)\","
+ },
+ {
+  "key": "j_stencil",
+  "name": "Joker Stencil",
+  "rarity": 2,
+  "cost": 8,
+  "cfg": "",
+  "text": "\" X1 Mult for each empty Joker slot Joker Stencil included (Currently X#1# )\","
+ },
+ {
+  "key": "j_loyalty_card",
+  "name": "Loyalty Card",
+  "rarity": 2,
+  "cost": 5,
+  "cfg": "extra = {Xmult = 4, every = 5, remaining = \"5 remaining\"",
+  "text": "\" X#1# Mult every #2# hands played #3#\","
+ },
+ {
+  "key": "j_luchador",
+  "name": "Luchador",
+  "rarity": 2,
+  "cost": 5,
+  "cfg": "",
+  "text": "\"Sell this card to disable the current Boss Blind\","
+ },
+ {
+  "key": "j_lucky_cat",
+  "name": "Lucky Cat",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "Xmult = 1, extra = 0.25",
+  "text": "\"This Joker gains X#1# Mult every time a Lucky card successfully triggers (Currently X#2# Mult)\","
+ },
+ {
+  "key": "j_madness",
+  "name": "Madness",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "extra = 0.5",
+  "text": "\"When Small Blind or Big Blind is selected, gain X#1# Mult and destroy a random Joker (Currently X#2# Mult)\","
+ },
+ {
+  "key": "j_marble",
+  "name": "Marble Joker",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 1",
+  "text": "\"Adds one Stone card to deck when Blind is selected\","
+ },
+ {
+  "key": "j_matador",
+  "name": "Matador",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "extra = 8",
+  "text": "\"Earn $#1# if played hand triggers the Boss Blind ability\","
+ },
+ {
+  "key": "j_merry_andy",
+  "name": "Merry Andy",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "d_size = 3, h_size = -1",
+  "text": "\"+#1# discards each round, #2# hand size\","
+ },
+ {
+  "key": "j_midas_mask",
+  "name": "Midas Mask",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "",
+  "text": "\"All played face cards become Gold cards when scored\","
+ },
+ {
+  "key": "j_mime",
+  "name": "Mime",
+  "rarity": 2,
+  "cost": 5,
+  "cfg": "extra = 1",
+  "text": "\"Retrigger all card held in hand abilities\","
+ },
+ {
+  "key": "j_mr_bones",
+  "name": "Mr. Bones",
+  "rarity": 2,
+  "cost": 5,
+  "cfg": "",
+  "text": "\"Prevents Death if chips scored are at least 25% of required chips self destructs\","
+ },
+ {
+  "key": "j_onyx_agate",
+  "name": "Onyx Agate",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "extra = 7",
+  "text": "\"Played cards with Club suit give +#1# Mult when scored\","
+ },
+ {
+  "key": "j_oops",
+  "name": "Oops! All 6s",
+  "rarity": 2,
+  "cost": 4,
+  "cfg": "",
+  "text": "\"Doubles all listed probabilities (ex: 1 in 3 -> 2 in 3)\","
+ },
+ {
+  "key": "j_pareidolia",
+  "name": "Pareidolia",
+  "rarity": 2,
+  "cost": 5,
+  "cfg": "",
+  "text": "\"All cards are considered face cards\","
+ },
+ {
+  "key": "j_ramen",
+  "name": "Ramen",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "Xmult = 2, extra = 0.01",
+  "text": "\" X#1# Mult, loses X#2# Mult per card discarded\","
+ },
+ {
+  "key": "j_rocket",
+  "name": "Rocket",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = {dollars = 1, increase = 2",
+  "text": "\"Earn $#1# at end of round Payout increases by $#2# when Boss Blind is defeated\","
+ },
+ {
+  "key": "j_rough_gem",
+  "name": "Rough Gem",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "extra = 1",
+  "text": "\"Played cards with Diamond suit earn $#1# when scored\","
+ },
+ {
+  "key": "j_satellite",
+  "name": "Satellite",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 1",
+  "text": "\"Earn $#1# at end of round per unique Planet card used this run (Currently $#2#)\","
+ },
+ {
+  "key": "j_seance",
+  "name": "Seance",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = {poker_hand = 'Straight Flush'",
+  "text": "\"If poker hand is a #1#{"
+ },
+ {
+  "key": "j_seeing_double",
+  "name": "Seeing Double",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 2",
+  "text": "\" X#1# Mult if played hand has a scoring Club card and a scoring card of any other suit\","
+ },
+ {
+  "key": "j_selzer",
+  "name": "Seltzer",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 10",
+  "text": "\"Retrigger all cards played for the next #1# hands\","
+ },
+ {
+  "key": "j_shortcut",
+  "name": "Shortcut",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "",
+  "text": "\"Allows Straights to be made with gaps of 1 rank (ex: 10 8 6 5 3)\","
+ },
+ {
+  "key": "j_ring_master",
+  "name": "Showman",
+  "rarity": 2,
+  "cost": 5,
+  "cfg": "",
+  "text": "\"Joker{"
+ },
+ {
+  "key": "j_sixth_sense",
+  "name": "Sixth Sense",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "",
+  "text": "\"If first hand of round is a single 6{"
+ },
+ {
+  "key": "j_smeared",
+  "name": "Smeared Joker",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "",
+  "text": "\"Hearts and Diamonds count as the same suit, Spades and Clubs count as the same suit\","
+ },
+ {
+  "key": "j_sock_and_buskin",
+  "name": "Sock and Buskin",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 1",
+  "text": "\"Retrigger all played face cards\","
+ },
+ {
+  "key": "j_space",
+  "name": "Space Joker",
+  "rarity": 2,
+  "cost": 5,
+  "cfg": "extra = 4",
+  "text": "\"#1# in #2# chance to upgrade level of played poker hand\","
+ },
+ {
+  "key": "j_trousers",
+  "name": "Spare Trousers",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 2",
+  "text": "\"This Joker gains +#1# Mult if played hand contains a #2# (Currently +#3# Mult)\","
+ },
+ {
+  "key": "j_steel_joker",
+  "name": "Steel Joker",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "extra = 0.2",
+  "text": "\"Gives X#1# Mult for each Steel Card in your full deck (Currently X#2# Mult)\","
+ },
+ {
+  "key": "j_stone",
+  "name": "Stone Joker",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 25",
+  "text": "\"Gives +#1# Chips for each Stone Card in your full deck (Currently +#2# Chips)\","
+ },
+ {
+  "key": "j_idol",
+  "name": "The Idol",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 2",
+  "text": "\"Each played #2# of #3# gives X#1# Mult when scored Card changes every round\","
+ },
+ {
+  "key": "j_throwback",
+  "name": "Throwback",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 0.25",
+  "text": "\" X#1# Mult for each Blind skipped this run (Currently X#2# Mult)\","
+ },
+ {
+  "key": "j_to_the_moon",
+  "name": "To the Moon",
+  "rarity": 2,
+  "cost": 5,
+  "cfg": "extra = 1",
+  "text": "\"Earn an extra $#1# of interest for every $5 you have at end of round\","
+ },
+ {
+  "key": "j_trading",
+  "name": "Trading Card",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = 3",
+  "text": "\"If first discard of round has only 1 card, destroy it and earn $#1#\","
+ },
+ {
+  "key": "j_troubadour",
+  "name": "Troubadour",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = {h_size = 2, h_plays = -1",
+  "text": "\"+#1# hand size, -#2# hand each round\","
+ },
+ {
+  "key": "j_turtle_bean",
+  "name": "Turtle Bean",
+  "rarity": 2,
+  "cost": 6,
+  "cfg": "extra = {h_size = 5, h_mod = 1",
+  "text": "\"+#1# hand size, reduces by #2# every round\","
+ },
+ {
+  "key": "j_vampire",
+  "name": "Vampire",
+  "rarity": 2,
+  "cost": 7,
+  "cfg": "extra = 0.1, Xmult = 1",
+  "text": "\"This Joker gains X#1# Mult per scoring Enhanced card played, removes card Enhancement (Currently X#2# Mult)\","
+ },
+ {
+  "key": "j_ancient",
+  "name": "Ancient Joker",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "extra = 1.5",
+  "text": "\"Each played card with #2# suit gives X#1# Mult when scored, suit changes at end of round\","
+ },
+ {
+  "key": "j_baron",
+  "name": "Baron",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "extra = 1.5",
+  "text": "\"Each King held in hand gives X#1# Mult\","
+ },
+ {
+  "key": "j_baseball",
+  "name": "Baseball Card",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "extra = 1.5",
+  "text": "\"Uncommon Jokers each give X#1# Mult\","
+ },
+ {
+  "key": "j_blueprint",
+  "name": "Blueprint",
+  "rarity": 3,
+  "cost": 10,
+  "cfg": "",
+  "text": "\"Copies ability of Joker to the right\","
+ },
+ {
+  "key": "j_brainstorm",
+  "name": "Brainstorm",
+  "rarity": 3,
+  "cost": 10,
+  "cfg": "",
+  "text": "\"Copies the ability of leftmost Joker\","
+ },
+ {
+  "key": "j_burnt",
+  "name": "Burnt Joker",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "h_size = 0, extra = 4",
+  "text": "\"Upgrade the level of the first discarded poker hand each round\","
+ },
+ {
+  "key": "j_campfire",
+  "name": "Campfire",
+  "rarity": 3,
+  "cost": 9,
+  "cfg": "extra = 0.25",
+  "text": "\"This Joker gains X#1# Mult for each card sold{"
+ },
+ {
+  "key": "j_dna",
+  "name": "DNA",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "",
+  "text": "\"If first hand of round has only 1 card, add a permanent copy to deck and draw it to hand\","
+ },
+ {
+  "key": "j_drivers_license",
+  "name": "Driver's License",
+  "rarity": 3,
+  "cost": 7,
+  "cfg": "extra = 3",
+  "text": "\" X#1# Mult if you have at least 16 Enhanced cards in your full deck (Currently #2#)\","
+ },
+ {
+  "key": "j_hit_the_road",
+  "name": "Hit the Road",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "extra = 0.5",
+  "text": "\"This Joker gains X#1# Mult for every Jack discarded this round (Currently X#2# Mult)\","
+ },
+ {
+  "key": "j_invisible",
+  "name": "Invisible Joker",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "extra = 2",
+  "text": "\"After #1# rounds, sell this card to Duplicate a random Joker (Currently #2#/#1#)\","
+ },
+ {
+  "key": "j_obelisk",
+  "name": "Obelisk",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "extra = 0.2, Xmult = 1",
+  "text": "\"This Joker gains X#1# Mult per consecutive hand played without playing your most played poker hand (Currently X#2# Mult)\","
+ },
+ {
+  "key": "j_stuntman",
+  "name": "Stuntman",
+  "rarity": 3,
+  "cost": 7,
+  "cfg": "extra = {h_size = 2, chip_mod = 250",
+  "text": "\"+#1# Chips, -#2# hand size\","
+ },
+ {
+  "key": "j_duo",
+  "name": "The Duo",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "Xmult = 2, type = 'Pair'",
+  "text": "\" X#1# Mult if played hand contains a #2#\","
+ },
+ {
+  "key": "j_family",
+  "name": "The Family",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "Xmult = 4, type = 'Four of a Kind'",
+  "text": "\" X#1# Mult if played hand contains a #2#\","
+ },
+ {
+  "key": "j_order",
+  "name": "The Order",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "Xmult = 3, type = 'Straight'",
+  "text": "\" X#1# Mult if played hand contains a #2#\","
+ },
+ {
+  "key": "j_tribe",
+  "name": "The Tribe",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "Xmult = 2, type = 'Flush'",
+  "text": "\" X#1# Mult if played hand contains a #2#\","
+ },
+ {
+  "key": "j_trio",
+  "name": "The Trio",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "Xmult = 3, type = 'Three of a Kind'",
+  "text": "\" X#1# Mult if played hand contains a #2#\","
+ },
+ {
+  "key": "j_vagabond",
+  "name": "Vagabond",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "extra = 4",
+  "text": "\"Create a Tarot card if hand is played with $#1# or less\","
+ },
+ {
+  "key": "j_wee",
+  "name": "Wee Joker",
+  "rarity": 3,
+  "cost": 8,
+  "cfg": "extra = {chips = 0, chip_mod = 8",
+  "text": "\"This Joker gains +#2# Chips when each played 2 is scored (Currently +#1# Chips)\","
+ },
+ {
+  "key": "j_caino",
+  "name": "Caino",
+  "rarity": 4,
+  "cost": 20,
+  "cfg": "extra = 1",
+  "text": "\"This Joker gains X#1# Mult when a face card is destroyed (Currently X#2# Mult)\","
+ },
+ {
+  "key": "j_chicot",
+  "name": "Chicot",
+  "rarity": 4,
+  "cost": 20,
+  "cfg": "",
+  "text": "\"Disables effect of every Boss Blind\","
+ },
+ {
+  "key": "j_perkeo",
+  "name": "Perkeo",
+  "rarity": 4,
+  "cost": 20,
+  "cfg": "",
+  "text": "\"Creates a Negative copy of 1 random consumable card in your possession at the end of the shop\","
+ },
+ {
+  "key": "j_triboulet",
+  "name": "Triboulet",
+  "rarity": 4,
+  "cost": 20,
+  "cfg": "extra = 2",
+  "text": "\"Played Kings and Queens each give X#1# Mult when scored\","
+ },
+ {
+  "key": "j_yorick",
+  "name": "Yorick",
+  "rarity": 4,
+  "cost": 20,
+  "cfg": "extra = {xmult = 1, discards = 23",
+  "text": "\"This Joker gains X#1# Mult every #2# [#3#] cards discarded (Currently X#4# Mult)\","
+ }
+]

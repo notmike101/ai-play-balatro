@@ -10,7 +10,7 @@ export async function runPolicy() {
     const { chooseStrategy, famBiasMap, gateAllows } = await import('../lib/strategy.mjs');
     const { planTargeted } = await import('../lib/tarot.mjs');
     const { scorePackOffer } = await import('../lib/pack.mjs');
-    const { JUNK_JOKER } = await import('../lib/jokers.mjs');
+    const { JUNK_JOKER, jokerTier } = await import('../lib/jokers.mjs');
 
     /**
      * One tarot consumable fixture for the plan selftest.
@@ -176,6 +176,15 @@ export async function runPolicy() {
 
     if (!JUNK_JOKER.test('Madness') || JUNK_JOKER.test('Madder Hall')) {
         throw new Error('Madness must be junk (ate Walkie Talkie + Blue Joker inside two blinds, run 1793029490 died 544 short of small) and its anchored-mad fix must not sweep Madder Hall');
+    }
+
+    /* game-truth tiering (out/joker_truth.json via tools/extract_jokers.mjs): blob configs */
+    if (JUNK_JOKER.test('Business Card') || jokerTier('Business Card') !== 2 || jokerTier('The Tribe') !== 2 || jokerTier('Mail-In Rebate') !== 2 || jokerTier('Ride the Bus') !== 2) {
+        throw new Error('truth-tiered jokers (11-04 extraction) must rank STRONG=2 and Business Card must not be junk');
+    }
+
+    if (jokerTier('Half Joker') !== 1 || !JUNK_JOKER.test('Half Joker') || jokerTier('Nuthatcher') !== 1) {
+        throw new Error('half joker stays junk-tiered filler and unmapped names stay tier 1');
     }
 
     if (scorePackOffer({ kind: 'planet', name: 'Neptune' }, { fam: null, needFam: null, levels: { 'Straight Flush': 1 }, played: { 'Straight Flush': 0 } }) !== 3) {
