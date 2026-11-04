@@ -599,18 +599,12 @@ async function main() {
                                     await act({ epoch: (b ? await observe() : o3).epoch, action: 'activate', target: backs[b].id });
                                 }
                             } else if ((o2.controls || []).some((x) => x.kind === 'change_tab')) {
-                                /* Settings Game tab: option ROWS have no labels through the
-                                   bridge (arrows are '<'/'>'), so the boolean rows are blind
-                                   toggle_buttons. Reduced Motion + Screen Shake live on the
-                                   GAME tab in this build family; the other toggles sit under
-                                   Audio/Renderer (unreachable = we never switch tabs). Flip
-                                   both game-tab booleans ONCE: RM-on is the speed win; a
-                                   High-Contrast misfire is cosmetic-only. Cadence check on
-                                   decide gaps decides keep-vs-revert (flip back next boot). */
-                                for (const t of (o2.controls || []).filter((x) => x.kind === 'toggle_button').slice(0, 2)) {
-                                    toggled.push((await act({ epoch: o2.epoch, action: 'activate', target: t.id })).ok ?? false);
-                                }
-
+                                /* probe FROZEN log-only 11-05: Game-tab option rows are LABEL-LESS
+                                   through the bridge (cycles show '<'/'>', booleans just
+                                   'toggle_button'). One blind flip was made (button:9 ok; :10 missed
+                                   on a stale epoch) and run cadence did NOT change (the 13/h dip was
+                                   ops-restart churn, driver verified healthy mid-shop) - no more
+                                   flips: per-boot toggling would OSCILLATE the persisted save. */
                                 const o4 = await observe();
                                 const bk = (o4.controls || []).find((x) => x.kind === 'options' || /^back/i.test(String(x.label ?? '')));
 
