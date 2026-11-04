@@ -6,7 +6,8 @@ import { C, tabHC, kSc, obsM0, mysticOff, madCtx } from './support.mjs';
  */
 export async function runHandFamilies() {
     const { evalHand } = await import('../lib/eval.mjs');
-    const { predict, calibrate, knownLayer, ctxOf, allSubsetEvals } = await import('../lib/play.mjs');
+    const { predict, calibrate, ctxOf, allSubsetEvals } = await import('../lib/play.mjs');
+    const { knownLayer } = await import('../lib/jmodel.mjs');
     const { jokerFactor } = await import('../lib/knowledge.mjs');
 
     /**
