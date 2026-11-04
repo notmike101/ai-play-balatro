@@ -46,23 +46,34 @@ CREATE VIEW IF NOT EXISTS runmax AS SELECT rid, MAX(ante) m, MAX(CASE WHEN won=1
 
 try {
     db.exec('ALTER TABLE rundigest ADD COLUMN gap INT');
-} catch { /* present */ }
+} catch {
+    /* present */
+}
 
 try {
     db.exec('ALTER TABLE rundigest ADD COLUMN r4 REAL');
-} catch { /* present */ }
+} catch {
+    /* present */
+}
 
 try {
     db.exec('ALTER TABLE shopdump ADD COLUMN hb TEXT');
-} catch { /* present */ }
+} catch {
+    /* present */
+}
 
 /**
+ * Byte offset of the last consumed log.jsonl position (resume cursor).
  *
+ * @returns {number} stored offset, 0 on first import
  */
 const getOff = () => Number(db.prepare('SELECT v FROM meta WHERE k=\'last_off\'').get()?.v ?? 0);
 /**
+ * Persists the log.jsonl read cursor into the meta table.
  *
- * @param v
+ * @param {number} v - byte offset to remember
+ *
+ * @returns {object} node:sqlite run result (ignored by callers)
  */
 const setOff = (v) => db.prepare('INSERT INTO meta(k,v) VALUES(\'last_off\',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v').run(String(v));
 
@@ -71,7 +82,9 @@ let head = '';
 
 try {
     head = execSync(`git -C "${DIR}" rev-parse HEAD`, { encoding: 'utf8' }).trim();
-} catch { /* not a repo */ }
+} catch {
+    /* not a repo */
+}
 
 if (head) {
     /* stamp the last 25 commits every import (one cheap git call, INSERT OR IGNORE)
@@ -83,7 +96,9 @@ if (head) {
 
     try {
         log = execSync('git log -25 "--format=%H %ct"', { encoding: 'utf8', cwd: DIR });
-    } catch { /* not a repo */ }
+    } catch {
+    /* not a repo */
+    }
 
     for (const l of log.trim().split('\n').filter(Boolean)) {
         const [sha, ct] = l.split(' ');
@@ -100,19 +115,28 @@ if (start > size) {
 }
 
 /**
+ * JSON-encodes a value for TEXT columns; absent stays NULL.
  *
- * @param v
+ * @param {unknown} v - value to encode
+ *
+ * @returns {string|null} JSON text or null
  */
 const J = (v) => (v === undefined || v === null ? null : JSON.stringify(v));
 /**
+ * Booleans are stored as 0/1 in SQLite columns.
  *
- * @param v
+ * @param {unknown} v - truthiness probe
+ *
+ * @returns {number} 1 when truthy else 0
  */
 const B = (v) => (v ? 1 : 0);
 /**
+ * Builds a positional INSERT prepared statement for a table + column list.
  *
- * @param k
- * @param cols
+ * @param {string} k - table name
+ * @param {string} cols - comma-separated column names
+ *
+ * @returns {object} node:sqlite prepared statement
  */
 const Q = (k, cols) => db.prepare(`INSERT INTO ${k} (${cols}) VALUES (${Array.from({ length: cols.split(',').length }, () => '?').join(',')})`);
 const ins = {

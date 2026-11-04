@@ -14,13 +14,50 @@ const db = new DatabaseSync(path.join(DIR, 'out', 'runs.db'), { readOnly: true }
    Prints the standing pre-registered table for the window starting at <headSha>'s deploy
    (or its ts if it is not in the deploy table) vs the window that started at <baseSha>
    (default: the deploy before head). Replaces the per-wake one-liner censuses. */
+/**
+ * Percentage render for verdict lines; 0-sample cohorts print NaN.
+ *
+ * @param {number} k - count in the subset
+ * @param {number} m2 - cohort size (denominator)
+ *
+ * @returns {string} rounded percent text
+ */
+const pct = (k, m2) => `${(m2 ? (100 * k / m2) : Number.NaN).toFixed(0)}%`;
+
+/**
+ * Formats the standard verdict metric line for one cohort of rundigest rows.
+ *
+ * @param {object[]} rs - complete digest rows (ante a, lvlMap lm, lvlAct la, celestial c, jokers j, gap g)
+ *
+ * @returns {string} n / avgA / a12 / spread / j5 / a5+ / starved / near-gap line
+ */
+function stat(rs) {
+    const n = rs.length;
+
+    if (!n) {
+        return 'n=0';
+    }
+
+    const sup = rs.filter((r) => r.la > 0);
+
+    return `n=${n} avgA=${(rs.reduce((s, r) => s + r.a, 0) / n).toFixed(2)}`
+        + ` a12=${pct(rs.filter((r) => r.a <= 2).length, n)}(${pct(sup.filter((r) => r.a <= 2).length, sup.length)} supplied)`
+        + ` spread=${pct(rs.filter((r) => ((r.lm || '').match(/:/g) || []).length >= 3).length, n)}`
+        + ` j5=${pct(rs.filter((r) => r.j >= 5).length, n)} a5+=${pct(rs.filter((r) => r.a >= 5).length, n)}`
+        + ` starved=${pct(rs.filter((r) => !r.c && !r.la).length, n)}`
+        + ` near=[${rs.filter((r) => r.g < 1_000).map((r) => r.g).sort((x, y) => x - y).slice(0, 10).join(',')}]`;
+}
+
 const argv = process.argv.slice(2);
 
 if (argv[0] === '--verdict') {
     const dep = db.prepare('SELECT sha, ts FROM deploy ORDER BY ts').all();
     /**
+     * Locate a deploy stamp by full or abbreviated sha.
      *
-     * @param s
+     * @param {string} s - sha or unique-ish prefix
+     *
+     * @returns {object|undefined} {sha, ts} row or undefined
      */
     const find = (s) => dep.find((d) => d.sha === s || d.sha.startsWith(s));
     const head = find(argv[1]);
@@ -36,9 +73,12 @@ if (argv[0] === '--verdict') {
        policy-deploy boundary instead. */
     const hi = argv.includes('--until') ? Number(argv[argv.indexOf('--until') + 1]) : undefined;
     /**
+     * True when two deploy rows name the same commit (7-char prefix compare).
      *
-     * @param d
-     * @param e
+     * @param {object} d - deploy row
+     * @param {object} e - deploy row
+     *
+     * @returns {boolean} same short sha
      */
     const same = (d, e) => d.sha.slice(0, 7) === e.sha.slice(0, 7);
     let base = argv.includes('--base')
@@ -52,33 +92,6 @@ if (argv[0] === '--verdict') {
     }
 
     const rows = db.prepare(`SELECT ante a,lvlMap lm,lvlAct la,celestial c,jokers j,gap g,focal f,focalLvl fl FROM rundigest WHERE t>=? AND complete=1${hi ? ' AND t<?' : ''}`).all(head.ts, ...(hi ? [hi] : []));
-
-    /**
-     *
-     * @param rs
-     */
-    function stat(rs) {
-        const n = rs.length;
-
-        if (!n) {
-            return 'n=0';
-        }
-
-        const sup = rs.filter((r) => r.la > 0);
-        /**
-         *
-         * @param k
-         * @param m
-         */
-        const pct = (k, m) => `${(m ? (100 * k / m) : Number.NaN).toFixed(0)}%`;
-
-        return `n=${n} avgA=${(rs.reduce((s, r) => s + r.a, 0) / n).toFixed(2)}`
-            + ` a12=${pct(rs.filter((r) => r.a <= 2).length, n)}(${pct(sup.filter((r) => r.a <= 2).length, sup.length)} supplied)`
-            + ` spread=${pct(rs.filter((r) => ((r.lm || '').match(/:/g) || []).length >= 3).length, n)}`
-            + ` j5=${pct(rs.filter((r) => r.j >= 5).length, n)} a5+=${pct(rs.filter((r) => r.a >= 5).length, n)}`
-            + ` starved=${pct(rs.filter((r) => !r.c && !r.la).length, n)}`
-            + ` near=[${rs.filter((r) => r.g < 1_000).map((r) => r.g).sort((x, y) => x - y).slice(0, 10).join(',')}]`;
-    }
 
     console.log(`HEAD ${head.sha.slice(0, 7)}: ${stat(rows)}`);
 

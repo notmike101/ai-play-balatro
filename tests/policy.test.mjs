@@ -2,6 +2,29 @@
 import { tHand } from './support.mjs';
 
 /**
+ * Fixture selectable card for dnaFarmPick assertions (fixed id; the key
+ * field carries the enhancement tag the deck engine shows).
+ *
+ * @param {string} rank - card rank label
+ * @param {string} suit - suit label
+ * @param {string} key - card key incl. m_* enhancement tag
+ *
+ * @returns {object} farm-test card
+ */
+const fc = (rank, suit, key) => ({ id: 9, rank, suit, actions: ['select'], key });
+
+/**
+ * Fixture selectable card for draw-EV discard assertions.
+ *
+ * @param {number} id - distinct card id
+ * @param {string} rank - rank label
+ * @param {string} suit - suit label
+ *
+ * @returns {object} discard-test card
+ */
+const dc = (id, rank, suit) => ({ id, rank, suit, actions: ['select'] });
+
+/**
  * Tarot plans, gate, pack scoring, planet targeting assertions; throws on first failure.
  */
 export async function runPolicy() {
@@ -246,14 +269,6 @@ export async function runPolicy() {
     /* DNA farm target (deck-engine rule) */
     const { dnaFarmPick } = await import('../lib/play.mjs');
 
-    /**
-     *
-     * @param rank
-     * @param suit
-     * @param key
-     */
-    const fc = (rank, suit, key) => ({ id: 9, rank, suit, actions: ['select'], key });
-
     const farmHand = [fc('K', 'Hearts', 'c_base'), fc('A', 'Spades', 'm_mult'), fc('4', 'Clubs', 'm_steel')];
 
     const fp = dnaFarmPick(farmHand, 2, 2.0);
@@ -287,14 +302,6 @@ export async function runPolicy() {
     /* COHORT-14 draw-EV discards (user 11-01): a 4-flush whose suit still lives in the
        remaining deck must beat a made Pair's static value when discards remain */
     const { chooseDiscard, drawEV } = await import('../lib/play.mjs');
-
-    /**
-     *
-     * @param id
-     * @param rank
-     * @param suit
-     */
-    const dc = (id, rank, suit) => ({ id, rank, suit, actions: ['select'] });
 
     const dHand = [dc(1, '9', 'Spades'), dc(2, '8', 'Spades'), dc(3, '5', 'Spades'), dc(4, '3', 'Spades'), dc(5, 'King', 'Clubs'), dc(6, 'King', 'Diamonds'), dc(7, '7', 'Hearts')];
     const rich = {
@@ -454,9 +461,12 @@ export async function runPolicy() {
     const { skipAllowed } = await import('../lib/blind.mjs');
 
     /**
+     * skipAllowed with canSkip pinned true - band tests pin stake/ante rules only.
      *
-     * @param stake
-     * @param ante
+     * @param {number} stake - stake tier
+     * @param {number} ante - ante number
+     *
+     * @returns {boolean} skip allowed for that band
      */
     const sk = (stake, ante) => skipAllowed(stake, ante, true);
 
