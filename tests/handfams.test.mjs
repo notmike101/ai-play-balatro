@@ -176,4 +176,36 @@ export async function runHandFamilies() {
     if (predict(tabHC, 'High Card', kSc, madCtx).score !== mysticOff * 11) {
         throw new Error(`mad joker t_mult must be exact ${predict(tabHC, 'High Card', kSc, madCtx).score}`);
     }
+
+    /* SUIT SYNERGY jokers (blob TRUTH 11-04): Arrowhead +50c/spade, Onyx Agate +7m/club,
+       Bloodstone 1-in-2 X1.5/heart, Smeared merges H≡D and S≡C (this build's text). */
+    const arrowK = knownLayer('Pair', [C('2', 'Spades'), C('5', 'Spades'), C('9', 'Hearts')], ctxOf({ jokers: [{ name: 'Arrowhead' }, { name: 'Arrowhead' }], run: { discards_left: 1 }, hands: [] }));
+
+    if (arrowK.cflat !== 200) {
+        throw new Error(`arrowhead must add extra(50)*spades*copies=200, got ${arrowK.cflat}`);
+    }
+
+    const onyxK = knownLayer('Pair', [C('3', 'Clubs'), C('4', 'Clubs'), C('5', 'Clubs')], ctxOf({ jokers: [{ name: 'Onyx Agate' }], run: { discards_left: 1 }, hands: [] }));
+
+    if (onyxK.flat !== 21) {
+        throw new Error(`onyx agate must add 7*clubs=21 mult, got ${onyxK.flat}`);
+    }
+
+    const smearK = knownLayer('Pair', [C('3', 'Clubs'), C('4', 'Spades')], ctxOf({ jokers: [{ name: 'Arrowhead' }, { name: 'Smeared Joker' }], run: { discards_left: 1 }, hands: [] }));
+
+    if (smearK.cflat !== 100) {
+        throw new Error(`smeared S==C must count the club as a spade (2x50), got ${smearK.cflat}`);
+    }
+
+    const bloodK = knownLayer('Pair', [C('3', 'Hearts'), C('4', 'Hearts')], ctxOf({ jokers: [{ name: 'Bloodstone' }], run: { discards_left: 1 }, hands: [] }));
+
+    if (Math.abs(bloodK.xm - 1.5625) > 1e-9 || bloodK.unc !== true) {
+        throw new Error(`bloodstone must EV 1.25^hearts and flag the lottery, got ${bloodK.xm}/${bloodK.unc}`);
+    }
+
+    const debuffK = knownLayer('Pair', [{ rank: '2', suit: 'Spades', debuffed: true }], ctxOf({ jokers: [{ name: 'Arrowhead' }], run: { discards_left: 1 }, hands: [] }));
+
+    if (debuffK.cflat !== 0) {
+        throw new Error(`debuffed cards must not fire suit synergies, got ${debuffK.cflat}`);
+    }
 }
