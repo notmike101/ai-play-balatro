@@ -72,6 +72,9 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
 
 ## Log forensics (out/log.jsonl, out/digests.jsonl)
 - `node tools/dbimport.mjs` maintains `out/runs.db` (node:sqlite, derived - delete freely): INCREMENTAL
+  SCHEMA GOTCHA: rundigest's clock column is `t` (digest rows carry `t`); every other table uses `ts`.
+  Unknown event types (incl `curve`) land in `other(ts,rid,e,body)` with the row JSON in body.
+  GitHub pushes from the bot hit TRANSIENT 403s occasionally - plain retry usually lands.
   (byte-offset in meta table; full rebuild if the log truncates) and stamps `deploy` rows = per-commit
   cohort epochs; `node tools/cohort.mjs [N]` prints the last N epochs' n/avgA/hist/L1-at-death/flip rows.
   One table per hot event (decide/shopdump/shopdone/packdump/gamefam/blind/rundigest/..., `other`
@@ -112,7 +115,9 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   (take-vs-nf: focal-on-shelf misses are the ONLY real targeting signal; fillers are supply-forced
   by design), `planleak`, `depthan`, `enhcens`, `intcensus2`, `jkgap`, `bosscal`, `vp` (click-px
   mapper), `ordplay` (order replay harness), `route` (shadow clear-P contra census:
-  `node tools/route.mjs <since-ts>` prints per-band disagreement/tie rates). `tmp/` (gitignored) keeps ONLY ops scaffolding:
+  `node tools/route.mjs <since-ts>` prints per-band disagreement/tie rates), `curve`
+  (`node tools/curve.mjs <since> [until]` = COHORT-19b verdict: catchup fire-rate from e='curve'
+  mechanism rows, a4 pre-boss/boss/pass attrition vs 26/33/36 corpus baseline, avgA). `tmp/` (gitignored) keeps ONLY ops scaffolding:
   `loopdrv.sh`, `pslist.ps1`, `psloopkill.ps1`, `click`, `startws`.
 
 ## Settled build facts (verified; do not re-litigate)
