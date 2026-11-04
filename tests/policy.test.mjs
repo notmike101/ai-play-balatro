@@ -417,6 +417,19 @@ export async function runPolicy() {
         throw new Error('Fool (repeat last Tarot/Planet) must plan when consumable space is free');
     }
 
+    const spObs = {
+        consumables: [{ id: 41, key: 'c_spectral_wraith', name: 'Wraith', kind: 'Spectral', actions: ['use', 'sell'] }],
+        area: { consumable_slots: 2 },
+    };
+
+    if (!planConsumables(spObs, null, { phase: 'shop', money: 8, jkCount: 4 }).some((p) => p.target === 41)) {
+        throw new Error('Wraith must plan with joker room open');
+    }
+
+    if (planConsumables(spObs, null, { phase: 'shop', money: 8, jkCount: 5 }).length !== 0) {
+        throw new Error('Wraith must not plan into a full joker area');
+    }
+
     if (planConsumables(tpObs, null, { phase: 'blind_select', money: 40, jkCount: 5 }).some((p) => p.target === 33)) {
         throw new Error('Judgement must NOT plan when joker area is full (Must have room - build truth)');
     }

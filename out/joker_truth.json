@@ -1378,5 +1378,151 @@
    "cfg": "suit_conv = 'Spades', max_highlighted = 3",
    "text": "\"Converts up to #1# selected cards to #2#\","
   }
+ ],
+ "spectrals": [
+  {
+   "key": "c_familiar",
+   "name": "Familiar",
+   "effect": "",
+   "cost": 4,
+   "cfg": "remove_card = true, extra = 3",
+   "text": "\"Destroy 1 random card in your hand, add #1# random Enhanced face cards to your hand\","
+  },
+  {
+   "key": "c_grim",
+   "name": "Grim",
+   "effect": "",
+   "cost": 4,
+   "cfg": "remove_card = true, extra = 2",
+   "text": "\"Destroy 1 random card in your hand, add #1# random Enhanced Aces to your hand\","
+  },
+  {
+   "key": "c_incantation",
+   "name": "Incantation",
+   "effect": "",
+   "cost": 4,
+   "cfg": "remove_card = true, extra = 4",
+   "text": "\"Destroy 1 random card in your hand, add #1# random Enhanced numbered cards to your hand\","
+  },
+  {
+   "key": "c_talisman",
+   "name": "Talisman",
+   "effect": "",
+   "cost": 4,
+   "cfg": "extra = 'Gold', max_highlighted = 1",
+   "text": "\"Add a Gold Seal to 1 selected card in your hand\","
+  },
+  {
+   "key": "c_aura",
+   "name": "Aura",
+   "effect": "",
+   "cost": 4,
+   "cfg": "",
+   "text": "\"Add Foil{"
+  },
+  {
+   "key": "c_wraith",
+   "name": "Wraith",
+   "effect": "",
+   "cost": 4,
+   "cfg": "",
+   "text": "\"Creates a random Rare Joker{"
+  },
+  {
+   "key": "c_sigil",
+   "name": "Sigil",
+   "effect": "",
+   "cost": 4,
+   "cfg": "",
+   "text": "\"Converts all cards in hand to a single random suit\","
+  },
+  {
+   "key": "c_ouija",
+   "name": "Ouija",
+   "effect": "",
+   "cost": 4,
+   "cfg": "",
+   "text": "\"Converts all cards in hand to a single random rank -1 hand size\","
+  },
+  {
+   "key": "c_ectoplasm",
+   "name": "Ectoplasm",
+   "effect": "",
+   "cost": 4,
+   "cfg": "",
+   "text": "\"Add Negative to a random Joker, -#1# hand size\","
+  },
+  {
+   "key": "c_immolate",
+   "name": "Immolate",
+   "effect": "",
+   "cost": 4,
+   "cfg": "remove_card = true, extra = {destroy = 5, dollars = 20",
+   "text": "\"Destroys #1# random cards in hand, gain $#2#\","
+  },
+  {
+   "key": "c_ankh",
+   "name": "Ankh",
+   "effect": "",
+   "cost": 4,
+   "cfg": "extra = 2",
+   "text": "\"Create a copy of a random Joker{"
+  },
+  {
+   "key": "c_deja_vu",
+   "name": "Deja Vu",
+   "effect": "",
+   "cost": 4,
+   "cfg": "extra = 'Red', max_highlighted = 1",
+   "text": "\"Add a Red Seal to 1 selected card in your hand\","
+  },
+  {
+   "key": "c_hex",
+   "name": "Hex",
+   "effect": "",
+   "cost": 4,
+   "cfg": "extra = 2",
+   "text": "\"Add Polychrome to a random Joker{"
+  },
+  {
+   "key": "c_trance",
+   "name": "Trance",
+   "effect": "",
+   "cost": 4,
+   "cfg": "extra = 'Blue', max_highlighted = 1",
+   "text": "\"Add a Blue Seal to 1 selected card in your hand\","
+  },
+  {
+   "key": "c_medium",
+   "name": "Medium",
+   "effect": "",
+   "cost": 4,
+   "cfg": "extra = 'Purple', max_highlighted = 1",
+   "text": "\"Add a Purple Seal to 1 selected card in your hand\","
+  },
+  {
+   "key": "c_cryptid",
+   "name": "Cryptid",
+   "effect": "",
+   "cost": 4,
+   "cfg": "extra = 2, max_highlighted = 1",
+   "text": "\"Create #1# copies of 1 selected card in your hand\","
+  },
+  {
+   "key": "c_soul",
+   "name": "The Soul",
+   "effect": "Unlocker",
+   "cost": 4,
+   "cfg": "",
+   "text": "\"Creates a Legendary Joker (Must have room)\","
+  },
+  {
+   "key": "c_black_hole",
+   "name": "Black Hole",
+   "effect": "",
+   "cost": 4,
+   "cfg": "",
+   "text": "\"Upgrade every poker hand by 1 level\","
+  }
  ]
 }

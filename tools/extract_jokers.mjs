@@ -47,6 +47,7 @@ out.sort((a, b) => a.rarity - b.rarity || a.name.localeCompare(b.name));
 /* tarot table: blob20 c_* configs carry set="Tarot" + effect + config values
    (same no-space key form - regex allows both), text from blob23 c_* defs. */
 const tarots = [];
+const spectrals = [];
 const tseen = new Set();
 for (const m of cfgRaw.matchAll(/(c_[a-z0-9_]+)\s*=\s*\{([^]*?)config\s*=\s*\{([^}]*)\}/g)) {
     const key = m[1];
@@ -54,10 +55,12 @@ for (const m of cfgRaw.matchAll(/(c_[a-z0-9_]+)\s*=\s*\{([^]*?)config\s*=\s*\{([
         continue;
     }
     tseen.add(key);
-    if (!/set\s*=\s*"Tarot"/.test(m[2])) {
+    const spec = /set\s*=\s*"Spectral"/.test(m[2]);
+
+    if (!/set\s*=\s*"Tarot"/.test(m[2]) && !spec) {
         continue;
     }
-    tarots.push({
+    (spec ? spectrals : tarots).push({
         key,
         name: (m[2].match(/name\s*=\s*"([^"]+)"/) || [])[1] || (texts.get(key) || {}).name || key,
         effect: (m[2].match(/effect\s*=\s*"([^"]*)"/) || [])[1] || '',
@@ -68,7 +71,7 @@ for (const m of cfgRaw.matchAll(/(c_[a-z0-9_]+)\s*=\s*\{([^]*?)config\s*=\s*\{([
 }
 
 tarots.sort((a, b) => a.name.localeCompare(b.name));
-fs.writeFileSync('out/joker_truth.json', JSON.stringify({ jokers: out, tarots }, null, 1));
+fs.writeFileSync('out/joker_truth.json', JSON.stringify({ jokers: out, tarots, spectrals }, null, 1));
 
 const mystic = out.find((x) => x.key === 'j_mystic_summit');
 if (!mystic || !mystic.text.includes('discards') || !mystic.cfg.includes('mult = 15')) {
@@ -78,3 +81,4 @@ if (!mystic || !mystic.text.includes('discards') || !mystic.cfg.includes('mult =
 const noText = out.filter((x) => !x.text).map((x) => x.key);
 console.log('jokers:', out.length, '| named:', out.filter((x) => x.name !== x.key).length, '| texted:', out.filter((x) => x.text).length, '| no-text:', noText.join(',') || '-');
 console.log('tarots:', tarots.length, '| texted:', tarots.filter((x) => x.text).length, '| names:', tarots.map((x) => x.name).join(', '));
+console.log('spectrals:', spectrals.length, '| texted:', spectrals.filter((x) => x.text).length, '| names:', spectrals.map((x) => x.name).join(', '));
