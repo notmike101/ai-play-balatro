@@ -92,38 +92,32 @@ function eras(k) {
 }
 
 /**
- * Planet use-on-sight proof since the newest code-live boot. Uses flow through
- * TWO channels: shop `planet:X` actions = buy_and_use (applies at purchase, NO
- * consuse row) and blind-prep use-on-sight = e:'planet' rows (playturn). Counting
- * consuse names was vacuous - it returned 0 in every era since the split.
+ * Planet use-on-sight proof since the newest code-live boot: e:'planet' rows
+ * (blind-prep consumption = the real use). Shop `planet:X` actions are BUY, not
+ * use (a4 runs with planet: buys show uses:0), and legacy log rows carry NO ts -
+ * `undefined < since` is false, so ALWAYS filter with `!(ts >= since)`.
  *
- * @returns {void} prints the counts
+ * @returns {void} prints the count
  */
 function planetProof() {
     const ts = liveAt((codeEras()[0] || {}).ts || 0);
-    let prep = 0, shop = 0;
+    let u = 0;
 
     for (const l of LOG_LINES) {
-        if (!l.includes('planet')) {
+        if (!l.includes('"planet"')) {
             continue;
         }
 
         try {
             const r = JSON.parse(l);
 
-            if (r.ts < ts) {
-                continue;
-            }
-
-            if (r.e === 'planet') {
-                prep++;
-            } else if (r.e === 'shopdone' && Array.isArray(r.actions)) {
-                shop += r.actions.filter((a) => /^planet:/.test(a)).length;
+            if (r.e === 'planet' && r.ts >= ts) {
+                u++;
             }
         } catch { /* skip malformed */ }
     }
 
-    console.log(`planet-uses since newest deploy: prep=${prep} shop-inline=${shop}`);
+    console.log(`planet-uses since newest deploy: ${u}`);
 }
 
 /**
