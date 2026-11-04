@@ -28,6 +28,7 @@ for await (const line of rl) {
     }
 
     const band = j.ante >= 4 ? 'a4+' : 'a2-3';
+
     (t[band] ??= { n: 0, contra: 0, miss: 0, sum: 0 });
     t[band].n++;
     const other = j.a === 'play' ? j.pDisc : j.pNow;
@@ -43,6 +44,7 @@ for await (const line of rl) {
 }
 
 console.log('band      n     contra%  avg-ΔP-when-contra  tie%');
+
 for (const [k, v] of Object.entries(t)) {
     console.log(k.padEnd(9), String(v.n).padEnd(6), (100 * v.contra / v.n).toFixed(1).padStart(6), v.contra ? (v.sum / v.contra).toFixed(2).padStart(20) : '-', (100 * v.miss / v.n).toFixed(0).padStart(8));
 }

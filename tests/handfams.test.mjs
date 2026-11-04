@@ -51,6 +51,7 @@ export async function runHandFamilies() {
        was a stand-in artifact): real Kings stay in the table at honest value, and no
        unknown-including entry may claim more than 0.5x the phantom-era overbid (200) */
     const realK = fd.filter((e) => !e.cards.some((c) => c.faceDown) && e.fam === 'Pair');
+
     if (realK[0]?.pred !== 60 || fd.some((e) => e.cards.some((c) => c.faceDown) && e.pred > 100)) {
         throw new Error(`facedown eval: ${fd[0].fam}/${fd[0].pred}`);
     }

@@ -1,4 +1,3 @@
-/* eslint-disable @stylistic/max-statements-per-line -- compact analysis one-liners, promoted from tmp/ as-is */
 // throwaway: per-shop true-ledger flip replay from shopdump hb snapshots (post-deploy runs).
 import { buildFamilies } from '../lib/knowledge.mjs';
 import { PLANET_GRIND } from '../lib/planets.mjs';

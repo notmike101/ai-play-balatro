@@ -1,4 +1,3 @@
-/* eslint-disable @stylistic/max-statements-per-line -- compact analysis one-liners, promoted from tmp/ as-is */
 // throwaway: planet-take match census — does each shop/pack planet buy equal that shop's nf target?
 import fs from 'node:fs';
 

@@ -246,6 +246,12 @@ export async function runPolicy() {
     /* DNA farm target (deck-engine rule) */
     const { dnaFarmPick } = await import('../lib/play.mjs');
 
+    /**
+     *
+     * @param rank
+     * @param suit
+     * @param key
+     */
     const fc = (rank, suit, key) => ({ id: 9, rank, suit, actions: ['select'], key });
 
     const farmHand = [fc('K', 'Hearts', 'c_base'), fc('A', 'Spades', 'm_mult'), fc('4', 'Clubs', 'm_steel')];
@@ -282,6 +288,12 @@ export async function runPolicy() {
        remaining deck must beat a made Pair's static value when discards remain */
     const { chooseDiscard, drawEV } = await import('../lib/play.mjs');
 
+    /**
+     *
+     * @param id
+     * @param rank
+     * @param suit
+     */
     const dc = (id, rank, suit) => ({ id, rank, suit, actions: ['select'] });
 
     const dHand = [dc(1, '9', 'Spades'), dc(2, '8', 'Spades'), dc(3, '5', 'Spades'), dc(4, '3', 'Spades'), dc(5, 'King', 'Clubs'), dc(6, 'King', 'Diamonds'), dc(7, '7', 'Hearts')];
@@ -441,6 +453,11 @@ export async function runPolicy() {
     /* SKIP band (b4ae68d, flipped twice - pinned boundaries): a1 never, a4 Red-only */
     const { skipAllowed } = await import('../lib/blind.mjs');
 
+    /**
+     *
+     * @param stake
+     * @param ante
+     */
     const sk = (stake, ante) => skipAllowed(stake, ante, true);
 
     if (sk(1, 1) || sk(2, 1)) {

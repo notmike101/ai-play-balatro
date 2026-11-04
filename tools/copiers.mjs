@@ -12,10 +12,14 @@ const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const db = new DatabaseSync(path.join(ROOT, 'out', 'runs.db'), { readOnly: true });
 const argv = process.argv.slice(2);
 
+/**
+ *
+ * @param k
+ */
 function arg(k) {
     const i = argv.indexOf(k);
 
-    return i >= 0 ? argv[i + 1] : null;
+    return i !== -1 ? argv[i + 1] : null;
 }
 
 let since = Number(arg('--since'));
@@ -27,6 +31,7 @@ if (!since) {
         console.error('no deploy row');
         process.exit(1);
     }
+
     since = row.ts;
 }
 
@@ -37,7 +42,7 @@ let buys = 0;
 let sells = 0;
 
 for (const r of sd) {
-    for (const m of r.actions.matchAll(/(joker|sell):(Blueprint[^",]*|Crafty[^",]*|Brainstorm[^","]*)/g)) {
+    for (const m of r.actions.matchAll(/(joker|sell):(Blueprint[^",]*|Crafty[^",]*|Brainstorm[^",]*)/g)) {
         if (m[1] === 'sell') {
             sells++;
         } else {
@@ -58,6 +63,7 @@ for (const l of lines) {
     } catch {
         continue;
     }
+
     if (r.e === 'blind' && r.rid && r.ts >= since && r.ts <= until && Array.isArray(r.jokers)) {
         lastBoard[r.rid] = r.jokers;
     }

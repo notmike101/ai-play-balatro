@@ -20,6 +20,7 @@ for (const l of fs.readFileSync(path.join(DIR, 'out', 'log.jsonl'), 'utf8').trim
     }
 
     let r;
+
     try {
         r = JSON.parse(l);
     } catch {

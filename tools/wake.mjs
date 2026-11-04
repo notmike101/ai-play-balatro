@@ -25,6 +25,7 @@ for (const l of LOG_LINES) {
         } catch { /* skip malformed */ }
     }
 }
+
 SESSIONS.sort((a, b) => a - b);
 
 /**
@@ -37,7 +38,7 @@ SESSIONS.sort((a, b) => a - b);
  * @returns {number} live ts
  */
 function liveAt(ts) {
-    const s = SESSIONS.find((t) => t >= ts - 90000);
+    const s = SESSIONS.find((t) => t >= ts - 90_000);
 
     return s && s > ts ? s : ts;
 }
@@ -103,7 +104,7 @@ function eras(k) {
  */
 function planetProof() {
     const ts = liveAt((codeEras()[0] || {}).ts || 0);
-    let prep = 0, shop = 0;
+    let prep = 0; let shop = 0;
 
     for (const l of LOG_LINES) {
         if (!l.includes('planet')) {
@@ -136,7 +137,7 @@ function planetProof() {
  */
 function curveProof() {
     const ts = liveAt((codeEras()[0] || {}).ts || 0);
-    let behind = 0, fired = 0;
+    let behind = 0; let fired = 0;
 
     for (const l of LOG_LINES) {
         if (!l.includes('"curve"')) {
@@ -148,6 +149,7 @@ function curveProof() {
 
             if (r.ts >= ts && r.ante >= 3 && r.r !== null && r.r < 1.1) {
                 behind++;
+
                 if (r.catchup === true) {
                     fired++;
                 }

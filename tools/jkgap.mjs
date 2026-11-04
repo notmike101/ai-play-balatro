@@ -1,4 +1,3 @@
-/* eslint-disable @stylistic/max-statements-per-line -- compact analysis one-liners, promoted from tmp/ as-is */
 // throwaway: corpus pred-vs-actual ratio by joker-count cohort and ante; is the model blind to engine multipliers?
 import fs from 'node:fs';
 

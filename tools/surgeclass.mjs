@@ -1,4 +1,3 @@
-/* eslint-disable @stylistic/max-statements-per-line -- compact analysis one-liners, promoted from tmp/ as-is */
 // throwaway: classify LOW_FOCAL deaths as post-surge (focal never led at shops) vs missed (led, unlevelled).
 import { buildFamilies } from '../lib/knowledge.mjs';
 import fs from 'node:fs';

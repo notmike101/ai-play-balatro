@@ -1,4 +1,3 @@
-/* eslint-disable @stylistic/max-statements-per-line -- compact analysis one-liners, promoted from tmp/ as-is */
 // throwaway: what separates deep runs from the a1-a3 majority? aggregate digests + boss-of-death census.
 import fs from 'node:fs';
 

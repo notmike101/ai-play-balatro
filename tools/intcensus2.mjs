@@ -1,4 +1,3 @@
-/* eslint-disable @stylistic/max-statements-per-line -- compact analysis one-liners, promoted from tmp/ as-is */
 /* Interest census v2: payout = money AFTER cash_out minus money BEFORE (same rid).
    money_before = last row with money field at ts < cashout (shopdone/blind/hand),
    money_after  = first row with money field at ts > cashout (shopdump/...).
@@ -71,6 +70,7 @@ for (const p of out) {
 }
 
 console.log('\n-- gain vs carried (per blind type, ante-sorted) --');
+
 for (const [k, v] of Object.entries(g)) {
     console.log(k, v.sort((x, y) => x.ante - y.ante || x.before - y.before).map((p) => `a${p.ante} ${p.before}+${p.after - p.before}`).join(' | '));
 }

@@ -1,4 +1,3 @@
-/* eslint-disable @stylistic/max-statements-per-line -- compact analysis one-liners, promoted from tmp/ as-is */
 /* Ordered-chain replay: validate whether joker SLOT ORDER + card order + per-step
  * floor explain the aggregate model's bias (actual/pred p50=0.84 census).
  * Joins decide(play) rows to turn-row hand diffs to recover the played set;
@@ -183,6 +182,7 @@ function enhOf(cs) {
  *
  * @param {Array[]} jk - turn-row jokers array (slot order)
  * @param {object[]} sc - scoring cards (for face conditions)
+ * @param fam
  * @returns {object[]} ops with kind c|m|x|unk
  */
 function jokerOps(jk, sc, fam) {
@@ -248,6 +248,8 @@ function jokerOps(jk, sc, fam) {
  * @param {number[]} base - [chips, mult] family base
  * @param {object[]} sc - scoring cards
  * @param {Array[]} jk - slot-ordered joker list from the turn row
+ * @param re
+ * @param fam
  * @returns {number} simulated score
  */
 function simOrdered(base, sc, jk, re = 1, fam = '') {
@@ -298,6 +300,8 @@ function simOrdered(base, sc, jk, re = 1, fam = '') {
  * @param {number[]} base - [chips, mult] family base
  * @param {object[]} sc - scoring cards
  * @param {Array[]} jk - joker list
+ * @param re
+ * @param fam
  * @returns {number} simulated score
  */
 function simAgg(base, sc, jk, re = 1, fam = '') {
@@ -500,10 +504,12 @@ for (const rs0 of Object.values(byRid)) {
             ratios.agg.push(gain / agg);
             ratios.ord.push(gain / ord);
             ratios.pred.push(gain / d.pred);
-            (d.ts > 1793332320000 ? predPost : predPre).push(gain / d.pred);
+            (d.ts > 1_793_332_320_000 ? predPost : predPre).push(gain / d.pred);
+
             for (const nm of new Set(names)) {
                 (byJoker[nm] ??= []).push(gain / d.pred);
             }
+
             off.push({
                 ante: d.ante,
                 fam: d.fam,

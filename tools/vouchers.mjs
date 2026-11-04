@@ -8,10 +8,14 @@ import { fileURLToPath } from 'node:url';
 const db = new DatabaseSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'out', 'runs.db'), { readOnly: true });
 const argv = process.argv.slice(2);
 
+/**
+ *
+ * @param k
+ */
 function arg(k) {
     const i = argv.indexOf(k);
 
-    return i >= 0 ? argv[i + 1] : null;
+    return i !== -1 ? argv[i + 1] : null;
 }
 
 let since = Number(arg('--since'));
@@ -23,6 +27,7 @@ if (!since) {
         console.error('no deploy row');
         process.exit(1);
     }
+
     since = row.ts;
 }
 
@@ -38,8 +43,10 @@ for (const s of shops) {
     if (!COST.test(s.items)) {
         continue;
     }
+
     stocked++;
     stockedRuns.add(s.rid);
+
     if (s.money >= 10) {
         afforded++;
     }

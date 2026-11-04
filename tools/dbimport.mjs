@@ -14,6 +14,7 @@ const LOG = path.join(DIR, 'out', 'log.jsonl');
 const DB = path.join(DIR, 'out', 'runs.db');
 
 const db = new DatabaseSync(DB);
+
 db.exec(`
 PRAGMA journal_mode=WAL;
 CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT);
@@ -42,35 +43,77 @@ CREATE INDEX IF NOT EXISTS ix_shopdone_t ON shopdone(ts);
 CREATE INDEX IF NOT EXISTS ix_blind_t ON blind(ts);
 CREATE VIEW IF NOT EXISTS runmax AS SELECT rid, MAX(ante) m, MAX(CASE WHEN won=1 THEN 1 ELSE 0 END) w, MIN(t) t0 FROM rundigest GROUP BY rid;
 `);
-try { db.exec('ALTER TABLE rundigest ADD COLUMN gap INT'); } catch { /* present */ }
-try { db.exec('ALTER TABLE rundigest ADD COLUMN r4 REAL'); } catch { /* present */ }
-try { db.exec('ALTER TABLE shopdump ADD COLUMN hb TEXT'); } catch { /* present */ }
 
+try {
+    db.exec('ALTER TABLE rundigest ADD COLUMN gap INT');
+} catch { /* present */ }
+
+try {
+    db.exec('ALTER TABLE rundigest ADD COLUMN r4 REAL');
+} catch { /* present */ }
+
+try {
+    db.exec('ALTER TABLE shopdump ADD COLUMN hb TEXT');
+} catch { /* present */ }
+
+/**
+ *
+ */
 const getOff = () => Number(db.prepare('SELECT v FROM meta WHERE k=\'last_off\'').get()?.v ?? 0);
+/**
+ *
+ * @param v
+ */
 const setOff = (v) => db.prepare('INSERT INTO meta(k,v) VALUES(\'last_off\',?) ON CONFLICT(k) DO UPDATE SET v=excluded.v').run(String(v));
 
 /* HEAD deploy stamp: one row per distinct commit, ts = commit time (cohort epoch) */
 let head = '';
-try { head = execSync(`git -C "${DIR}" rev-parse HEAD`, { encoding: 'utf8' }).trim(); } catch { /* not a repo */ }
+
+try {
+    head = execSync(`git -C "${DIR}" rev-parse HEAD`, { encoding: 'utf8' }).trim();
+} catch { /* not a repo */ }
+
 if (head) {
     /* stamp the last 25 commits every import (one cheap git call, INSERT OR IGNORE)
        so cohort epochs exist for every policy change retroactively */
     const put = db.prepare('INSERT OR IGNORE INTO deploy(sha,ts,imported_ts) VALUES(?,?,?)');
+
     put.run(head, Date.now(), Date.now());
     let log = '';
-    try { log = execSync('git log -25 "--format=%H %ct"', { encoding: 'utf8', cwd: DIR }); } catch { /* not a repo */ }
+
+    try {
+        log = execSync('git log -25 "--format=%H %ct"', { encoding: 'utf8', cwd: DIR });
+    } catch { /* not a repo */ }
+
     for (const l of log.trim().split('\n').filter(Boolean)) {
         const [sha, ct] = l.split(' ');
-        put.run(sha, 1000 * Number(ct), Date.now());
+
+        put.run(sha, 1_000 * Number(ct), Date.now());
     }
 }
 
 let start = getOff();
 const size = fs.statSync(LOG).size;
-if (start > size) { start = 0; db.exec('DELETE FROM decide; DELETE FROM turn; DELETE FROM shopdump; DELETE FROM shopdone; DELETE FROM packdump; DELETE FROM gamefam; DELETE FROM lvljump; DELETE FROM blind; DELETE FROM handstab; DELETE FROM planet; DELETE FROM runstart; DELETE FROM runend; DELETE FROM rundigest; DELETE FROM jkpass; DELETE FROM other;'); }
 
+if (start > size) {
+    start = 0; db.exec('DELETE FROM decide; DELETE FROM turn; DELETE FROM shopdump; DELETE FROM shopdone; DELETE FROM packdump; DELETE FROM gamefam; DELETE FROM lvljump; DELETE FROM blind; DELETE FROM handstab; DELETE FROM planet; DELETE FROM runstart; DELETE FROM runend; DELETE FROM rundigest; DELETE FROM jkpass; DELETE FROM other;');
+}
+
+/**
+ *
+ * @param v
+ */
 const J = (v) => (v === undefined || v === null ? null : JSON.stringify(v));
+/**
+ *
+ * @param v
+ */
 const B = (v) => (v ? 1 : 0);
+/**
+ *
+ * @param k
+ * @param cols
+ */
 const Q = (k, cols) => db.prepare(`INSERT INTO ${k} (${cols}) VALUES (${Array.from({ length: cols.split(',').length }, () => '?').join(',')})`);
 const ins = {
     decide: Q('decide', 'ts,rid,a,fam,pred,rem,ante,stk,b,tgt,rchips,err,ef,lk,enh,sla,cids,sids'),
@@ -90,31 +133,57 @@ const ins = {
 };
 const insOther = Q('other', 'ts,rid,e,body');
 
-let n = 0, bad = 0;
+let n = 0; let bad = 0;
+
 if (start < size) {
     const fd = fs.openSync(LOG, 'r');
     const CHUNK = 8 << 20;
     let off = start;
+
     db.exec('BEGIN');
+
     for (;;) {
-        if (off >= size) break;
+        if (off >= size) {
+            break;
+        }
+
         const len = Math.min(CHUNK, size - off);
         const buf = Buffer.alloc(len);
+
         fs.readSync(fd, buf, 0, len, off);
         let end = len;
+
         if (off + len < size) {
-            end = buf.lastIndexOf(0x0a); /* newline byte = safe UTF-8 boundary */
-            if (end === -1) { off += len; continue; } /* pathological >CHUNK line: skip */
+            end = buf.lastIndexOf(0x0A); /* newline byte = safe UTF-8 boundary */
+
+            if (end === -1) {
+                off += len; continue;
+            } /* pathological >CHUNK line: skip */
         }
+
         off += end === len ? len : end + 1;
+
         for (const s of buf.subarray(0, end).toString('utf8').split('\n')) {
-            if (!s.trim()) continue;
+            if (!s.trim()) {
+                continue;
+            }
+
             let j;
-            try { j = JSON.parse(s); } catch { bad++; continue; }
-            if (!j || !j.e) continue;
+
+            try {
+                j = JSON.parse(s);
+            } catch {
+                bad++; continue;
+            }
+
+            if (!j || !j.e) {
+                continue;
+            }
+
             n++;
             const ts = j.ts ?? null;
             const rid = j.rid ?? null;
+
             switch (j.e) {
                 case 'decide': ins.decide.run(ts, rid, j.a ?? '', j.fam ?? '', j.pred ?? null, j.rem ?? null, j.ante ?? null, j.stk ?? null, j.b ?? '', j.tgt ?? null, j.rchips ?? null, j.err ?? '', j.ef ?? '', j.lk ?? '', j.enh ?? null, j.sla ?? '', j.cids ?? '', j.sids ?? ''); break;
                 case 'turn': ins.turn.run(ts, rid, j.chips ?? null, j.dl ?? null, j.hl ?? null, j.rerolls ?? null); break;
@@ -130,12 +199,14 @@ if (start < size) {
                 case 'runend': ins.runend.run(ts, rid, B(j.won), j.ante ?? null); break;
                 case 'rundigest': ins.rundigest.run(j.t ?? ts, rid, B(j.won), j.ante ?? null, j.focal ?? '', j.focalPlays ?? null, j.focalLvl ?? null, j.lvlMap ?? '', j.lvlAct ?? null, j.uses ?? null, j.rerolls ?? null, B(j.celestial), j.jokers ?? null, j.alert ?? '', B(j.complete), j.gap ?? null, j.r4 ?? null); break;
                 case 'jkpass': ins.jkpass.run(ts, rid, j.n ?? '', j.s ?? null, j.cost ?? null, j.money ?? null, j.floor ?? null, j.ante ?? null, j.ownedJ ?? null); break;
-                default: insOther.run(ts, rid, j.e, s.slice(0, 2000)); break;
+                default: insOther.run(ts, rid, j.e, s.slice(0, 2_000)); break;
             }
         }
     }
+
     db.exec('COMMIT');
     fs.closeSync(fd);
     setOff(off);
 }
+
 console.log('new rows:', n, 'unparseable:', bad, '| offset:', getOff(), '/', size);

@@ -1,4 +1,3 @@
-/* eslint-disable @stylistic/max-statements-per-line -- compact analysis one-liners, promoted from tmp/ as-is */
 // throwaway: per-boss prediction calibration from decide rows (actual = rchips delta within same blind)
 import fs from 'node:fs';
 

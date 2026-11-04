@@ -237,6 +237,12 @@ export async function runCalibration() {
     const { famChips, mcHold } = await import('../lib/mc.mjs');
     const { markSeen, unseenDeck } = await import('../lib/reps.mjs');
 
+    /**
+     *
+     * @param rank
+     * @param suit
+     * @param id
+     */
     const MC = (rank, suit, id) => ({ rank, suit, id, actions: ['select'] });
     const fh8 = [MC(9, 'Hearts', 1), MC(9, 'Spades', 2), MC(9, 'Diamonds', 3), MC(7, 'Hearts', 4), MC(7, 'Spades', 5), MC(2, 'Hearts', 6), MC(3, 'Hearts', 7), MC(4, 'Hearts', 8)];
 

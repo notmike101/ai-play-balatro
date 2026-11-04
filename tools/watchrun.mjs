@@ -21,11 +21,20 @@ const sessions = []; /* every sessionstart ts (parity with original: not rid-fil
 function fold(j) {
     if (j.e === 'sessionstart') {
         sessions.push(j.ts);
+
         return;
     }
+
     const st = life.get(j.rid) ?? { s: null, e: null };
-    if (j.e === 'runstart') st.s = j.ts;
-    if (j.e === 'runend') st.e = j.ts;
+
+    if (j.e === 'runstart') {
+        st.s = j.ts;
+    }
+
+    if (j.e === 'runend') {
+        st.e = j.ts;
+    }
+
     life.set(j.rid, st);
 }
 
@@ -42,10 +51,13 @@ function isClean(d) {
     if (d.complete === false) {
         return false;
     }
+
     const st = life.get(d.rid);
+
     if (!st || st.s === null || st.e === null) {
         return false;
     }
+
     return !sessions.some((ts) => ts > st.s && ts < st.e);
 }
 
@@ -61,12 +73,16 @@ function ladder(rids) {
     const RE = /"e":"(shopdone|use|exec|packdump)"|"boss"/;
     const KEY = /(sell|Death|Steel|Glass|Magic|seal|S:|tc:|enhance|trim|stone|Emperor|Judgement)/;
     let n = 0;
+
     for (const l of readFileSync(L, 'utf8').trim().split('\n')) {
         const m = /"rid":(\d+)/.exec(l);
+
         if (!m || !rids.includes(Number(m[1])) || !RE.test(l) || !KEY.test(l)) {
             continue;
         }
+
         console.log('LADDER', l.slice(0, 300));
+
         if (++n >= 14) {
             break;
         }
@@ -84,28 +100,43 @@ function ladder(rids) {
  */
 function tailLines(file, off, onLine) {
     let size;
+
     try {
         size = statSync(file).size;
     } catch {
         return off;
     }
+
     if (size < off) {
         off = 0;
     }
+
     if (size === off) {
         return off;
     }
+
     const fd = openSync(file, 'r');
+
     try {
         const buf = Buffer.alloc(size - off);
+
         readSync(fd, buf, 0, buf.length, off);
-        const lastNl = buf.lastIndexOf(0x0a);
-        if (lastNl === -1) return off;
+        const lastNl = buf.lastIndexOf(0x0A);
+
+        if (lastNl === -1) {
+            return off;
+        }
+
         const text = buf.subarray(0, lastNl).toString('utf8');
+
         for (const s of text.split('\n')) {
-            if (!s.trim()) continue;
+            if (!s.trim()) {
+                continue;
+            }
+
             onLine(s);
         }
+
         return off + lastNl + 1;
     } finally {
         closeSync(fd);
@@ -119,6 +150,7 @@ let lOff = tailLines(L, 0, (s) => {
     if (!s.includes('"runstart"') && !s.includes('"runend"') && !s.includes('"sessionstart"')) {
         return;
     }
+
     try {
         fold(JSON.parse(s));
     } catch { /* skip */ }
@@ -136,6 +168,7 @@ for (;;) {
         if (!s.includes('"runstart"') && !s.includes('"runend"') && !s.includes('"sessionstart"')) {
             return;
         }
+
         try {
             fold(JSON.parse(s));
         } catch { /* skip */ }
@@ -154,20 +187,26 @@ for (;;) {
     if (clean.length && (clean.length >= MIN || (Date.now() > hard - 300_000 && clean.length))) {
         console.log(`NEW_RUNS ${clean.length}${pending.size > clean.length ? ` (${pending.size - clean.length} still-fragment digests withheld)` : ''}`);
         console.log(clean.map((d) => JSON.stringify(d)).join('\n'));
+
         try {
             ladder(clean.map((d) => d.rid));
         } catch { /* ladder scan never blocks the wake */ }
+
         appendFileSync(P.replace('digests.jsonl', 'watchrun.log'), `fired ${new Date().toISOString()} n=${clean.length}\n`);
         process.exit(0);
     }
+
     if (Date.now() > hard) {
         console.log(clean.length ? `TIMEOUT 55min, firing ${clean.length} late-clean` : 'TIMEOUT 55min no new digest');
+
         if (clean.length) {
             console.log(clean.map((d) => JSON.stringify(d)).join('\n'));
             process.exit(0);
         }
+
         process.exit(1);
     }
+
     await new Promise((r) => {
         setTimeout(r, 10_000);
     });

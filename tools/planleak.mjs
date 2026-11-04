@@ -1,4 +1,3 @@
-/* eslint-disable @stylistic/max-statements-per-line -- compact analysis one-liners, promoted from tmp/ as-is */
 // throwaway: focal-planet shelf-vs-buy leak by death-depth bucket; run attribution via ts windows (rid collides across eras)
 import fs from 'node:fs';
 
