@@ -54,7 +54,7 @@ for (const row of rows) {
 }
 
 const byAnte = new Map();
-for (const v of perRunRunValues(perRun)) {
+for (const v of [...perRun.values()]) {
     if (v.ante == null || !Number.isInteger(v.ante)) continue;
     const g = byAnte.get(v.ante) ?? { lvls: [], shelf: 0, n: 0, deep: [], w: 0 };
     g.lvls.push(v.lvl);
@@ -63,14 +63,6 @@ for (const v of perRunRunValues(perRun)) {
     g.w += v.won === 1 ? 1 : 0;
     if (v.dead >= 5) g.deep.push(v.lvl);
     byAnte.set(v.ante, g);
-}
-
-/** map values (helper split for lint simplicity).
- * @param {Map} m values keyed by rid|ante
- * @returns {Array<object>} values
- */
-function perRunRunValues(m) {
-    return [...m.values()];
 }
 
 console.log('ante  n   focalLvl p25/50/75  deep(death>=5) p50  planetOnShelf%');
