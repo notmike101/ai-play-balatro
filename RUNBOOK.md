@@ -93,8 +93,12 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   multiset joins) - pre-10-30 corpus cannot validate per-play order effects.
 - 11-04 rows/columns: `route` shadow rows {a, ante, boss?, pNow, pDisc, rem, hl, dl} (tools/route.mjs
   = disagreement census; switch the decision only when contra rows cluster at a4+/boss with real
-  ΔP); `rundigest.r4` = power ratio at the a4 boss-select (era KPI: corpus baseline ~36% of
-  a4-reached runs arrive with R>=1); turn `dl` = DISCARDS left (was a hands_left copy-paste
+  ΔP; CLOSED 11-04: 348 rows 0% contra, kept as canary); `rundigest.r4` = power ratio at the a4
+  boss-select (era KPI: corpus baseline ~36% of a4-reached runs arrive with R>=1). SURVIVORSHIP:
+  r4 covers only the 74% that reach a4 boss-select (n=1306 corpus: 26% die PRE-boss at a4 SB/BB,
+  33% at the boss, 36% pass it) - the `curve` rows (r/r4/catchup per blind-select) see all of it;
+  feed = post-score blind totals (2cf40ea; pre-play feeds read 0 on single-hand blinds);
+  turn `dl` = DISCARDS left (was a hands_left copy-paste
   before 11-04 - pre-11-04 dl rows are not discard data).
 - Analysis tools live in `tools/` (COMMITTED, linted): `watchrun` (wake-on-digest, incremental),
   `wake.mjs` (one-shot wake: dbimport + era tallies where era boundaries are CODE changes only -
