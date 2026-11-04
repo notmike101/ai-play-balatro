@@ -57,6 +57,12 @@ try {
 }
 
 try {
+    db.exec('ALTER TABLE rundigest ADD COLUMN intent TEXT');
+} catch {
+    /* present */
+}
+
+try {
     db.exec('ALTER TABLE shopdump ADD COLUMN hb TEXT');
 } catch {
     /* present */
@@ -152,7 +158,7 @@ const ins = {
     planet: Q('planet', 'ts,rid,fam,n,gf'),
     runstart: Q('runstart', 'ts,rid,stake'),
     runend: Q('runend', 'ts,rid,won,ante'),
-    rundigest: Q('rundigest', 't,rid,won,ante,focal,focalPlays,focalLvl,lvlMap,lvlAct,uses,rerolls,celestial,jokers,alert,complete,gap,r4'),
+    rundigest: Q('rundigest', 't,rid,won,ante,focal,focalPlays,focalLvl,lvlMap,lvlAct,uses,rerolls,celestial,jokers,alert,complete,gap,r4,intent'),
     jkpass: Q('jkpass', 'ts,rid,n,s,cost,money,floor,ante,owned'),
 };
 const insOther = Q('other', 'ts,rid,e,body');
@@ -221,7 +227,7 @@ if (start < size) {
                 case 'planet': ins.planet.run(ts, rid, j.fam ?? '', j.n ?? '', J(j.gamefam ?? null)); break;
                 case 'runstart': ins.runstart.run(ts, rid, j.stake ?? ''); break;
                 case 'runend': ins.runend.run(ts, rid, B(j.won), j.ante ?? null); break;
-                case 'rundigest': ins.rundigest.run(j.t ?? ts, rid, B(j.won), j.ante ?? null, j.focal ?? '', j.focalPlays ?? null, j.focalLvl ?? null, j.lvlMap ?? '', j.lvlAct ?? null, j.uses ?? null, j.rerolls ?? null, B(j.celestial), j.jokers ?? null, j.alert ?? '', B(j.complete), j.gap ?? null, j.r4 ?? null); break;
+                case 'rundigest': ins.rundigest.run(j.t ?? ts, rid, B(j.won), j.ante ?? null, j.focal ?? '', j.focalPlays ?? null, j.focalLvl ?? null, j.lvlMap ?? '', j.lvlAct ?? null, j.uses ?? null, j.rerolls ?? null, B(j.celestial), j.jokers ?? null, j.alert ?? '', B(j.complete), j.gap ?? null, j.r4 ?? null, j.intent ?? ''); break;
                 case 'jkpass': ins.jkpass.run(ts, rid, j.n ?? '', j.s ?? null, j.cost ?? null, j.money ?? null, j.floor ?? null, j.ante ?? null, j.ownedJ ?? null); break;
                 default: insOther.run(ts, rid, j.e, s.slice(0, 2_000)); break;
             }
