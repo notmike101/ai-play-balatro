@@ -232,5 +232,66 @@ export async function runCalibration() {
         throw new Error('unknown deck must leave Blue unpriced, not guessed');
     }
 
+    /* COHORT-23 Monte-Carlo hold EV (lib/mc.mjs): count-based best-5 over 5..8 cards +
+       sampled refill from the real unseen multiset */
+    const { famChips, mcHold } = await import('../lib/mc.mjs');
+    const { markSeen, unseenDeck } = await import('../lib/reps.mjs');
+
+    const MC = (rank, suit, id) => ({ rank, suit, id, actions: ['select'] });
+    const fh8 = [MC(9, 'Hearts', 1), MC(9, 'Spades', 2), MC(9, 'Diamonds', 3), MC(7, 'Hearts', 4), MC(7, 'Spades', 5), MC(2, 'Hearts', 6), MC(3, 'Hearts', 7), MC(4, 'Hearts', 8)];
+
+    if (famChips(fh8).fam !== 'Full House' || famChips(fh8).chips !== 41) {
+        throw new Error('best-5 over 8 cards must find the Full House (3x9 + 2x7, 41 scoring chips)');
+    }
+
+    if (famChips([MC(14, 'Hearts', 1), MC(2, 'Spades', 2), MC(3, 'Diamonds', 3), MC(4, 'Clubs', 4), MC(5, 'Hearts', 5)]).fam !== 'Straight') {
+        throw new Error('wheel Ace-low straight must be detected');
+    }
+
+    const heartDeck = [5, 6, 8, 10, 11, 12, 13, 14, 9, 7].map((r) => ({ rank: r, suit: 'Hearts' }));
+
+    for (let i = 0; i < 12; i++) {
+        heartDeck.push({ rank: 2 + (i % 8), suit: 'Spades' });
+    }
+
+    const mctx = { udeck: heartDeck, fam: 'Flush', lvl: 3, N: 200 };
+    const flushKeep = [MC(14, 'Hearts', 1), MC(13, 'Hearts', 2), MC(12, 'Hearts', 3), MC(7, 'Hearts', 4), MC(2, 'Clubs', 5)];
+    const junkKeep = [MC(2, 'Clubs', 5), MC(3, 'Diamonds', 6), MC(4, 'Spades', 7), MC(5, 'Clubs', 8), MC(14, 'Hearts', 1)];
+    const evF = mcHold(flushKeep, 3, mctx);
+    const evJ = mcHold(junkKeep, 3, mctx);
+
+    if (!(evF > evJ * 2)) {
+        throw new Error(`flush-draw keep must dominate broken keep on a heart-rich deck, got ${Math.round(evF)} vs ${Math.round(evJ)}`);
+    }
+
+    if (mcHold(flushKeep, 3, mctx) !== evF) {
+        throw new Error('MC must be deterministic (calibration folds plays against the SAME pred)');
+    }
+
+    if (mcHold(flushKeep, 3, { udeck: heartDeck.slice(0, 5), fam: 'Flush' }) !== null) {
+        throw new Error('tiny/deckless multiset must return null (heuristic fallback, never guess)');
+    }
+
+    const mcHand = [MC(14, 'Hearts', 61), MC(13, 'Hearts', 62), MC(12, 'Hearts', 63), MC(7, 'Hearts', 64), MC(2, 'Clubs', 65), MC(3, 'Diamonds', 66), MC(4, 'Spades', 67), MC(5, 'Clubs', 68)];
+    const disc = chooseDiscard(mcHand, null, null, { udeck: heartDeck, fam: 'Flush', lvl: 3, hl: 3, disc: 3 });
+
+    if (disc.some((c) => c.suit === 'Hearts') || disc.length === 0) {
+        throw new Error('MC path must keep the 4-flush engine and dump only off-suit junk');
+    }
+
+    resetSeen();
+
+    const ud = unseenDeck([[14, 'Hearts', '', '', '', 1], ['Ace', 'Spades', 'm_mult', '', '', 2], [2, 'Clubs', '', '', '', 1]]);
+
+    if (ud.length !== 4 || !ud.some((c) => c.rank === 14 && c.suit === 'Spades') || !ud.some((c) => c.rank === 2)) {
+        throw new Error('unseenDeck must expand manifest counts (incl named ranks) to a joint multiset');
+    }
+
+    markSeen([{ rank: 14, suit: 'Hearts' }]);
+
+    if (unseenDeck([[14, 'Hearts', '', '', '', 1]]).length !== 0) {
+        throw new Error('seen copies must leave the drawable multiset');
+    }
+
     resetSeen();
 }
