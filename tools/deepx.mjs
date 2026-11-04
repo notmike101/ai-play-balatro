@@ -26,7 +26,8 @@ for (const l of fs.readFileSync(path.join(DIR, 'out', 'log.jsonl'), 'utf8').trim
         continue;
     }
 
-    if (r.ts < SINCE || !r.jokers?.length) {
+    /* positive test: legacy log rows carry NO ts and `undefined < SINCE` is false */
+    if (!(r.ts >= SINCE) || !r.jokers?.length) {
         continue;
     }
 
