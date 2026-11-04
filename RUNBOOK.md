@@ -69,8 +69,13 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   `Stop-Process` the `--app=` chrome main PID, then Start-Process chrome.exe with
   `--headless=new --app=https://poker.gl.ax/ --remote-debugging-port=9222
   --user-data-dir=D:\balatro-ai\chrome-profile --no-first-run --no-default-browser-check
-  --window-size=1953,1616 --force-device-scale-factor=1.5 --enable-unsafe-swiftshader`
-  (verified boot: visibilityState=visible, 20/20 GPU pipelines, game mounts; keep window-size/dpr
+  --window-size=1953,1616 --force-device-scale-factor=1.5 --enable-unsafe-swiftshader
+  --disable-background-timer-throttling --disable-renderer-backgrounding
+  --disable-backgrounding-occluded-windows`
+  (last three flags 11-05 PROGRESS-LOSS FIX: the site batches love-fs save writes with a 30s
+  checkpoint + server admit; background/occluded timer throttling stretches that window,
+  widening what a crash or reload can roll back - keep the flush clock running at full rate;
+  verified boot: visibilityState=visible, 20/20 GPU pipelines, game mounts; keep window-size/dpr
   so the css-px click mapping in the RUNBOOK notes stays valid; audio stays silent - no gesture -
   automation doesn't care). observe() patient-waits hidden pages since e3c1cd9; with headless the
   patient path should be RARE - if it re-cycles >2x, the page died, relaunch per above.
