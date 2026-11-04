@@ -568,19 +568,35 @@ async function main() {
                         const ra = await act({ epoch: obs.epoch, action: 'activate', target: oc.id });
 
                         if (ra.ok) {
-                            const o2 = await observe();
-                            const rows = (o2.controls || []).map((x) => `${x.kind}:${x.id}:${String(x.label ?? '').slice(0, 34)}`);
-                            const rm = (o2.controls || []).find((x) => /reduced|motion|animation/i.test(String(x.label ?? '')));
+                            let o2 = await observe();
+                            let rows = (o2.controls || []).map((x) => `${x.kind}:${x.id}:${String(x.label ?? '').slice(0, 34)}`);
+                            let rm = (o2.controls || []).find((x) => /reduced|motion|animation/i.test(String(x.label ?? '')));
+
+                            /* first probe hit MENU-style overlays (the cash_out Options ctrl
+                               lands on the nav overlay: settings:1:Settings...) - chain one
+                               level into Settings where the actual option rows live */
+                            if (!rm) {
+                                const st = (o2.controls || []).find((x) => x.kind === 'settings' || /^settings/i.test(String(x.label ?? '')));
+
+                                if (st) {
+                                    if ((await act({ epoch: o2.epoch, action: 'activate', target: st.id })).ok) {
+                                        o2 = await observe();
+                                        rows = (o2.controls || []).map((x) => `${x.kind}:${x.id}:${String(x.label ?? '').slice(0, 34)}`);
+                                        rm = (o2.controls || []).find((x) => /reduced|motion|animation/i.test(String(x.label ?? '')));
+                                    }
+                                }
+                            }
+
                             let toggled = null;
 
                             if (rm) {
                                 toggled = (await act({ epoch: o2.epoch, action: 'activate', target: rm.id })).ok ?? false;
 
                                 const o3 = await observe();
-                                const back = (o3.controls || []).find((x) => /^(back|close|exit|leave)/i.test(String(x.label ?? '').trim()) || x.kind === 'back');
+                                const backs = (o3.controls || []).filter((x) => /^(back|close|exit|leave)/i.test(String(x.label ?? '').trim()) || x.kind === 'back' || x.kind === 'exit_overlay_menu');
 
-                                if (back) {
-                                    await act({ epoch: o3.epoch, action: 'activate', target: back.id });
+                                for (let b = 0; b < 2 && b < backs.length; b++) {
+                                    await act({ epoch: (b ? await observe() : o3).epoch, action: 'activate', target: backs[b].id });
                                 }
                             }
 
