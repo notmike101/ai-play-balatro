@@ -804,6 +804,22 @@ async function main() {
             }
         }
 
+        /* OVERLAY SELF-ESCAPE (11-04 Unlock-All ops): manual/ops probes leave screens like
+           Collection or the options hub open, and the loop deadlocked in stuck-8x sleeps.
+           Every overlay variant carries a back control (hub: exit_overlay_menu; settings:
+           options; mid-run collection: your_collection) - click it until we are out.
+           Bounded by idle so a resurfacing overlay still falls through to the old stuck path. */
+        if (ph === 'overlay' && idle < 8) {
+            const esc = (obs.controls || []).find((c) => c.enabled && (c.kind === 'exit_overlay_menu' || c.kind === 'options' || c.kind === 'your_collection'));
+
+            if (esc) {
+                await act({ epoch: obs.epoch, action: 'activate', target: esc.id });
+                say('overlay: escape via', esc.kind);
+                idle += 1;
+                continue;
+            }
+        }
+
         jw({ e: 'phase?', ph, controls: (obs.controls || []).map((c) => c.kind + (c.enabled ? '' : '?')), pack: obs.pack?.length });
         say('unhandled phase', ph, JSON.stringify((obs.controls || []).map((c) => `${c.kind}/${c.enabled}`)).slice(0, 200));
         await sleep(2_500);
