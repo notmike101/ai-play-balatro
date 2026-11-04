@@ -5,6 +5,7 @@ import { runCalibration } from './calibration.test.mjs';
 import { runPolicy } from './policy.test.mjs';
 import { runJokerEffects } from './jokerefx.test.mjs';
 import { runDigest } from './digest.test.mjs';
+import { runCurve } from './curve.test.mjs';
 
 /**
  * Run every policy/evaluator assertion; throws on first failure.
@@ -16,4 +17,5 @@ export async function runSelftest() {
     await runPolicy();
     await runJokerEffects();
     await runDigest();
+    await runCurve();
 }
