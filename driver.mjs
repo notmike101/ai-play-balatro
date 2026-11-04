@@ -35,6 +35,7 @@ try {
 } catch {
     gameMaxStake = null;
 }
+
 /* MECHANICS PROBES (user directive 10-30): interest + secret-hand validation, log-only */
 let cashSeen = '';
 let habsSeen = -2;
@@ -135,6 +136,7 @@ async function handleNewRun(obs) {
         } else if (stakeC) {
             const first = Number(at(stakeC, stakeC.index));
             const stakeCur = Number.isInteger(first) ? first : stakeC.index;
+
             /* GAME-RANGE CLAMP (10-31: after our wins.json grew Red, wantSt=3 but the
                setup row exposes only {1/2} - game save never recorded the Red win, so
                Green is LOCKED; findIndex(-1) fallback ti=stakeWant-1 then wrapped mod 2
@@ -152,11 +154,13 @@ async function handleNewRun(obs) {
             } else {
                 fs.writeFileSync(STAKE_CAP, String(gameMaxStake));
             }
+
             const stakeCapNow = Math.min(stakeWant, stakeC.options.length);
 
             if (stakeCur !== stakeCapNow) {
                 c = stakeC;
                 ti = stakeC.options.findIndex((s) => Number(s) === stakeCapNow);
+
                 if (ti < 0) {
                     ti = stakeCapNow - 1;
                 }
@@ -457,9 +461,11 @@ async function main() {
 
         if ((ph === 'hand' || ph === 'play') && obs.run) {
             curStake = obs.run.stake;
+
             if (curStake === wantSt) {
                 abortStreak = 0;
             }
+
             curDeckKey = obs.run.deck?.key;
 
             const hh = await handleHand(obs, {
