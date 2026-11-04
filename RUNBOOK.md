@@ -159,10 +159,13 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   logged action_unavailable x31. Shop+pack buys are WHITELISTED to the five live names (COHORT-18);
   target-class rules in tarot.mjs/strategy.mjs idle harmlessly until oracle texts unlock them.
 - SCALING LAW (11-04, n=6915 ante-rows): boss targets scale a FIXED curve 2.50x/ante through a4,
-  then 2.20/1.82/1.75/1.43 - purchases are priced against THAT. Power ratio R=best-hand/boss-target
-  predicts failure only from a4 (R<1 -> 31% reach a5 vs R>=1 -> 91%; R>=2 -> 7.7% win); at a2-a3
+  then 2.20/1.82/1.75/1.43 - purchases are priced against THAT. Power ratio R=best live hand/boss-target
+  predicts failure only from a4 (R<1 -> 31% reach a5, R>=1 -> 91%, R>=2 -> 15% a7 / 7.7% win); at a2-a3
   every observable bucket lands P(a5+) 16-31% = noise -> NO mid-run abandonment (study closed
-  11-04; wins/hr is ticket-volume-bound, next-run auto-start ~5s).
+  11-04; wins/hr is ticket-volume-bound, next-run auto-start ~5s). R MIS-PREDICTS boss EFFECTS
+  (11-04 deaths): it is a blind-total vs target ratio - The Needle (play only 1 hand) killed an
+  R=2.23 run, The House (first hand face down) killed R=1.09; boss effect text rides every blind row
+  (`boss.effect`), so hand-limited/face-down bosses can force catchup WITHOUT oracle input.
 - Game save may silently FAIL to record a won stake (Red won 10-31, wins.json has it, setup
   rows stayed 2-unlocked): `out/game-stake-cap.txt` mirrors game truth; a stake win must be
   REPEATED game-side before the ladder advances. Never conclude Green-locked is a bug from
