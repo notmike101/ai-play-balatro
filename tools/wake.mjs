@@ -92,30 +92,38 @@ function eras(k) {
 }
 
 /**
- * Planet use-on-sight proof: consuse rows naming a planet since the newest deploy.
+ * Planet use-on-sight proof since the newest code-live boot. Uses flow through
+ * TWO channels: shop `planet:X` actions = buy_and_use (applies at purchase, NO
+ * consuse row) and blind-prep use-on-sight = e:'planet' rows (playturn). Counting
+ * consuse names was vacuous - it returned 0 in every era since the split.
  *
- * @returns {void} prints the count
+ * @returns {void} prints the counts
  */
 function planetProof() {
     const ts = liveAt((codeEras()[0] || {}).ts || 0);
-    const PN = /^(mercury|venus|earth|mars|jupiter|saturn|uranus|neptune|pluto)$/i;
-    let u = 0;
+    let prep = 0, shop = 0;
 
     for (const l of LOG_LINES) {
-        if (!l.includes('"consuse"')) {
+        if (!l.includes('planet')) {
             continue;
         }
 
         try {
             const r = JSON.parse(l);
 
-            if (r.ts >= ts && PN.test(String(r.name || '').toLowerCase())) {
-                u++;
+            if (r.ts < ts) {
+                continue;
+            }
+
+            if (r.e === 'planet') {
+                prep++;
+            } else if (r.e === 'shopdone' && Array.isArray(r.actions)) {
+                shop += r.actions.filter((a) => /^planet:/.test(a)).length;
             }
         } catch { /* skip malformed */ }
     }
 
-    console.log(`planet-uses since newest deploy: ${u}`);
+    console.log(`planet-uses since newest deploy: prep=${prep} shop-inline=${shop}`);
 }
 
 /**
