@@ -193,8 +193,11 @@ export async function runPolicy() {
         throw new Error(`maxP over grindable fams must win, got ${JSON.stringify(nextPlanetNeed([{ name: 'Flush', level: 5, played: 9 }, { name: 'Straight Flush', level: 3, played: 0 }, { name: 'Pair', level: 1, played: 3 }]))}`);
     }
 
-    if (nextPlanetNeed([{ name: 'Flush', level: 9, played: 9 }, { name: 'Straight Flush', level: 3, played: 0 }, { name: 'Pair', level: 1, played: 3 }]) !== null) {
-        throw new Error('maxed most-played fam must yield null (level 9 buys nothing), not SF filler');
+    /* C27 contract change: a maxed engine yields to an EVIDENCED runner-up (played>=2),
+       not starvation - leveling the second engine is the late-run move; unevidenced
+       fams stay excluded by the assertion above (SF filler forbidden) */
+    if (nextPlanetNeed([{ name: 'Flush', level: 9, played: 9 }, { name: 'Straight Flush', level: 3, played: 0 }, { name: 'Pair', level: 1, played: 3 }])?.f !== 'Pair') {
+        throw new Error(`maxed top engine must target the evidenced runner-up, got ${JSON.stringify(nextPlanetNeed([{ name: 'Flush', level: 9, played: 9 }, { name: 'Straight Flush', level: 3, played: 0 }, { name: 'Pair', level: 1, played: 3 }]))}`);
     }
 
     if (!JUNK_JOKER.test('Madness') || JUNK_JOKER.test('Madder Hall')) {
