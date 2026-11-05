@@ -21,10 +21,15 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
 - `lib/reps.mjs` - blind-repeat counters (Card Sharp X3) + run-seen tracker (Blue unseen pricing) state island.
 - `lib/link.mjs` - host spawn + reaps `automation-host.mjs` on exit (orphan host holds port 4180
   and request-id receipts -> `request_conflict` FATAL loop without reaping).
-- Supervisor: `loopdrv.sh` runs as a persistent proc SERVICE (`proc://loopdrv`, survives driver
-  kills and restarts `driver.mjs` with fresh code); `killdrv.ps1` kills driver+automation-host
-  ONLY - the bash loop survives by design. Exactly ONE supervisor loop and ONE watcher may exist
-  at a time; `tmp/psloopkill.ps1` is the escalation if the bash loop itself must die.
+- Supervisor: `tmp/loopdrv.sh` runs as a NAMED service (`loopdrv<N>`, generation-incremented;
+  ready-gate on port 4180) that survives driver kills and restarts `driver.mjs` with fresh
+  code; `killdrv.ps1` kills driver+automation-host ONLY - the bash loop survives by design.
+  PITFALL (11-04): the supervisor service can itself die (job reaping) - killdrv then leaves
+  NOTHING running while :4180 may still LISTEN from a stale driver. Deploy truth: code-live =
+  a `sessionstart` row with ts > commit ts; a listening port proves NOTHING about restarts.
+  Exactly ONE supervisor loop and ONE watcher may exist at a time; `tmp/psloopkill.ps1` is the
+  escalation if the bash loop itself must die; `powershell -File tmp/ptree.ps1` lists the whole
+  chain (supervisor/driver/host/watcher) for the single-owner check.
 
 ## Deploy
 1. `node driver.mjs --selftest` must print `SELFTEST OK`.
@@ -53,7 +58,8 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
 ## Stack recovery (crash at menu / game_unavailable)
 `tmp/psloopkill.ps1` -> `killdrv.ps1`; reload the game page (Chrome app-mode, CDP 9222, profile
 `chrome-profile`, cold start ~100s), `tmp/click.mjs 452 792`, `tmp/startws.mjs` (needs 4180 free),
-`Start-Process loopdrv.sh`. Menu `setup_run` click CRASHES the page; New Run overlay cycling is
+`Start-Process loopdrv.sh` (or the named-service launch used since 11-04, ready-gate port 4180). Menu `setup_run` WS
+activate NO LONGER crashes the page (10-30 fix; driver self-serves New Run -> PLAY in ~5 s); New Run overlay cycling is
 1-BASED index (auto-detected).
 - ALWAYS send `Page.bringToFront` BEFORE `Page.reload` (10-30, three zombie loops): Chromium
   won't boot WebGPU on a hidden page -> half-booted page connects then answers

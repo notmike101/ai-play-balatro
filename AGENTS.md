@@ -52,8 +52,10 @@ pnpm run lint > out/lint.txt        # eslint . --max-warnings 0; file must be em
 node node_modules/eslint/bin/eslint.js <files> --quiet   # when pnpm/npx choke (EBADDEVENGINES via npx)
 pnpm exec eslint --fix <files>      # after edits (careful: it rewrites JSDoc on arrows)
 powershell -File killdrv.ps1        # kill driver+host; the loopdrv supervisor restarts driver
+                                    # WARNING (11-04): if the loopdrv service itself is dead, killdrv
+                                    # leaves NOTHING - rebuild the chain: bash service running tmp/loopdrv.sh
 powershell -File tmp/ptree.ps1      # verify EXACTLY ONE chain: service->loopdrv.sh->driver->host
-node tmp/watchrun.mjs               # one-shot: exits when the next clean run-digest lands
+node tools/watchrun.mjs             # one-shot: exits when the next clean run-digest lands
 ```
 
 ## Conventions & traps (each cost hours at least once)
