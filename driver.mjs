@@ -868,6 +868,6 @@ setRunId(runSeq);
 jw({ e: 'sessionstart', pid: process.pid });
 
 main().catch((e) => {
-    say('FATAL', e.message);
+    say('FATAL', e.stack || e.message);
     process.exit(1);
 });

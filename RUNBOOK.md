@@ -73,6 +73,10 @@ activate NO LONGER crashes the page (10-30 fix; driver self-serves New Run -> PL
   NEVER show the tab (bringToFront/ShowWindow/TOPMOST all lose to exclusive fullscreen) and the game
   shell refuses to boot hidden ("waiting for visible tab"). Doctrine = run Chrome HEADLESS:
   `Stop-Process` the `--app=` chrome main PID, then Start-Process chrome.exe with
+  (11-04 TRAP: from a bash/service context bare `chrome.exe` is NOT on PATH - Start-Process
+  silently no-ops with zero output; ALWAYS use the full path
+  'C:\Program Files\Google\Chrome\Application\chrome.exe'. The chrome-game service died with
+  exit 127 = exactly this; the whole reboot storm was a silent no-chrome loop)
   `--headless=new --app=https://poker.gl.ax/ --remote-debugging-port=9222
   --user-data-dir=D:\balatro-ai\chrome-profile --no-first-run --no-default-browser-check
   --window-size=1953,1616 --force-device-scale-factor=1.5 --enable-unsafe-swiftshader
