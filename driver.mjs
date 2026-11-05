@@ -14,6 +14,8 @@ import { resetProbe } from './lib/acts.mjs';
 import { handleHand } from './lib/playturn.mjs';
 import { resetSeen } from './lib/play.mjs';
 import { currentBias, handleBlindSelect, resetStrategy } from './lib/blind.mjs';
+import { runSetupOverlay } from './lib/setup.mjs';
+import { maybeOptionsProbe } from './lib/probes.mjs';
 
 // ---------- play-phase decision ----------
 
@@ -42,7 +44,6 @@ let cashSeen = '';
    G.SETTINGS.reduced_motion (blob scan) - if the Options overlay exposes it,
    toggling it cuts the wasm animation clock = 2-3x run throughput. Probe runs
    once at the FIRST cash_out screen, logs every control, then continues. */
-let optDone = false;
 let habsSeen = -2;
 let lvlSig = '';
 const suitTally = {};
@@ -56,209 +57,48 @@ let sawRunStart = false;
 // learned joker residual belongs to the lineup that produced it; lineup change invalidates all
 
 // ---------- New Run setup ----------
-/**
- * Find the paired direction-cycle control for an option_cycle, falling back to itself.
- *
- * @param {object[]} all - all controls from the current observation
- * @param {object} c - the option_cycle control being rotated
- * @param {string} dir - wanted direction, 'l' or 'r'
- * @returns {object | null} matching enabled cycle control, or null
- */
-function cyclePartner(all, c, dir) {
-    return all.find((x) => x.enabled && x.kind === 'option_cycle' && Array.isArray(x.options)
-        && x.options.length === c.options.length && x.options[0] === c.options[0] && x.direction === dir)
-    || (c.direction === dir ? c : null);
-}
-
 let pendingStakeLabel = null;
 
 /**
  * Drive the New Run overlay: cycle to the wanted deck and stake, then start the run.
+ * Overlay row mechanics live in lib/setup.mjs; this wrapper keeps run bookkeeping
+ * (rid bump, runstart row, per-run state resets).
  *
  * @param {object} obs - overlay-phase observation
- * @returns {Promise<boolean>} true once the run start was accepted
+ * @returns {Promise<boolean>} true once the run start (or pause-menu re-entry) was accepted
  */
 async function handleNewRun(obs) {
     const pol = policy();
+    const unwon = STAKE_LABELS.find((l) => !wins.has(l)) || STAKE_LABELS[7];
 
     fs.writeFileSync(path.join(OUT, 'overlay.json'), JSON.stringify(obs));
-    const wantDeck = pol.deck || 'Red Deck';
-    const unwon = STAKE_LABELS.find((l) => !wins.has(l)) || STAKE_LABELS[7];
-    const stakeWant = STAKE_LABELS.indexOf(unwon) + 1;
-    let o = obs;
 
-    for (let round = 0; round < 40; round++) {
-        const cycles = (o.controls || []).filter((c) => c.enabled && c.kind === 'option_cycle' && Array.isArray(c.options));
-
-        /* STAKE LOOP FORENSICS (10-30: 256 stakeaborts, game starts stake1 while
-           runstart claims Red - fall-through-to-default start path suspected):
-           capture EVERY overlay frame's control kinds + cycle states */
-        jw({ e: 'ovl', round, ks: (o.controls || []).map((c) => `${c.kind}${c.enabled ? '' : '!'}${c.options ? `[${c.options.length}]@${c.index}{${c.options.slice(0, 5).join('/')}}` : `=${c.label ?? ''}`}`).join(';').slice(0, 700), run: Boolean(o.run) });
-
-        /* Rows render a tick LATE on this overlay (observed 10-30: the first
-           frame had NO option_cycle at all, so the old code broke straight to
-           start and ran the game's DEFAULT stake - every claimed stake was
-           fiction and the stake guard crash-looped on the White runs) */
-        if (!cycles.length && round < 8) {
-            await sleep(600);
-            o = await observe();
-
-            continue;
-        }
-
-        /* PROVEN against the live setup overlay (13-start loop 10-29): indices are
-           1-based (deck index 1 == "Red Deck" = game default; stake index 1 == stake 1
-           = game's stake 1) and the STAKE control's options are NUMBERS [1..8], not
-           label strings - the old /stake/i label probe never matched, so the stake
-           arrow was never clicked and every claimed stake was fiction */
+    const res = await runSetupOverlay(obs, pol.deck || 'Red Deck', STAKE_LABELS.indexOf(unwon) + 1, {
         /**
-         * Read an option label, compensating for the 1-based index reported by controls.
+         * Record the highest stake the game's setup row exposes (cap cache + file).
          *
-         * @param {object} c - option_cycle control
-         * @param {number} i - control-reported index
-         * @returns {string} option label
+         * @param {number} v - stake options count seen on the live row
          */
-        // eslint-disable-next-line unicorn/consistent-function-scoping -- reads o.controls layout fresh per overlay
-        const at = (c, i) => c.options[i - 1];
-        const deckC = cycles.find((c) => c.options.some((s) => /deck/i.test(String(s))));
-        const stakeC = cycles.find((c) => c !== deckC && c.options.length >= 2 && c.options.every((s) => {
-            const v = Number(s);
-
-            return Number.isInteger(v) && v >= 1 && v <= 8;
-        }));
-        /* DECK-STYLED STAKE ROW DISABLED (10-30, oracle-confirmed): the second
-           deck-label cycle IS a deck selector - clicking its arrows cycles DECKS
-           (the 18:4x "oscillating @1<->@2" was our own double-clicking), never the
-           stake. The real stake cycle only exists when the game has >1 stake
-           UNLOCKED; this build's save lost the White win, so setup shows NO stake
-           row and PLAY serves White. Numeric-cycle branch above stays the live path */
-        let c = null;
-        let ti = -1;
-
-        if (deckC && at(deckC, deckC.index) !== wantDeck) {
-            c = deckC;
-            ti = deckC.options.indexOf(wantDeck);
-        } else if (stakeC) {
-            const first = Number(at(stakeC, stakeC.index));
-            const stakeCur = Number.isInteger(first) ? first : stakeC.index;
-
-            /* GAME-RANGE CLAMP (10-31: after our wins.json grew Red, wantSt=3 but the
-               setup row exposes only {1/2} - game save never recorded the Red win, so
-               Green is LOCKED; findIndex(-1) fallback ti=stakeWant-1 then wrapped mod 2
-               back onto index 0 = WHITE, silently downgrading every run while the guard
-               abort-looped. Ladder may never exceed the game's unlocked options: take
-               the highest unlocked instead of wrapping to White. */
-            gameMaxStake = Math.max(gameMaxStake ?? 0, stakeC.options.length);
+        noteCap(v) {
+            gameMaxStake = Math.max(gameMaxStake ?? 0, v);
             writeStakeCap(gameMaxStake);
+        },
+    });
 
-            const stakeCapNow = Math.min(stakeWant, stakeC.options.length);
-
-            if (stakeCur !== stakeCapNow) {
-                c = stakeC;
-                ti = stakeC.options.findIndex((s) => Number(s) === stakeCapNow);
-
-                if (ti < 0) {
-                    ti = stakeCapNow - 1;
-                }
-            }
-        }
-
-        if (!c || ti < 0) {
-            break;
-        }
-
-        const n = c.options.length;
-        const cur = ((c.index - 1 + n) % n);
-        const delta = (ti - cur + n) % n;
-        const useCtl = cyclePartner(o.controls, c, delta <= n / 2 ? 'r' : 'l');
-
-        if (!useCtl) {
-            break;
-        }
-
-        const r = await act({ epoch: o.epoch, action: 'activate', target: useCtl.id });
-
-        if (!r.ok) {
-            jw({ e: 'cyclefail', code: r.error?.code });
-            break;
-        }
-
-        o = r.result;
-    }
-
-    /* DECK RE-SELECT (10-30 forensics): clicking the stake row's partner also flips
-       the deck row (observed both cycles oscillating @1<->@2 in lockstep) - land the
-       stake LAST and re-assert the wanted deck immediately before PLAY, else every
-       second run starts Blue Deck (137447 rid 1793387361: stake arrows hit, deck lost) */
-    {
-        const deckC2 = (o.controls || []).find((c) => c.enabled && c.kind === 'option_cycle' && Array.isArray(c.options) && c.options.some((s) => /deck/i.test(String(s))));
-
-        if (deckC2 && deckC2.options[deckC2.index - 1] !== wantDeck) {
-            const ti2 = deckC2.options.indexOf(wantDeck);
-            const dir2 = ti2 >= deckC2.index ? 'r' : 'l';
-            const partner = cyclePartner(o.controls, deckC2, dir2);
-
-            if (partner) {
-                const rr = await act({ epoch: o.epoch, action: 'activate', target: partner.id });
-
-                if (rr.ok) {
-                    o = rr.result;
-                }
-            }
-        }
-    }
-
-    const stakeCyc = (o.controls || []).find((c) => c.kind === 'option_cycle' && Array.isArray(c.options) && (c.options.some((s) => /stake/i.test(String(s))) || (c.options.length >= 2 && c.options.every((s) => {
-        const v = Number(s);
-
-        return Number.isInteger(v) && v >= 1 && v <= 8;
-    }))));
-    const rawStake = stakeCyc ? stakeCyc.options[stakeCyc.index - 1] : null;
-    let stakeLbl = null;
-
-    if (rawStake !== null && rawStake !== undefined) {
-        stakeLbl = /stake/i.test(String(rawStake)) ? String(rawStake) : STAKE_LABELS[Number(rawStake) - 1] || null;
-    }
-
-    if (stakeLbl === null && stakeCyc) {
-        /* deck-styled stake row (10-30 UI): options are deck labels, index is the stake */
-        stakeLbl = STAKE_LABELS[stakeCyc.index - 1] ?? null;
-    }
-
-    const start = (o.controls || []).find((c) => c.enabled && /start_setup_run/.test(c.kind));
-
-    if (!start) {
-        /* PAUSE MENU (opened by the stake-abort guard): its New Run button (kind
-           setup_run) opens the real setup tab with the deck/stake cycles +
-           start_setup_run; the loop re-enters handleNewRun on that overlay */
-        const sr = (o.controls || []).find((c) => c.enabled && c.kind === 'setup_run');
-
-        if (sr) {
-            jw({ e: 'setupopen' });
-            await act({ epoch: o.epoch, action: 'activate', target: sr.id });
-
-            return true;
-        }
-
-        jw({ e: 'overlaystuck', controls: (o.controls || []).map((c) => `${c.kind}:${c.label}`) });
-
+    if (res.kind === 'stuck' || res.kind === 'startfail') {
         return false;
     }
 
-    const r = await act({ epoch: o.epoch, action: 'activate', target: start.id });
-
-    if (!r.ok) {
-        jw({ e: 'startfail', code: r.error?.code });
-
-        return false;
+    if (res.kind === 'setupopen') {
+        return true;
     }
 
-    pendingStakeLabel = stakeLbl || unwon;
+    pendingStakeLabel = res.stakeLbl || unwon;
     say('run started, stake label =', pendingStakeLabel);
 
     runSeq += 1;
     setRunId(runSeq);
-    jw({ e: 'runstart', stake: stakeLbl || unwon, hasCyc: Boolean(stakeCyc), hadStart: Boolean(start) });
+    jw({ e: 'runstart', stake: pendingStakeLabel, hasCyc: res.hasCyc, hadStart: true });
     sawRunStart = true;
     abandonPending = false;
     resetStrategy();
@@ -380,89 +220,6 @@ function writeStakeCap(v) {
         }
     } catch {
         /* best-effort cache */
-    }
-}
-
-/**
- * Reduced-motion options probe, once per boot at the first cash_out screen.
- * The cash_out Options control lands on the nav overlay; real option rows live
- * one level deeper under Settings. Flips the motion toggle when the row is
- * readable, then backs out; when rows arrive label-less through the bridge it
- * only backs out - blind per-boot toggling would OSCILLATE the persisted save.
- *
- * @param {object} obs - cash_out-phase observation
- */
-async function optionsProbe(obs) {
-    const oc = (obs.controls || []).find((x) => x.kind === 'options' && x.enabled);
-
-    if (!oc) {
-        jw({ e: 'optprobe', noCtrl: true });
-
-        return;
-    }
-
-    const ra = await act({ epoch: obs.epoch, action: 'activate', target: oc.id });
-
-    if (!ra.ok) {
-        jw({ e: 'optprobe', actFail: ra.error?.code });
-
-        return;
-    }
-
-    try {
-        let o2 = await observe();
-        let rows = (o2.controls || []).map((x) => `${x.kind}:${x.id}:${String(x.label ?? '').slice(0, 34)}`);
-        let rm = (o2.controls || []).find((x) => /reduced|motion|animation/i.test(String(x.label ?? '')));
-
-        /* first probe hit MENU-style overlays (the cash_out Options ctrl
-           lands on the nav overlay: settings:1:Settings...) - chain one
-           level into Settings where the actual option rows live */
-        if (!rm) {
-            const st = (o2.controls || []).find((x) => x.kind === 'settings' || /^settings/i.test(String(x.label ?? '')));
-
-            if (st && (await act({ epoch: o2.epoch, action: 'activate', target: st.id })).ok) {
-                o2 = await observe();
-                rows = (o2.controls || []).map((x) => `${x.kind}:${x.id}:${String(x.label ?? '').slice(0, 34)}`);
-                rm = (o2.controls || []).find((x) => /reduced|motion|animation/i.test(String(x.label ?? '')));
-            }
-        }
-
-        const toggled = [];
-
-        if (rm) {
-            toggled.push((await act({ epoch: o2.epoch, action: 'activate', target: rm.id })).ok ?? false);
-
-            const o3 = await observe();
-            const backs = (o3.controls || []).filter((x) => /^(back|close|exit|leave)/i.test(String(x.label ?? '').trim()) || x.kind === 'back' || x.kind === 'exit_overlay_menu');
-
-            for (let b = 0; b < 2 && b < backs.length; b++) {
-                await act({ epoch: (b ? await observe() : o3).epoch, action: 'activate', target: backs[b].id });
-            }
-        } else if ((o2.controls || []).some((x) => x.kind === 'change_tab')) {
-            /* probe FROZEN log-only 11-05: Game-tab option rows are LABEL-LESS
-               through the bridge (cycles show '<'/'>', booleans just
-               'toggle_button'). One blind flip was made (button:9 ok; :10 missed
-               on a stale epoch) and run cadence did NOT change (the 13/h dip was
-               ops-restart churn, driver verified healthy mid-shop) - no more
-               flips: per-boot toggling would OSCILLATE the persisted save. */
-            const o4 = await observe();
-            const bk = (o4.controls || []).find((x) => x.kind === 'options' || /^back/i.test(String(x.label ?? '')));
-
-            if (bk) {
-                await act({ epoch: o4.epoch, action: 'activate', target: bk.id });
-
-                const o5 = await observe();
-                const bk2 = (o5.controls || []).find((x) => x.kind === 'exit_overlay_menu' || /^back/i.test(String(x.label ?? '')));
-
-                if (bk2) {
-                    await act({ epoch: o5.epoch, action: 'activate', target: bk2.id });
-                }
-            }
-        }
-
-        jw({ e: 'optprobe', ctrls: rows, rmFound: rm === undefined ? 'no' : String(rm.label).slice(0, 40), toggled });
-    } catch (e) {
-        jw({ e: 'optprobe', err: String(e?.message ?? e).slice(0, 140) });
     }
 }
 
@@ -648,10 +405,7 @@ async function main() {
 
             const c = (obs.controls || []).find((c) => c.enabled && c.kind === 'cash_out');
 
-            if (c && !optDone) {
-                optDone = true;
-                await optionsProbe(obs);
-
+            if (c && await maybeOptionsProbe(obs)) {
                 continue; /* fresh obs next pass; cash_out act must use a post-probe epoch */
             }
 
