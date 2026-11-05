@@ -238,6 +238,8 @@ export async function runPolicy() {
     if (!(scorePackOffer({ kind: 'Enhanced', name: 'Glass Card' }, {}) === 4.3
         && scorePackOffer({ kind: 'Enhanced', name: 'Mult' }, {}) === 4.2
         && scorePackOffer({ kind: 'Enhanced', name: 'Steel Card' }, {}) === 5
+        && scorePackOffer({ kind: 'Enhanced', name: 'Wild Card' }, {}) === 5
+        && scorePackOffer({ kind: 'Enhanced', name: 'Default Base' }, {}) === 1
         && scorePackOffer({ kind: 'Enhanced', name: 'Lucky Card' }, {}) === 4
         && scorePackOffer({ kind: 'Enhanced', name: 'Stone Card' }, {}) === 1
         && scorePackOffer({ kind: 'Default', name: 'Default Base' }, {}) === 1)) {
