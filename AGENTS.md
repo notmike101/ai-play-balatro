@@ -106,6 +106,29 @@ Current standing under this rule: White = progressed, NOT mastered (post-win pol
 changed → its benchmark re-based; a clean 30-attempt window on current HEAD is pending).
 Red = unlocked via the White win, 0 wins, grinding.
 
+## Code health audit cadence (user directive 11-04 — MANDATORY, runs regularly, multi-wave)
+
+Regular full-repo pass over four axes, each wave = its own commit, ZERO behavior delta
+(no killdrv; the supervisor picks changes up at the next cohort deploy — mid-cohort waves
+must be provably behavior-preserving or they contaminate the cohort):
+
+1. **Documentation 100% accurate** — every comment claim vs the Evidence standard above
+   (stale premises get deleted or re-verified, e.g. the 11-04 "NO interest" lie); JSDoc
+   `@returns`/`@param` vs real signatures (`tmp/auditdocs.mjs` export audit); RUNBOOK
+   module map + commands vs actual files/scripts.
+2. **Modular, no dead code, no over-engineering** — unused-export scan (reference-count
+   every `export`, strip the keyword or the function); `ponytail-audit` tags per finding:
+   `delete:`/`stdlib:`/`native:`/`yagni:`/`shrink:`; no interfaces or config with one
+   consumer; the "few hundred lines" split rule in Conventions is enforced, not advisory.
+3. **Simplicity refactors** — verbatim state-island extraction with facade re-exports,
+   shorter equivalent expressions, deletion over addition.
+4. **Optimization only where measured** — microbench the hot path FIRST (predict ~= us/call
+   -> caching is YAGNI, say so and move on); never optimize unmeasured code.
+
+Gate every wave: `pnpm run lint` (0 problems, INCLUDING `tmp/` — scratch files must be
+gate-clean the day they are written and deleted when done) + `node driver.mjs --selftest`
+(SELFTEST OK) + touched test modules. Commit per wave; push per wave.
+
 ## Commit messages (MANDATORY, user directive 10-30)
 
 Use Conventional Commits (https://www.conventionalcommits.org/) for EVERY commit:
