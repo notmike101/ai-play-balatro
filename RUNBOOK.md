@@ -149,15 +149,22 @@ activate NO LONGER crashes the page (10-30 fix; driver self-serves New Run -> PL
   `T=$(node tools/wake.mjs | tail -1) && WATCH_N=4 node tools/watchrun.mjs "$T"`; the watcher
   dies with its parent chain after firing - ALWAYS rearm inside the wake call),
   `dbimport`+`cohort` (db + epoch readout; `cohort --verdict <sha> [--base <sha>]` = the standing
-  pre-registered verdict table for a deploy window), `bosscal` (per-boss pred calibration), `votes`
-  (gamefam focal audit), `surgeclass` (death classification), `ledcheck`, `plmatch`+`avail`+`focvis`
-  (take-vs-nf: focal-on-shelf misses are the ONLY real targeting signal; fillers are supply-forced
-  by design), `planleak`, `depthan`, `enhcens`, `intcensus2`, `jkgap`, `bosscal`, `vp` (click-px
+  pre-registered verdict table for a deploy window), `avail`+`supply` (shelf/pool availability
+  censuses: focal-on-shelf misses are the ONLY real targeting signal; fillers are supply-forced
+  by design), `copiers` (copier-joker sell/buy gates), `deepx` (pred-vs-actual by joker),
+  `vouchers` (voucher-offer census), `extract_jokers` (truth-blob extraction), `vp` (click-px
   mapper), `ordplay` (order replay harness), `route` (shadow clear-P contra census:
   `node tools/route.mjs <since-ts>` prints per-band disagreement/tie rates), `curve`
   (`node tools/curve.mjs <since> [until]` = COHORT-19b verdict: catchup fire-rate from e='curve'
-  mechanism rows, a4 pre-boss/boss/pass attrition vs 26/33/36 corpus baseline, avgA). `tmp/` (gitignored) keeps ONLY ops scaffolding:
-  `loopdrv.sh`, `pslist.ps1`, `psloopkill.ps1`, `click`, `startws`.
+  mechanism rows, a4 pre-boss/boss/pass attrition vs 26/33/36 corpus baseline, avgA).
+  Cohort-concluded one-shot probes (bosscal, votes, surgeclass, ledcheck, plmatch, planleak,
+  depthan, enhcens, intcensus2, jkgap, focvis; ~850 lines) were DELETED 11-04 - promote back
+  from git history when their question is re-opened. `tmp/` (gitignored) keeps ops scaffolding
+  (`loopdrv.sh`, `pslist.ps1`, `psfull.ps1`, `psloopkill.ps1`, `killprof.ps1`, `ptree.ps1`,
+  `raise-chrome.ps1`, `restore-chrome.ps1`, `restore-unlocked.ps1`, `click`, `startws`,
+  `menudump/unlockall/verifyunlocked/optsurvey/optdeep` menu ops) plus live audit tools
+  (`auditdocs`, `exportscan`) and throwaway probes - probes must pass the lint gate the day
+  they are written and get deleted when their question closes.
 
 ## Settled build facts (verified; do not re-litigate)
 - Effect texts: `blind` rows carry the boss effect verbatim (all 26 bosses seen in log = match
