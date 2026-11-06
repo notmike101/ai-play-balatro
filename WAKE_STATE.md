@@ -1,14 +1,14 @@
 # WAKE_STATE — bounded handoff (update every wakeup; git-tracked)
 
-Updated: 2026-11-06 ~20:2x UTC-ish local. HEAD `5607d6a`. Driver LIVE (loopdrv10 service, sessionstart 1793995228872, pid 40440; driver = 2 node procs, legit). Host = driver child on :4180, single page.
+Updated: 2026-11-06 ~22:5x. HEAD `fix(driver) inert-back escalation` (pushed; live sessionstart ~1794005217, verified decide-flow). Driver LIVE via loopdrv10. Host = driver child on :4180, single page. **Incident 22:3x CLOSED:** 2.7h play-dead — bg_157 probe left OPTIONS hub open; hub back inert -> driver escape-loop deadlocked; port stayed LISTEN while dead (port != liveness; sessionstart/process-tree is proof). CDP Escape recovered; regression guard = sig-repeat -> nudgeUnpause() escalation (driver.mjs:592).
 
 ## Ladder (from live out/wins.json)
 `{}` — White-only (reboot wiped save; game save is authority). 0 wins / 217+ session attempts. Mastery clock: behavior-era began at C28-live sessionstart (~11-06 morning); every attempt in that era counts toward the 9/30 White window; 0 wins so far — NOT mastery, NOT reset unless gameplay code changes.
 
 ## Watcher ownership
 - Persistent service `wake-loop` (tmp/wakeloop.sh): batch-commits out/digests+results every 6 runs, re-arms its own watchrun child. Owns batch commits — do not compete.
-- My async-bash pingers (`T=$(node tools/wake.mjs|tail -1) && WATCH_N=7 node tools/watchrun.mjs "$T"`, timeout 3600 async): one stale pinger alive (anchor 1793994689120) — let it deliver, do NOT arm another until it fires. Pinger wakes ME (this session); no auto-reasoning beyond that.
-- Last consumed digest `t` = 1793994981274 (wake.mjs tail line). Dedupe by rid+t, filter `t>=anchor` never file position.
+- My async-bash pingers: one alive (anchor 1793994981274, WATCH batch 7) + a second watchrun child at the SAME anchor (wake-loop's). Duplicate wake is dedupe-safe via cursor; on next fire keep one, retire dup. Pinger wakes ME (this session); no auto-reasoning beyond that.
+- Last consumed digest `t` = 1794004751404 (newest on disk). Dedupe by rid+t, filter `t>=anchor` never file position. Mastery era so far includes 2 interrupted attempts (zombie 1793994892, deploy-kill 1794004663) — denominator counts them, wins/attempt + wins/wall-clock reported separately.
 
 ## Active experiment — C32-DOOM-SHADOW (status: collecting)
 - Pre-registered: shadow doom flag on `need` rows (ante4: run-max play-best pred <3000; ante5: <5500), ts>=1793990343129 (sessionstart 1793990343129 = code-live). Offline calibration: median-a4 best<2500 catches 59% of a4 reachers, 98.6% never-a6; thresholds bumped for run-max.
