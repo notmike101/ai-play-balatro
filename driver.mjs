@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { OUT, jw, setRunId, say, sleep, resF, wins, saveWins, stakeMap, saveStakeMap, STAKE_LABELS, policy, setStakeCtx, saveStakeLock, jokerFactor, jokerSig } from './lib/knowledge.mjs';
-import { observe, act, clickPage } from './lib/link.mjs';
+import { observe, act, clickPage, nudgeUnpause } from './lib/link.mjs';
 import { handleShop, resetShopRun } from './lib/shop.mjs';
 import { resetNeed } from './lib/need.mjs';
 import { handlePackOpen } from './lib/packflow.mjs';
@@ -228,6 +228,8 @@ function writeStakeCap(v) {
  */
 async function main() {
     let idle = 0;
+    let escSig = '';
+    let escN = 0;
 
     for (;;) {
         if (fs.existsSync(path.join(OUT, 'pause'))) {
@@ -584,13 +586,34 @@ async function main() {
            Collection or the options hub open, and the loop deadlocked in stuck-8x sleeps.
            Every overlay variant carries a back control (hub: exit_overlay_menu; settings:
            options; mid-run collection: your_collection) - click it until we are out.
-           Bounded by idle so a resurfacing overlay still falls through to the old stuck path. */
+           Bounded by idle so a resurfacing overlay still falls through to the old stuck path.
+           11-06: menu-level OPTIONS hub back (exit_overlay_menu) is INERT to activate acts -
+           the loop escaped 8x with zero state change and slept forever. Same control set
+           repeating twice -> the back is inert; escalate to a CDP Escape keystroke (proved to
+           close the hub live 11-06). */
         if (ph === 'overlay' && idle < 8) {
             const esc = (obs.controls || []).find((c) => c.enabled && (c.kind === 'exit_overlay_menu' || c.kind === 'options' || c.kind === 'your_collection'));
 
             if (esc) {
-                await act({ epoch: obs.epoch, action: 'activate', target: esc.id });
-                say('overlay: escape via', esc.kind);
+                const sig = (obs.controls || []).map((c) => c.kind).sort().join(',');
+
+                if (sig === escSig) {
+                    escN += 1;
+                } else {
+                    escSig = sig;
+                    escN = 0;
+                }
+
+                if (escN >= 2) {
+                    say('overlay: back inert, CDP Escape nudge');
+                    escSig = '';
+                    escN = 0;
+                    await nudgeUnpause();
+                } else {
+                    await act({ epoch: obs.epoch, action: 'activate', target: esc.id });
+                    say('overlay: escape via', esc.kind);
+                }
+
                 idle += 1;
                 continue;
             }
