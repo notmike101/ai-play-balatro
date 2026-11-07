@@ -56,7 +56,10 @@ The agent plays every hand itself; no driver, no loopdrv, no wake-loop, no pinge
   replies from `out/hostresp.log` newest-first; parse with `node -e` + `require('fs')` - dynamic
   `import('node:fs')` inside `node -e` can die SILENTLY (observed 11-07).
 - **Id/action rules:** ids are observation-local and shift on EVERY mutation (buy, joker sell, pack
-  open) - rescan (`obs`) immediately before EVERY act, read ids not positions. Booster packs: the
+  open) - rescan (`obs`) immediately before EVERY act, read ids not positions. Card tokens translate
+  LITERALLY before any line-building: `10D` = Ten of Diamonds (NOT a spade-ish token), `S/H/C/D` =
+  spade/heart/club/diamond - t19 died at a1 BB scoring J-high because a `10D` was eyeballed out of a
+  dealt 7-J straight. Booster packs: the
   shop action is `use` (buys+opens in one, money spent), not `buy`; picking inside a pack = `use` on
   the pack-card id. Target-gated tarots (Lovers confirmed = card ENHANCEMENT in this build) accept
   `{"action":"use","target":<consId>,"select":[<cardId>]}` - may print invalid_action yet APPLY;
