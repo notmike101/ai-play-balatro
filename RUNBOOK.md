@@ -38,19 +38,37 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
 
 ## Reasoning-driven mode (hand-driven play; primary since 2026-11-06)
 The agent plays every hand itself; no driver, no loopdrv, no wake-loop, no pinger.
-- **Start:** NAMED service `host10`: `node automation-host.mjs --origin https://poker.gl.ax --stay-open`
-  (cwd repo root, ready-gate port 4180). Chrome must already run (Stack recovery). The page
-  reconnects on its own; proof = `{"v":1,"event":"connected",...}` line in `proc://host10`.
-- **Drive:** write one JSON op per line to `proc://host10` (service stdin): `{"v":1,"id":N,"op":"observe"}`
-  -> full game state + `epoch` on host stdout (`read proc://host10`; big payloads land in
-  `artifact://`). Act with `{"v":1,"id":N,"op":"act","args":{...epoch, ids from LATEST observe...}}`.
-  Protocol + id-locality rules identical to Operational contracts below. `menu`/`describe` ops work.
-- **Stop:** `write proc://<name>/kill` on `host10` FIRST, then start loopdrv if returning to
+- **Start:** Chrome headless must already run (Stack recovery, CDP :9222). Then start the host as a
+  NAMED SERVICE (generation-incremented name, `host<N>`; last = `host12`), cwd repo root:
+  `tail -F -n0 out/hostcmd.json | node automation-host.mjs --origin https://poker.gl.ax --stay-open | tee -a out/hostresp.log`
+  ready-gate: log regex `listening` + port 4180. **File relay is REQUIRED** — writing ops to
+  `proc://<svc>` stdin TRIMS trailing newlines, so the JSONL stream wedges (burned 11-06). The page
+  reconnects on its own; proof = `{"v":1,"event":"connected",...}` line in `out/hostresp.log`.
+- **Drive:** `node tools/hact.mjs <cmd>` (cwd repo root; auto fresh epoch + one stale-retry):
+  `obs` = compact full view (hand/ids/shop/pack/jokers/levels/controls/phase/target);
+  `act '<json>'` = any act op, e.g. `act '{"action":"buy","target":10}'`,
+  `act '{"action":"use","target":8}'`, `act '{"action":"use","target":17,"select":[7]}'`;
+  `play <ids>` / `discard <ids>` (comma list; selects then activates the enabled control);
+  `ctl <kind>` = activate enabled control by kind (cash_out, toggle_shop, select_blind, reroll_shop,
+  sort_hand_value, notify_then_setup_run, start_setup_run - run-end menu turnaround ~6 s:
+  notify_then_setup_run -> start_setup_run -> select_blind). Raw ops if hact dies: append one JSON
+  line `{"v":1,"id":N,"op":"observe"}` to `out/hostcmd.json` with bash printf (cwd repo root!), read
+  replies from `out/hostresp.log` newest-first; parse with `node -e` + `require('fs')` - dynamic
+  `import('node:fs')` inside `node -e` can die SILENTLY (observed 11-07).
+- **Id/action rules:** ids are observation-local and shift on EVERY mutation (buy, joker sell, pack
+  open) - rescan (`obs`) immediately before EVERY act, read ids not positions. Booster packs: the
+  shop action is `use` (buys+opens in one, money spent), not `buy`; picking inside a pack = `use` on
+  the pack-card id. Target-gated tarots (Lovers confirmed = card ENHANCEMENT in this build) accept
+  `{"action":"use","target":<consId>,"select":[<cardId>]}` - may print invalid_action yet APPLY;
+  verify by re-observation, never by the error string. Tower-in-hand use = no-op (unsettled gate).
+- **Stop:** `write proc://<name>/kill` on the host service FIRST, then start loopdrv if returning to
   supervised mode — the host holds port 4180 while alive and loopdrv would ready-storm behind it.
 - **Records:** reasoning runs do NOT write `log.jsonl` (that is driver telemetry). Outcomes go to
-  `WAKE_STATE.md` (streak counter) + status log immediately after each run ends. Streak = 3 wins
-  in a row to advance a stake; any loss/abort/crash resets it. CDP :9222 (clicks, screenshots)
-  is independent and stays up in both modes.
+  `WAKE_STATE.md` (streak counter) + one numbered line per attempt in the current
+  `status-YYYY-MM-DD.md` (commit per attempt, Conventional `docs(streak):`). Streak = 3 consecutive
+  wins on the same stake to advance; any loss/abort/crash resets it. wins.json must mirror the GAME
+  SAVE unlocks (game save is authority). CDP :9222 (clicks, screenshots) is independent and stays up
+  in both modes.
 
 ## Deploy
 1. `node driver.mjs --selftest` must print `SELFTEST OK`.
@@ -242,6 +260,15 @@ activate NO LONGER crashes the page (10-30 fix; driver self-serves New Run -> PL
   rows stayed 2-unlocked): `out/game-stake-cap.txt` mirrors game truth; a stake win must be
   REPEATED game-side before the ladder advances. Never conclude Green-locked is a bug from
   wins.json alone.
+- REASONING-ERA DIRECT OBSERVATIONS (11-06/07, hand-played): the card-target tarot class IS
+  usable over the relay via `use` + `"select":[cardId]` (Lovers enhanced the selection into a
+  Glass Card; its reply printed invalid_action yet APPLIED - the driver-era "0 uses /
+  action_unavailable" census reflected the DRIVER op shape, not a game gate). Lovers = card
+  ENHANCEMENT here, not vanilla copy-joker. Hermit DOUBLES money (observed 4->8; $3 item =
+  outright profit below 2x money). Suit-debuff bosses (Head/Goad): debuffed cards score 0 chips
+  but hand SHAPE and hand BASE still score (all-spade debuffed flush scored 140). Booster shop
+  items take `use` (buys+opens, money spent); pick inside a pack = `use` on a FRESH-scanned
+  pack-card id (stale id = action_unavailable).
 - pickRule matches `"key name"` strings - anchored ^ regexes can never match consumable
   names; consumable rules live in strategy.mjs TAROT_RULES (allowlist semantics: unknown
   names never used).
