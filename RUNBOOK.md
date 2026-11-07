@@ -279,6 +279,16 @@ activate NO LONGER crashes the page (10-30 fix; driver self-serves New Run -> PL
   one blind pays progressively less - spread ranks across hands). Chad = +mult per hand remaining,
   Swashbuckler = +2 mult per discard HELD (save the last discard for the scoring hand). Fish draws
   literally show `undefined` in obs (unknown ranks, NOT stones); The Wheel shows faces normally.
+- ENGINE TRIGGERS + LOCKS (11-07, attempt 16 to a6 BB, verified in live scoring): Half Joker fires
+  when <=3 cards are PLAYED (not "counted") - pair+1 3-card line = +20 mult fill-line ~900-1700/hand
+  with no other trigger. THE MOUTH locks the played hand TYPE exactly: High Card lock then Full
+  House = scores 0 (tested live; do not "try" out-of-family big hands, they are wasted hands).
+  Lock the family whose sustainable ceiling >= target/hands: vs 5k+/hand only FH/quads class works,
+  which requires trips+pair in the FIRST dealt hand - else take Straight (~2.5-3.7k fish) and
+  accept Mouth is the run-ender at that level. Planet packs: display names SHIFT family per
+  build-run (same run: Saturn applied Straight, Pluto applied High Card) - READ the `levels` reply
+  after every planet use, never assume from the pack row name. Shop jokers tagged (x) are UNBUYABLE
+  when joker slots are full (use=action_unavailable); packs tagged (x) still open and pay out fine.
 - pickRule matches `"key name"` strings - anchored ^ regexes can never match consumable
   names; consumable rules live in strategy.mjs TAROT_RULES (allowlist semantics: unknown
   names never used).
