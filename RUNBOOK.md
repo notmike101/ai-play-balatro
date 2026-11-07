@@ -69,6 +69,24 @@ The agent plays every hand itself; no driver, no loopdrv, no wake-loop, no pinge
   wins on the same stake to advance; any loss/abort/crash resets it. wins.json must mirror the GAME
   SAVE unlocks (game save is authority). CDP :9222 (clicks, screenshots) is independent and stays up
   in both modes.
+- **Cadence (attempt 18 doctrine, 11-07):** ONE hact call per decision; `obs` immediately before
+  EVERY play/discard - stale ids can make a discard DRAW IDENTITY cards (the hand comes back
+  byte-identical and discards stay unspent - burned twice, attempt 18; detect it: hand + discards
+  count unchanged after discard, then rescan and retry). Per-blind plan arithmetic:
+  need = (target − score) / hands_left vs known lines (below); fill cheap on small blinds, keep
+  the big fish + discards for bosses. `ctl cash_out` ends every blind (phase `cash_out` -> shop).
+  The page idles INDEFINITELY at menu/shop/pack phases - no timer - so a live run can survive a
+  context compaction mid-shop; to stay resumable from a bare notebook, refresh `WAKE_STATE.md`
+  streak line + the session notebook at every blind-end/ante boundary and immediately on death/win
+  (attempt state: jokers, levels, deck mods, money, what the next blind demands).
+- **Engine lines measured hand-played (attempt 18, Half Joker + Credit Card + Joker Stencil,
+  no other triggers):** Half pair+kicker 3-card line = (10 + pair chips + kicker) x ~35
+  = 660-1150/hand and is the a1-a4 blind-filler; it did NOT scale with discards left (30x35 at
+  d4 == d0 - Swashbuckler "+2 mult per discard" unproven, retest while actually holding one).
+  Burst: 3-discard fish at a 4-run/4-flush ≈ 25-40%, straight/flush L1 line ≈ 2600-2900;
+  FH fish from two-pair keepers is THE a4+ power play (observed FH 107chips x 38 = 4095; FH
+  levels from Earth/Venus-class planets double its base). a4 bosses (4000-5000) fell to Half
+  fills + one FH; T2/house lines 44-62chips x15-17 = dead weight vs those targets.
 
 ## Deploy
 1. `node driver.mjs --selftest` must print `SELFTEST OK`.
@@ -271,7 +289,10 @@ activate NO LONGER crashes the page (10-30 fix; driver self-serves New Run -> PL
   pack-card id (stale id = action_unavailable).
 - HELD-CARD ECONOMY + PACK PICKABILITY (11-07, attempt 14 to a5 boss): Standard/Celestial pack
   picks are relay-pickable (`use` on fresh id) and strong - Stone +50 chips HELD (never PLAY it,
-  played stone scores ~0), Steel x1.5 mult HELD, Glass x2 mult PLAYED (1/4 destroy). BUT inside
+  played stone scores ~0), Steel x1.5 mult HELD, Glass x2 mult PLAYED (1/4 destroy). OPEN
+  CONTRADICTION (11-07 attempt 18): a Stone WAS bought as a Standard pick expecting +50 chips IN
+  the played Half line; if played stone truly scores ~0 Stone picks are economy-dead - attempt 18
+  is the live test, do not buy another before it settles. BUT inside
   Arcana/Jumbo-Arcana packs, every target-gated tarot (Lovers/Devil/Chariot/Star...) shows
   inspect-only and `use` = action_unavailable = UNPICKABLE (money lost; in-HAND use+select still
   works, see prior bullet - the gate is pack-time selection). Judgement/planets/Fool-type = fine.
