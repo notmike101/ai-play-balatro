@@ -269,6 +269,16 @@ activate NO LONGER crashes the page (10-30 fix; driver self-serves New Run -> PL
   but hand SHAPE and hand BASE still score (all-spade debuffed flush scored 140). Booster shop
   items take `use` (buys+opens, money spent); pick inside a pack = `use` on a FRESH-scanned
   pack-card id (stale id = action_unavailable).
+- HELD-CARD ECONOMY + PACK PICKABILITY (11-07, attempt 14 to a5 boss): Standard/Celestial pack
+  picks are relay-pickable (`use` on fresh id) and strong - Stone +50 chips HELD (never PLAY it,
+  played stone scores ~0), Steel x1.5 mult HELD, Glass x2 mult PLAYED (1/4 destroy). BUT inside
+  Arcana/Jumbo-Arcana packs, every target-gated tarot (Lovers/Devil/Chariot/Star...) shows
+  inspect-only and `use` = action_unavailable = UNPICKABLE (money lost; in-HAND use+select still
+  works, see prior bullet - the gate is pack-time selection). Judgement/planets/Fool-type = fine.
+  Smiley Face pays per face CARD played (>=2 face cards fire; repeating the same face RANK within
+  one blind pays progressively less - spread ranks across hands). Chad = +mult per hand remaining,
+  Swashbuckler = +2 mult per discard HELD (save the last discard for the scoring hand). Fish draws
+  literally show `undefined` in obs (unknown ranks, NOT stones); The Wheel shows faces normally.
 - pickRule matches `"key name"` strings - anchored ^ regexes can never match consumable
   names; consumable rules live in strategy.mjs TAROT_RULES (allowlist semantics: unknown
   names never used).
