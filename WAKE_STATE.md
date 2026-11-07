@@ -4,7 +4,7 @@ Updated: 2026-11-06 ~05:0x (post mode-switch). **MODE: REASONING-DRIVEN (USER 11
 
 ## Mission / ladder state
 - Advance stakes with **3 CONSECUTIVE wins on same stake** (loss/abort/crash = streak reset to 0). Ultimate goal: reach Gold. Game save = White-only (11-06 reboot wiped unlocks; wins.json `{}`).
-- **Streak: White 0/3 — 4 losses (a2 Fish, a4 Plant, a2 no-joker, a2 discard-spiral). Attempt #5. Playbook: joker-first buys, 4-card flush draws only, conservative 150-per-hand planning.**
+- **Streak: White 0/3 — 10 losses, best=a3 SB (attempt 10, Lusty engine, boss The Water killed). Attempt #11. Playbook: joker-first + Lusty hearts + gamble-when-losing.**
 - Pre-mode-switch driver-era stats (n~500 attempts, 0 wins, avgA ~3) = historical evidence that heuristic policy alone plateaus at a5/a6; NOT part of any streak ledger.
 
 ## Stack identity
