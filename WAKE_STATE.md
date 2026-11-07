@@ -7,7 +7,7 @@ Updated: 2026-11-06 ~22:5x. HEAD `fix(driver) inert-back escalation` (pushed; li
 
 ## Watcher ownership
 - Persistent service `wake-loop` (tmp/wakeloop.sh): batch-commits out/digests+results every 6 runs, re-arms its own watchrun child. Owns batch commits — do not compete.
-- My async-bash pingers: one alive (anchor 1793994981274, WATCH batch 7) + a second watchrun child at the SAME anchor (wake-loop's). Duplicate wake is dedupe-safe via cursor; on next fire keep one, retire dup. Pinger wakes ME (this session); no auto-reasoning beyond that.
+- My async-bash pingers: bg_161 armed (anchor 1794012985522, N=7). TRUTH (11-06): nvm `node` shim RE-EXECutes v22.20 -> every watchrun shows as TWO processes at one anchor and can deliver the batch TWICE — single logical watcher, not double-arm; ignore dup deliveries (cursor dedupes). NEVER `&`-detach a pinger (output orphaned; kills lose delivery). Pinger wakes ME; no auto-reasoning beyond that.
 - Last consumed digest `t` = 1794012985522 (newest on disk). Dedupe by rid+t, filter `t>=anchor` never file position. Mastery era so far includes 2 interrupted attempts (zombie 1793994892, deploy-kill 1794004663) — denominator counts them, wins/attempt + wins/wall-clock reported separately.
 
 ## Active experiment — AUDIT WAVE (status: due, in progress)
