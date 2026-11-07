@@ -4,7 +4,7 @@ Updated: 2026-11-06 ~05:0x (post mode-switch). **MODE: REASONING-DRIVEN (USER 11
 
 ## Mission / ladder state
 - Advance stakes with **3 CONSECUTIVE wins on same stake** (loss/abort/crash = streak reset to 0). Ultimate goal: reach Gold. Game save = White-only (11-06 reboot wiped unlocks; wins.json `{}`).
-- **Streak: White 0/3 — streak attempt #1 IN PROGRESS or next (record each outcome here immediately: mode/stake/ante-reached/why).**
+- **Streak: White 0/3 — 2 losses (a2 Fish, a4 Plant). Attempt #3 starting. Engine = suit-joker stacking; fix vs debuff bosses: scaling + number flushes.**
 - Pre-mode-switch driver-era stats (n~500 attempts, 0 wins, avgA ~3) = historical evidence that heuristic policy alone plateaus at a5/a6; NOT part of any streak ledger.
 
 ## Stack identity
