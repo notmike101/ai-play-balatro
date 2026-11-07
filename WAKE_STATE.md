@@ -8,19 +8,20 @@ Updated: 2026-11-06 ~22:5x. HEAD `fix(driver) inert-back escalation` (pushed; li
 ## Watcher ownership
 - Persistent service `wake-loop` (tmp/wakeloop.sh): batch-commits out/digests+results every 6 runs, re-arms its own watchrun child. Owns batch commits — do not compete.
 - My async-bash pingers: one alive (anchor 1793994981274, WATCH batch 7) + a second watchrun child at the SAME anchor (wake-loop's). Duplicate wake is dedupe-safe via cursor; on next fire keep one, retire dup. Pinger wakes ME (this session); no auto-reasoning beyond that.
-- Last consumed digest `t` = 1794004751404 (newest on disk). Dedupe by rid+t, filter `t>=anchor` never file position. Mastery era so far includes 2 interrupted attempts (zombie 1793994892, deploy-kill 1794004663) — denominator counts them, wins/attempt + wins/wall-clock reported separately.
+- Last consumed digest `t` = 1794011576364 (newest on disk). Dedupe by rid+t, filter `t>=anchor` never file position. Mastery era so far includes 2 interrupted attempts (zombie 1793994892, deploy-kill 1794004663) — denominator counts them, wins/attempt + wins/wall-clock reported separately.
 
-## Active experiment — C32-DOOM-SHADOW (status: collecting)
-- Pre-registered: shadow doom flag on `need` rows (ante4: run-max play-best pred <3000; ante5: <5500), ts>=1793990343129 (sessionstart 1793990343129 = code-live). Offline calibration: median-a4 best<2500 catches 59% of a4 reachers, 98.6% never-a6; thresholds bumped for run-max.
-- Sample now: 25 digests, 15 a4-need rows (5 flagged; gap-clean vs clean rows so far: flagged <=1309, clean >=3045).
-- Gate to LIVE: >=150 a4 shop-need rows AND precision >=98% (flagged-at-a4-shop that reached a6 = 0) AND zero flags on runs that reached a6+ at any point. Checkpoint grading at 40/80/150 rows.
-- LIVE form (if gate passes): a4 shop, doom -> Options(ctl)/Main Menu abandon + digest `aborted:true`; abandon is save-safe-PROVEN exit path (optsurvey 11-06: hand->Options id14->Main Menu id3; menu-phase Options has NO Main Menu row). Must still verify resume/overwrite semantics once on a real live abort; aborted runs stay in mastery denominator; report wins/attempt and wins/wall-clock separately.
-- Falsifier: >=2% of flagged doomed runs reach a6 -> thresholds too loose -> widen gap, no live.
+## Active experiment — AUDIT WAVE (status: due, in progress)
+- C28 cohort concluded -> scheduled behavior-preserving audit per AGENTS cadence. Topics done this wave: RUNBOOK liveness triage (decide-age, not port) pushed; comment/doc accuracy re today's incidents. Remaining topic when next due: unused-export sweep (tools/deepx.mjs is deep-death census, NOT export census — export sweep needs `grep -rn "export " lib *.mjs` vs callers, cheap). Audit = docs/tools only, NEVER touch gameplay code mid-era; no driver restart needed.
+
+## Closed experiments
+- **C32 DOOM/EARLY-ABORT: DEAD** (11-06, full verdict in status-2026-11-04.md ~23:5x block). Sole era a6-survivor flagged doomed at EVERY threshold (a4-shop run-max 1309) and escaped on POST-a4 supply; jokers@ a4-shop census flat across depths (4.56/4.84/4.88, copier 16/19/15%, n=276 post-unlock) -> no live state distinguishes survivors; abort would kill the win tail (0/55 era, we hunt tails not medians). Doom field stays as telemetry; NO live switch will be wired.
+- **C31 route-switch: PARKED** (shadow-policy holes, not live upside; route.mjs census 10% contra = roll-threshold artifacts).
+- **C27 ceiling-targeting: REVERTED.** C28 voucher-first: KEEP (buy-rate 44->89%; depth gated by OFFER RNG).
 
 ## Ranked candidates (max 3)
-1. C32 grading -> live-abort (above).
-2. a5 wall: engine plateau a4->a5 med 1.19x vs curve 2.2x; deep-L6 runs (828 TP L6) die a4 on score => joker-layer/syndrome ceiling, not levels. Next probe = cohort-17 rerun of run-max joker composite vs a6+ survivors (runs.db blind rows carry joker name arrays).
-3. Behavior-preserving AUDIT wave due (C28 cohort concluded): zero-unused-exports + comment-accuracy pass, gated, zero doom-data effect.
+1. AUDIT wave (above) — finish unused-export sweep topic.
+2. a5+ wall = post-a4 supply RNG (settled); remaining lever candidates ONLY if supply changes: reroll aggression at a5+ shops (money med high there) — needs its own shadow first; deepx census says 54% of 1703 deep-death runs carried >=1 xmult joker (synergy-vs-count question open, low priority).
+3. WAIT for depth (avgA band 2.9-3.2 confirmed steady); mastery hunt = throughput x tail, driver already plays continuously.
 
 ## Parked / settled
 - C31 live route-switch: DISPROVED-IN-SAMPLE (tools/route.mjs v2.1: contra ~10% but big-delta rows are shadow-roll-policy discard holes at pNow=0.88, not live upside). Shadow is research-only; do not wire to production (AGENTS verdict rule).
@@ -28,4 +29,4 @@ Updated: 2026-11-06 ~22:5x. HEAD `fix(driver) inert-back escalation` (pushed; li
 - Moon/Sun = suit converters; no chip cap; NO SUBAGENTS (user).
 
 ## One exact next action
-Next wakeup: `node tools/dbimport.mjs` then re-count a4-need doom rows (query above, ts>=1793990343129). <150 -> WAIT (re-arm pinger only if none alive). >=150 -> run precision join vs rundigest (anteMax of flagged rids), adjudicate gate, then live-branch or widen thresholds.
+Next wakeup: pinger fires on 7 new digests. Primary job = WAIT + verify liveness (decide age <10min + drv-stdout clean). Opportunistic: finish export-sweep audit topic (grep exports vs callers, delete dead, gate `selftest+lint`, commit `chore(deadcode):`-style, NO driver restart needed since exports unused == not loaded). Era stats snapshot each wake: wins + avgA on complete digests rid>=1793990343 (remember rid = epoch SECONDS).
