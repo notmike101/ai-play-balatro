@@ -8,7 +8,7 @@ Updated: 2026-11-06 ~22:5x. HEAD `fix(driver) inert-back escalation` (pushed; li
 ## Watcher ownership
 - Persistent service `wake-loop` (tmp/wakeloop.sh): batch-commits out/digests+results every 6 runs, re-arms its own watchrun child. Owns batch commits — do not compete.
 - My async-bash pingers: one alive (anchor 1793994981274, WATCH batch 7) + a second watchrun child at the SAME anchor (wake-loop's). Duplicate wake is dedupe-safe via cursor; on next fire keep one, retire dup. Pinger wakes ME (this session); no auto-reasoning beyond that.
-- Last consumed digest `t` = 1794011576364 (newest on disk). Dedupe by rid+t, filter `t>=anchor` never file position. Mastery era so far includes 2 interrupted attempts (zombie 1793994892, deploy-kill 1794004663) — denominator counts them, wins/attempt + wins/wall-clock reported separately.
+- Last consumed digest `t` = 1794012985522 (newest on disk). Dedupe by rid+t, filter `t>=anchor` never file position. Mastery era so far includes 2 interrupted attempts (zombie 1793994892, deploy-kill 1794004663) — denominator counts them, wins/attempt + wins/wall-clock reported separately.
 
 ## Active experiment — AUDIT WAVE (status: due, in progress)
 - C28 cohort concluded -> scheduled behavior-preserving audit per AGENTS cadence. Topics done this wave: RUNBOOK liveness triage (decide-age, not port) pushed; comment/doc accuracy re today's incidents. Remaining topic when next due: unused-export sweep (tools/deepx.mjs is deep-death census, NOT export census — export sweep needs `grep -rn "export " lib *.mjs` vs callers, cheap). Audit = docs/tools only, NEVER touch gameplay code mid-era; no driver restart needed.
@@ -19,7 +19,7 @@ Updated: 2026-11-06 ~22:5x. HEAD `fix(driver) inert-back escalation` (pushed; li
 - **C27 ceiling-targeting: REVERTED.** C28 voucher-first: KEEP (buy-rate 44->89%; depth gated by OFFER RNG).
 
 ## Ranked candidates (max 3)
-1. AUDIT wave (above) — finish unused-export sweep topic.
+1. AUDIT wave DONE (export sweep: 126 exports, cyclePartner demoted). Next audit topic: comment-accuracy re-check of shop.mjs/playturn.mjs against post-fix telemetry.
 2. a5+ wall = post-a4 supply RNG (settled); remaining lever candidates ONLY if supply changes: reroll aggression at a5+ shops (money med high there) — needs its own shadow first; deepx census says 54% of 1703 deep-death runs carried >=1 xmult joker (synergy-vs-count question open, low priority).
 3. WAIT for depth (avgA band 2.9-3.2 confirmed steady); mastery hunt = throughput x tail, driver already plays continuously.
 
