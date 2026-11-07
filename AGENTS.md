@@ -1,6 +1,11 @@
 # AGENTS.md
 
-Autonomous Balatro player for the poker.gl.ax web build. `driver.mjs` observes and acts through a WebSocket bridge; the supervised driver grinds the stake ladder without an agent deciding every move. The *research agent* wakes periodically to interpret evidence, improve the policy, preserve knowledge, and return control to the driver.
+Autonomous Balatro player for the poker.gl.ax web build. Two play modes share one bridge:
+
+- **Supervised driver** (`driver.mjs` + loopdrv): heuristic policy, high throughput, full `log.jsonl` telemetry. Used for measurement eras and supply censuses; proven NOT sufficient to win consistently (heuristic ceiling: a5/a6 wall, 0 wins/~500 attempts).
+- **Reasoning-driven mode** (primary since 2026-11-06): the agent plays every hand itself through the standalone host service (`host10`, see RUNBOOK "Reasoning-driven mode"), reasoning about each deal/shop instead of relying on precompiled heuristics; heuristics/predictions are advisory aids only, never the decider. This is the mode that advances stakes.
+
+Stake progression requires **3 consecutive clean wins on the same stake** (USER rule 2026-11-06; supersedes the 9-in-30 rule). Any loss resets the streak. In this mode there are no watchers/pingers: the agent session IS the run loop; `WAKE_STATE.md` tracks streak counts, and the driver stack (loopdrv, wake-loop, pinger) stays DOWN while playing.
 
 **Mission:** Learn from unattended play without losing experimental integrity, run progress, or discoveries across context resets. Every wakeup must either advance a measurable question, repair a proven operational problem, or leave a sound experiment running. Activity is not progress.
 
@@ -123,7 +128,7 @@ Analysis itself must be validated: inspect field names (`packdump` shorthand dif
 ## Stake ladder: progression is not mastery
 
 - **Progression:** one verified victory over the Ante 8 Boss Blind unlocks the next stake. Derive the current target from actual `out/wins.json` and ladder state on every wakeup; do not keep a dated “current standing” in this file.
-- **Mastery:** **at least 9 wins in 30 consecutive autonomous attempts (30%)** on the **same stake** with an unchanged gameplay/scoring policy. All losses, crashes, interruptions, and intentional aborts count. A 30-run window interrupted by any behavior-affecting change **resets**.
+- **Mastery / advancement (USER rule 2026-11-06, supersedes 9-in-30):** **3 CONSECUTIVE wins on the same stake** — literally back-to-back, no loss between — advances the ladder. Every attempt counts: losses, crashes, interruptions, aborts anywhere in the sequence reset the streak to 0. Record the running streak (and what broke it) in `WAKE_STATE.md` and the status log.
 - Archive every benchmark with policy identity, git SHA, effective config, period, attempt ledger, win rate, average ante, and run duration. Mark unsupported identities/holes as unverified; do not invent records to fill them.
 - A single win proves a policy *can* win, not that it is mastered. No wins-per-day quota. Track throughput to diagnose inefficiency, never to redefine mastery.
 

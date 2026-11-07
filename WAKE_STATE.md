@@ -1,32 +1,26 @@
 # WAKE_STATE — bounded handoff (update every wakeup; git-tracked)
 
-Updated: 2026-11-06 ~22:5x. HEAD `fix(driver) inert-back escalation` (pushed; live sessionstart ~1794005217, verified decide-flow). Driver LIVE via loopdrv10. Host = driver child on :4180, single page. **Incident 22:3x CLOSED:** 2.7h play-dead — bg_157 probe left OPTIONS hub open; hub back inert -> driver escape-loop deadlocked; port stayed LISTEN while dead (port != liveness; sessionstart/process-tree is proof). CDP Escape recovered; regression guard = sig-repeat -> nudgeUnpause() escalation (driver.mjs:592).
+Updated: 2026-11-06 ~05:0x (post mode-switch). **MODE: REASONING-DRIVEN (USER 11-06) — primary.** The agent plays every hand itself via host10; heuristics advisory only. Driver stack is DOWN by design: loopdrv10 + wake-loop services STOPPED, pingers none. Do not restart them while playing (single-owner bridge: host10 holds :4180).
 
-## Ladder (from live out/wins.json)
-`{}` — White-only (reboot wiped save; game save is authority). 0 wins / 217+ session attempts. Mastery clock: behavior-era began at C28-live sessionstart (~11-06 morning); every attempt in that era counts toward the 9/30 White window; 0 wins so far — NOT mastery, NOT reset unless gameplay code changes.
+## Mission / ladder state
+- Advance stakes with **3 CONSECUTIVE wins on same stake** (loss/abort/crash = streak reset to 0). Ultimate goal: reach Gold. Game save = White-only (11-06 reboot wiped unlocks; wins.json `{}`).
+- **Streak: White 0/3 — streak attempt #1 IN PROGRESS or next (record each outcome here immediately: mode/stake/ante-reached/why).**
+- Pre-mode-switch driver-era stats (n~500 attempts, 0 wins, avgA ~3) = historical evidence that heuristic policy alone plateaus at a5/a6; NOT part of any streak ledger.
 
-## Watcher ownership
-- Persistent service `wake-loop` (tmp/wakeloop.sh): batch-commits out/digests+results every 6 runs, re-arms its own watchrun child. Owns batch commits — do not compete.
-- My async-bash pingers: bg_173 armed (anchor 1794026126533, N=7). TRUTH (11-06): nvm `node` shim RE-EXECutes v22.20 -> every watchrun shows as TWO processes at one anchor and can deliver the batch TWICE — single logical watcher, not double-arm; ignore dup deliveries (cursor dedupes). NEVER `&`-detach a pinger (output orphaned; kills lose delivery). Pinger wakes ME; no auto-reasoning beyond that.
-- Last consumed digest `t` = 1794026126533. Dedupe by rid+t, filter `t>=anchor` never file position. Mastery era: complete-digest n=139 (lost 7 deep runs: true avgA higher) + 2 interrupted (zombie 1793994892, deploy-kill 1794004663) + 7 lost attempts (clock-step page-cache loss, non-wins) -> denominator ~77; wins 0.
+## Stack identity
+- Chrome full-path headless, port 9222 (CDP) — UNTOUCHED, verify with `fetch http://127.0.0.1:9222/json/version`.
+- **host10 service LIVE** (pid at start): `node automation-host.mjs --origin https://poker.gl.ax --stay-open`, cwd repo root, ready-port 4180; page connected (visibility player) — proof line `{"v":1,"event":"connected"}` in `read proc://host10`.
+- Drive: write `{"v":1,"id":N,"op":"observe"}` to `proc://host10`; read replies from `proc://host10` (big payloads → artifact://). act uses LATEST epoch + observation-local ids. New Run: op `menu` → setup_run activate → change_tab 'New Run' → start_setup_run (see RUNBOOK Menu ops). Stake stays White until a progression win unlocks Red in the SAVE.
+- Telemetry: reasoning runs write NO log.jsonl rows. Record outcomes in this file + status log by hand. CDP screenshot for proof: tmp pattern in status (fetch /json/list → Page.captureScreenshot).
 
-## Active experiment — AUDIT WAVE (status: due, in progress)
-- C28 cohort concluded -> scheduled behavior-preserving audit per AGENTS cadence. Topics done this wave: RUNBOOK liveness triage (decide-age, not port) pushed; comment/doc accuracy re today's incidents. Remaining topic when next due: unused-export sweep (tools/deepx.mjs is deep-death census, NOT export census — export sweep needs `grep -rn "export " lib *.mjs` vs callers, cheap). Audit = docs/tools only, NEVER touch gameplay code mid-era; no driver restart needed.
+## Rules of play (reasoning doctrine)
+- Decide every play/discard/shop/pack/tarot by reasoning on the CURRENT observation (jokers, levels, economy, boss text, remaining hands/discards). Precompiled predictions (rchips etc.) are cross-checks, never the decider.
+- Boss text governs (`blind` row effects; Settled facts in RUNBOOK). No vanilla-lore assumptions. Never spend the run-saving margin: clear small blinds cheaply, bank money/interest discipline per proven economy (buy when it compounds; reroll only when $ floor allows).
+- One run at a time; NEVER leave a run unattended at a decision point (that's a stall = counts against nothing but wastes wall clock).
 
-## Closed experiments
-- **C32 DOOM/EARLY-ABORT: DEAD** (11-06, full verdict in status-2026-11-04.md ~23:5x block). Sole era a6-survivor flagged doomed at EVERY threshold (a4-shop run-max 1309) and escaped on POST-a4 supply; jokers@ a4-shop census flat across depths (4.56/4.84/4.88, copier 16/19/15%, n=276 post-unlock) -> no live state distinguishes survivors; abort would kill the win tail (0/55 era, we hunt tails not medians). Doom field stays as telemetry; NO live switch will be wired.
-- **C31 route-switch: PARKED** (shadow-policy holes, not live upside; route.mjs census 10% contra = roll-threshold artifacts).
-- **C27 ceiling-targeting: REVERTED.** C28 voucher-first: KEEP (buy-rate 44->89%; depth gated by OFFER RNG).
-
-## Ranked candidates (max 3)
-1. AUDIT wave DONE (export sweep: 126 exports, cyclePartner demoted). Next audit topic: comment-accuracy re-check of shop.mjs/playturn.mjs against post-fix telemetry.
-2. a5+ wall = post-a4 supply RNG (settled); remaining lever candidates ONLY if supply changes: reroll aggression at a5+ shops (money med high there) — needs its own shadow first; deepx census says 54% of 1703 deep-death runs carried >=1 xmult joker (synergy-vs-count question open, low priority).
-3. WAIT for depth (avgA band 2.9-3.2 confirmed steady); mastery hunt = throughput x tail, driver already plays continuously.
-
-## Parked / settled
-- C31 live route-switch: DISPROVED-IN-SAMPLE (tools/route.mjs v2.1: contra ~10% but big-delta rows are shadow-roll-policy discard holes at pNow=0.88, not live upside). Shadow is research-only; do not wire to production (AGENTS verdict rule).
-- C28 voucher-first: KEEP (n=35 gate). C27: reverted. Prediction accuracy: closed, med 1.00.
-- Moon/Sun = suit converters; no chip cap; NO SUBAGENTS (user).
+## Closed/settled (carry-forward)
+- C32 doom dead; C31 parked; C28 voucher-first was driver policy (moot for reasoning mode but observations valid: voucher buys cheap power). Moon/Sun = suit converters. Flint halves BASE. NO SUBAGENTS (user). Gates/push/WAKE_STATE discipline unchanged.
+- Ops traps: overlay back inert -> CDP Escape escalation; headless Chrome drops background mouse events -> CDP clicks on 9222; killdrv.ps1 at repo root (only for driver mode).
 
 ## One exact next action
-Next wakeup: pinger fires on 7 new digests. Primary job = WAIT + verify liveness (decide age <10min + drv-stdout clean). Opportunistic: finish export-sweep audit topic (grep exports vs callers, delete dead, gate `selftest+lint`, commit `chore(deadcode):`-style, NO driver restart needed since exports unused == not loaded). Era stats snapshot each wake: wins + avgA on complete digests rid>=1793990343 (remember rid = epoch SECONDS).
+If host10 connected: start/continue streak attempt on White via menu New Run; play hand-by-hand; on run end (win Ante-8 boss or death), log outcome in "Streak" line above + status-2026-11-06.md, commit push, immediately start next attempt (3 in a row to Red). If host10 dead: re-start per RUNBOOK Reasoning-driven mode section, verify `connected`, then resume.

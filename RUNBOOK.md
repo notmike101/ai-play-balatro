@@ -36,6 +36,22 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   escalation if the bash loop itself must die; `powershell -File tmp/ptree.ps1` lists the whole
   chain (supervisor/driver/host/watcher) for the single-owner check.
 
+## Reasoning-driven mode (hand-driven play; primary since 2026-11-06)
+The agent plays every hand itself; no driver, no loopdrv, no wake-loop, no pinger.
+- **Start:** NAMED service `host10`: `node automation-host.mjs --origin https://poker.gl.ax --stay-open`
+  (cwd repo root, ready-gate port 4180). Chrome must already run (Stack recovery). The page
+  reconnects on its own; proof = `{"v":1,"event":"connected",...}` line in `proc://host10`.
+- **Drive:** write one JSON op per line to `proc://host10` (service stdin): `{"v":1,"id":N,"op":"observe"}`
+  -> full game state + `epoch` on host stdout (`read proc://host10`; big payloads land in
+  `artifact://`). Act with `{"v":1,"id":N,"op":"act","args":{...epoch, ids from LATEST observe...}}`.
+  Protocol + id-locality rules identical to Operational contracts below. `menu`/`describe` ops work.
+- **Stop:** `write proc://<name>/kill` on `host10` FIRST, then start loopdrv if returning to
+  supervised mode — the host holds port 4180 while alive and loopdrv would ready-storm behind it.
+- **Records:** reasoning runs do NOT write `log.jsonl` (that is driver telemetry). Outcomes go to
+  `WAKE_STATE.md` (streak counter) + status log immediately after each run ends. Streak = 3 wins
+  in a row to advance a stake; any loss/abort/crash resets it. CDP :9222 (clicks, screenshots)
+  is independent and stays up in both modes.
+
 ## Deploy
 1. `node driver.mjs --selftest` must print `SELFTEST OK`.
 2. `pnpm exec eslint --fix <files>` then `pnpm run lint > out/lint.txt`; verify `echo $?` prints 0
@@ -232,16 +248,13 @@ activate NO LONGER crashes the page (10-30 fix; driver self-serves New Run -> PL
 
 ## Stake progression vs mastery (standing rule; full text in AGENTS.md)
 
-1 win = PROGRESSION (unlocks next stake). MASTERY = >=9 wins in 30 consecutive
-autonomous attempts on the same stake with UNCHANGED policy+scoring; any gameplay-
-affecting change resets the window. Win = Ante 8 boss defeated. Measurement recipe:
-attempt = any run with a `runstart` row (losses/crashes/interrupts ALL count; a run
-with runstart but no results row counts as a failed attempt — never drop it); per-
-window stats = win rate, avg exit ante, duration (runstart->runend/result ts); tag
-every archived window with policy version + git commit (`git rev-parse HEAD` at window
-start). Never claim consistency from 1 win; no time-based quotas. Mastery is tracked
-independently of progression: current standing = White progressed/not-mastered (policy
-changed post-win, window re-based), Red grinding 0 wins.
+1 win = PROGRESSION (unlocks next stake). MASTERY/ADVANCEMENT (USER 2026-11-06) = **3 CONSECUTIVE
+wins on the same stake**, no loss between; any loss/crash/abort resets the streak to 0.
+(Supersedes the old >=9-in-30 rule.) Attempts must be real completed-or-failed runs; never
+drop a failure from the sequence. Tag every streak attempt with mode (reasoning-driven vs
+driver), stake, and outcome in the status log. Standing: White 0/3; ALL higher stakes are
+LOCKED in the game save (the 11-06 reboot wiped unlocks; `out/wins.json` = `{}` mirrors it -
+game save is authority, see Settled facts) and are re-earned by progression wins.
 
 ## Strategy state (2026-10-31 baseline; 11-01 chain in status-2026-11-01.md at repo root)
 11-01 update: cohort chain 14 draw-EV discards (PASS, avgA 3.20) + 15b planet use-on-sight
