@@ -27,6 +27,11 @@ Game page connects to this host over `ws://127.0.0.1:4180/` (exactly ONE browser
   PITFALL (11-04): the supervisor service can itself die (job reaping) - killdrv then leaves
   NOTHING running while :4180 may still LISTEN from a stale driver. Deploy truth: code-live =
   a `sessionstart` row with ts > commit ts; a listening port proves NOTHING about restarts.
+  LIVENESS triage (11-06, 2.7h play-dead): port LISTEN + connected page + live driver can still
+  mean ZERO play - an inert overlay back button deadlocked the decision loop while everything
+  "healthy" watched. The only liveness proof is FRESH TELEMETRY: age of last `decide`/`runend`
+  < ~10 min (a stuck-sleep ladder shows as repeating `overlay: escape`/`stuck 8x` lines in
+  out/drv-stdout.txt; driver.mjs now escalates inert backs via nudgeUnpause CDP Escape).
   Exactly ONE supervisor loop and ONE watcher may exist at a time; `tmp/psloopkill.ps1` is the
   escalation if the bash loop itself must die; `powershell -File tmp/ptree.ps1` lists the whole
   chain (supervisor/driver/host/watcher) for the single-owner check.
